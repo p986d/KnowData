@@ -1,0 +1,12 @@
+**/__pycache__/
+**/.pytest_cache/
+*.py[cod]
+*$py.class
+setup.bat
+
+analysis/**
+log/**
+metadata/**
+test/**
+
+.env

@@ -1,0 +1,67 @@
+snowflake:
+  role: "PARTICIPANT"
+  warehouse: "COMPUTE_WH_PARTICIPANT"
+  database: null
+  schema: null
+
+llm:
+  default_model: "qwen3_30B_instruct"
+
+  models:
+    deepseek_reason:
+      api_key_env: "API_KEY_Lab_DeepSeek"
+      base_url_env: "BASE_URL_Lab_DeepSeek"
+      model: "deepseek-reasoner"
+      temperature: 0.1
+      top_p: 0.95
+      timeout: 600.0
+      max_retries: 2
+      max_completion_tokens: 102400
+      max_concurrency: 8
+      default_system_prompt: "You are a helpful assistant."
+
+    deepseek_chat:
+      api_key_env: "API_KEY_Lab_DeepSeek"
+      base_url_env: "BASE_URL_Lab_DeepSeek"
+      model: "deepseek-chat"
+      temperature: 0.1
+      top_p: 0.95
+      timeout: 600.0
+      max_retries: 2
+      max_completion_tokens: 102400
+      max_concurrency: 8
+      default_system_prompt: "You are a helpful assistant."  
+
+    qwen3_30B_instruct:
+      api_key_env: "API_KEY_Comp_DashScope"
+      base_url_env: "BASE_URL_Comp_DashScope"
+      model: "qwen3-30b-a3b-instruct-2507"
+      temperature: 0.1
+      top_p: 0.95
+      timeout: 600.0
+      max_retries: 2
+      max_completion_tokens: 102400
+      max_concurrency: 8
+      default_system_prompt: "" 
+
+    qwen3_30B_thinking:
+      api_key_env: "API_KEY_Comp_DashScope"
+      base_url_env: "BASE_URL_Comp_DashScope"
+      model: "qwen3-30b-a3b-thinking-2507"
+      temperature: 0.5
+      top_p: 0.95
+      timeout: 60.0
+      max_retries: 2
+      max_completion_tokens: 102400
+      max_concurrency: 8
+      default_system_prompt: "You are a helpful assistant." 
+
+engine:
+  default_provider: "reforce"
+
+  providers:
+    reforce:
+      root: "../ReFoRCE"
+      spider2_root: "../Spider2/spider2-snow"
+      nl2sql_script: "../ReFoRCE/methods/ReFoRCE/online_nl2sql.py"
+      schema_linking_script: "../ReFoRCE/methods/ReFoRCE/online_schema_linking.py"
