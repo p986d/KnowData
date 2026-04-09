@@ -89,6 +89,7 @@ def build_output_payload(
         "conceptual_sql": str(er_result.get("conceptual_sql") or "").strip(),
         "entities": list(er_result.get("entities") or []),
         "relations": list(er_result.get("relations") or []),
+        "connections": list(er_result.get("connections") or []),
         "conditions": list(er_result.get("conditions") or []),
     }
 
@@ -118,7 +119,7 @@ class NL2ER:
         (self.log_dir / filename).write_text(content, encoding="utf-8")
 
     def extract_erc(self) -> dict[str, Any]:
-        template_name = "NL2ER_SQL_Conceptual_st1_v5.5.md" #"NL2ER_ER_st1_v5.2.md"
+        template_name = "NL2ER_SQL_Conceptual_st1_v5.7.md" #"NL2ER_ER_st1_v5.2.md"
         self.build_prompt.register_template(
             name="step_1_extract_ERC",
             template_name=template_name,
@@ -162,7 +163,7 @@ class NL2ER:
         return self.normalize_conceptual_query_plan(erc_payload)
 
     def parse_conceptual_sql(self, conceptual_sql: str) -> dict[str, Any]:
-        template_name = "NL2ER_SQL_Parse_st2_v1.0.md"
+        template_name = "NL2ER_SQL_Parse_st2_v2.md"
         self.build_prompt.register_template(
             name="step_2_parse_conceptual_sql",
             template_name=template_name,
@@ -203,6 +204,7 @@ class NL2ER:
         return {
             "entities": ensure_list(payload.get("entities")),
             "relations": ensure_list(payload.get("relations")),
+            "connections": ensure_list(payload.get("connections")),
             "conditions": ensure_list(payload.get("conditions")),
         }
 
@@ -400,6 +402,7 @@ class NL2ER:
             elapsed_seconds=time.time() - step_started_at,
             entity_count=len(sql_parse_result.get("entities") or []),
             relation_count=len(sql_parse_result.get("relations") or []),
+            connection_count=len(sql_parse_result.get("connections") or []),
             condition_count=len(sql_parse_result.get("conditions") or []),
         )
 
@@ -409,6 +412,7 @@ class NL2ER:
                 "conceptual_sql": conceptual_plan["conceptual_sql"],
                 "entities": sql_parse_result.get("entities", []),
                 "relations": sql_parse_result.get("relations", []),
+                "connections": sql_parse_result.get("connections", []),
                 "conditions": sql_parse_result.get("conditions", []),
             },
             "elapsed_seconds": elapsed_seconds,

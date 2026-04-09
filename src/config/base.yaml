@@ -16,7 +16,7 @@ llm:
       top_p: 0.95
       timeout: 600.0
       max_retries: 2
-      max_completion_tokens: 102400
+      max_completion_tokens: 204800
       max_concurrency: 8
       default_system_prompt: "You are a helpful assistant."
 
@@ -28,7 +28,19 @@ llm:
       top_p: 0.95
       timeout: 600.0
       max_retries: 2
-      max_completion_tokens: 102400
+      max_completion_tokens: 204800
+      max_concurrency: 8
+      default_system_prompt: "You are a helpful assistant."  
+
+    deepseek_chat_personal:
+      api_key_env: "API_KEY_Personal_Volces"
+      base_url_env: "BASE_URL_Personal_Volces"
+      model: "deepseek-v3-2-251201"
+      temperature: 0.1
+      top_p: 0.95
+      timeout: 600.0
+      max_retries: 2
+      max_completion_tokens: 204800
       max_concurrency: 8
       default_system_prompt: "You are a helpful assistant."  
 
@@ -40,7 +52,7 @@ llm:
       top_p: 0.95
       timeout: 600.0
       max_retries: 2
-      max_completion_tokens: 102400
+      max_completion_tokens: 204800
       max_concurrency: 8
       default_system_prompt: "" 
 
@@ -52,9 +64,22 @@ llm:
       top_p: 0.95
       timeout: 60.0
       max_retries: 2
-      max_completion_tokens: 102400
+      max_completion_tokens: 204800
       max_concurrency: 8
       default_system_prompt: "You are a helpful assistant." 
+
+    qwen_max:
+      api_key_env: "API_KEY_Comp_DashScope"
+      base_url_env: "BASE_URL_Comp_DashScope"
+      model: "qwen-max"
+      temperature: 0.5
+      top_p: 0.95
+      timeout: 60.0
+      max_retries: 2
+      max_completion_tokens: 204800
+      max_concurrency: 8
+      default_system_prompt: "You are a helpful assistant."     
+
 
 engine:
   default_provider: "reforce"
@@ -62,6 +87,11 @@ engine:
   providers:
     reforce:
       root: "../ReFoRCE"
-      spider2_root: "../Spider2/spider2-snow"
+      spider2_root: "../ReFoRCE/spider2-snow"
       nl2sql_script: "../ReFoRCE/methods/ReFoRCE/online_nl2sql.py"
+      schema_linking_script: "../ReFoRCE/methods/ReFoRCE/online_schema_linking.py"
+    reforce_gen_sl_m1:
+      root: "../ReFoRCE"
+      spider2_root: "../ReFoRCE/spider2-snow"
+      nl2sql_script: "../ReFoRCE/methods/ReFoRCE/online_nl2sql_gen_sl_m1.py"
       schema_linking_script: "../ReFoRCE/methods/ReFoRCE/online_schema_linking.py"

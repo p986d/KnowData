@@ -8,19 +8,22 @@ set "RUN_MODE=single"
 
 @REM Used only when RUN_MODE=single.
 set "QUESTION_IDS=sf_bq050"
-set "QUESTION_IDS=sf_bq017"
+@REM set "QUESTION_IDS=sf_bq017"
 @REM set "QUESTION_IDS=sf_bq182"
 @REM set "QUESTION_IDS=sf_bq209"
 @REM set "QUESTION_IDS=sf_bq341"
 
-set "QUESTION_IDS=sf_bq248"
-set "QUESTION_IDS=sf_bq254"
-set "QUESTION_IDS=sf_local015"
-set "QUESTION_IDS=sf_local030"
-set "QUESTION_IDS=sf_local157"
+@REM set "QUESTION_IDS=sf_bq248"
+@REM set "QUESTION_IDS=sf_bq254"
+@REM set "QUESTION_IDS=sf_local015"
+@REM set "QUESTION_IDS=sf_local030"
+@REM set "QUESTION_IDS=sf_local157"
 
 @REM set "LLM=qwen3_30B_instruct"
 set "LLM=deepseek_chat"
+@REM set "LLM=qwen_max"
+
+set "NL2SQL_ENGINE=reforce_gen_sl_m1"
 
 if /I "%RUN_MODE%"=="single" goto run_single
 if /I "%RUN_MODE%"=="all" goto run_all
@@ -44,6 +47,7 @@ goto after_run
 :run_all
 python -m src.run.pipeline ^
   --input-path "%CD%\data\input.json" ^
+  --engine-provider "%ENGINE_PROVIDER%" ^
   --nl2er-model-config "%LLM%" ^
   --question-model-config "%LLM%" ^
   --nl2sql-model-config "%LLM%" ^

@@ -212,6 +212,17 @@ def _extract_schema_linking_from_nl2sql_result(
     return tables, columns, schema_linking_artifact_path or fallback_result_path
 
 
+def _extract_engine_error(engine_result: dict[str, Any] | None) -> str | None:
+    if not isinstance(engine_result, dict):
+        return None
+    raw_error = engine_result.get("error")
+    if isinstance(raw_error, str):
+        text = raw_error.strip()
+        if text:
+            return text
+    return None
+
+
 def _normalize_runtime(runtime: EngineRuntimeConfig | None) -> EngineRuntimeConfig:
     normalized = runtime or EngineRuntimeConfig(provider_name="reforce")
     return EngineRuntimeConfig(
@@ -556,6 +567,7 @@ class ReforceEngineProvider:
                     else {}
                 )
                 sql = str(final_result.get("sql") or "")
+                engine_error = _extract_engine_error(engine_result)
                 tables, columns, schema_linking_result_path = _extract_schema_linking_from_nl2sql_result(
                     engine_result,
                     fallback_result_path=resolved_output_path,
@@ -569,6 +581,7 @@ class ReforceEngineProvider:
                     stderr=completed_stderr,
                     exit_code=returncode,
                     sql=sql,
+                    error=None if sql else engine_error,
                     raw_result=engine_result,
                     tables=tables,
                     columns=columns,
@@ -630,6 +643,7 @@ class ReforceEngineProvider:
 
         final_result = engine_result.get("final", {}) if isinstance(engine_result, dict) else {}
         sql = str(final_result.get("sql") or "")
+        engine_error = _extract_engine_error(engine_result)
         tables, columns, schema_linking_result_path = _extract_schema_linking_from_nl2sql_result(
             engine_result,
             fallback_result_path=resolved_output_path,
@@ -643,6 +657,7 @@ class ReforceEngineProvider:
             stderr=completed_stderr,
             exit_code=returncode,
             sql=sql,
+            error=None if sql else engine_error,
             raw_result=engine_result,
             tables=tables,
             columns=columns,

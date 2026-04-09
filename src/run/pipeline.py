@@ -217,7 +217,14 @@ def run_single_question(
     er2data_analysis_output_path = metadata_dir / DEFAULT_ER2DATA_ANALYSIS_FILENAME
     er2data_final_query_output_path = metadata_dir / DEFAULT_ER2DATA_FINAL_QUERY_FILENAME
 
-    write_json(metadata_dir / "input.json", serialize_input_payload(input_payload))
+    serialized_input = serialize_input_payload(input_payload)
+    write_json(
+        metadata_dir / "input.json",
+        {
+            **serialized_input,
+            "input_path": str(args.input_path),
+        },
+    )
     write_json(
         metadata_dir / "run_context.json",
         {
@@ -225,14 +232,21 @@ def run_single_question(
             "question_id": input_payload.question_id,
             "db_id": input_payload.db_id,
             "timestamp": run_timestamp,
+            "pipeline_input_path": str(args.input_path),
+            "input_path": str(nl2er_output_path),
             "metadata_dir": str(metadata_dir),
             "nl2er_log_dir": str(nl2er_log_dir),
             "er2data_log_dir": str(er2data_log_dir),
+            "output_path": str(er2data_output_path),
+            "analysis_output_path": str(er2data_analysis_output_path),
+            "final_query_output_path": str(er2data_final_query_output_path),
             "nl2er_output_path": str(nl2er_output_path),
             "er2data_output_path": str(er2data_output_path),
             "er2data_analysis_output_path": str(er2data_analysis_output_path),
-            "final_query_output_path": str(er2data_final_query_output_path),
             "er2data_final_query_output_path": str(er2data_final_query_output_path),
+            "engine_provider": args.engine_provider,
+            "include_conditions_in_er2query": args.include_conditions_in_er2query,
+            "include_conditions_in_sql2nl": args.include_conditions_in_sql2nl,
         },
     )
 
@@ -250,8 +264,8 @@ def run_single_question(
         db_hint=input_payload.db_hint,
         external_knowledge=input_payload.external_knowledge,
     )
-    write_json(metadata_dir / "nl2er_input.json", serialize_input_payload(input_payload))
-    write_json(nl2er_log_dir / "input.json", serialize_input_payload(input_payload))
+    write_json(metadata_dir / "nl2er_input.json", serialized_input)
+    write_json(nl2er_log_dir / "input.json", serialized_input)
 
     nl2er = NL2ER(
         prompt_dir=args.nl2er_prompt_dir,
@@ -311,14 +325,21 @@ def run_single_question(
         "question_id": input_payload.question_id,
         "db_id": input_payload.db_id,
         "timestamp": run_timestamp,
+        "pipeline_input_path": str(args.input_path),
+        "input_path": str(nl2er_output_path),
         "metadata_dir": str(metadata_dir),
         "nl2er_log_dir": str(nl2er_log_dir),
         "er2data_log_dir": str(er2data_log_dir),
-        "nl2er_output_path": str(nl2er_output_path),
-        "er2data_output_path": str(er2data_output_path),
-        "er2data_analysis_output_path": str(er2data_payload["analysis_output_path"]),
+        "output_path": str(er2data_payload["output_path"]),
+        "analysis_output_path": str(er2data_payload["analysis_output_path"]),
         "final_query_output_path": str(er2data_payload["final_query_output_path"]),
+        "nl2er_output_path": str(nl2er_output_path),
+        "er2data_output_path": str(er2data_payload["output_path"]),
+        "er2data_analysis_output_path": str(er2data_payload["analysis_output_path"]),
         "er2data_final_query_output_path": str(er2data_payload["final_query_output_path"]),
+        "engine_provider": args.engine_provider,
+        "include_conditions_in_er2query": args.include_conditions_in_er2query,
+        "include_conditions_in_sql2nl": args.include_conditions_in_sql2nl,
         "nl2er_elapsed_seconds": nl2er_payload["elapsed_seconds"],
         "er2data_summary": er2data_payload,
     }

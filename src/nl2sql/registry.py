@@ -35,6 +35,9 @@ def resolve_engine_provider_name(provider_name: str | None = None) -> str:
 
 def get_engine_provider(provider_name: str | None = None) -> EngineProvider:
     resolved_name = resolve_engine_provider_name(provider_name)
+    engine_settings = _try_load_engine_settings()
+    if engine_settings is not None and resolved_name in engine_settings.providers:
+        return ReforceEngineProvider()
     if resolved_name == "reforce":
         return ReforceEngineProvider()
     raise KeyError(f"Engine provider not found: {resolved_name}")
@@ -50,24 +53,6 @@ def resolve_engine_runtime(
     python_executable: str | None = None,
 ) -> EngineRuntimeConfig:
     resolved_name = resolve_engine_provider_name(provider_name)
-    legacy_overrides = {
-        "spider2_root": spider2_root,
-        "reforce_root": reforce_root,
-        "engine_script": engine_script,
-        "nl2sql_engine_script": nl2sql_engine_script,
-    }
-
-    if resolved_name != "reforce":
-        used_legacy_keys = [
-            key for key, value in legacy_overrides.items()
-            if value is not None and str(value).strip()
-        ]
-        if used_legacy_keys:
-            raise ValueError(
-                "Legacy ReFoRCE overrides are only supported for the `reforce` provider: "
-                + ", ".join(sorted(used_legacy_keys))
-            )
-
     root = DEFAULT_REFORCE_ROOT
     schema_linking_script = DEFAULT_SCHEMA_LINKING_ENGINE_SCRIPT
     nl2sql_script = DEFAULT_NL2SQL_ENGINE_SCRIPT

@@ -8,7 +8,7 @@ pushd "%~dp0" || exit /b 1
 set "RUN_MODE=single"
 
 @REM Used only when RUN_MODE=single.
-@REM set "QUESTION_IDS=sf_bq050"
+set "QUESTION_IDS=sf_bq050"
 @REM set "QUESTION_IDS=sf_bq052"
 set "QUESTION_IDS=sf_bq017"
 
@@ -18,6 +18,9 @@ set "QUESTION_IDS=sf_bq017"
 @REM set "LLM=qwen3_30B_instruct"
 set "LLM=deepseek_chat"
 
+@REM set "LLM=qwen_max"
+
+@REM set "LLM=deepseek_chat_personal"
 if /I "%RUN_MODE%"=="single" goto run_single
 if /I "%RUN_MODE%"=="all" goto run_all
 

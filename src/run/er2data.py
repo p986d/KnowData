@@ -3,8 +3,10 @@
 import argparse
 import copy
 import csv
+import hashlib
 import json
 import re
+import sys
 import time
 from collections import defaultdict
 from concurrent.futures import ThreadPoolExecutor, as_completed
@@ -37,19 +39,23 @@ DEFAULT_INPUT_PATH = Path("er_output_test.json")
 DEFAULT_OUTPUT_FILENAME = "er2data_output.json"
 DEFAULT_ANALYSIS_FILENAME = "er2data_analysis.json"
 DEFAULT_FINAL_QUERY_FILENAME = "final_query_output.json"
+DEFAULT_DB_ID = "NEW_YORK_CITIBIKE_1"
 DEFAULT_PROMPT_DIR = Path("src/prompt/prompt_template")
 DEFAULT_LOG_ROOT = Path("log/er2data")
 DEFAULT_METADATA_ROOT = Path("metadata")
-PROMPT_TEMPLATE_NAME = "ER2Data_er2query_st1_v0.3.md"
+DEFAULT_ER2QUERY_TEMPLATE_NAME = "ER2Data_er2query_st1_v1.0.md"
+LEGACY_ER2QUERY_TEMPLATE_NAME = "ER2Data_er2query_st1_v0.3.md"
 PROMPT_TEMPLATE_KEY = "er2data_unit_to_query"
 ANALYSIS_TEMPLATE_NAME = "ER2Data_query2unit_check_st2_v0.md"
 ANALYSIS_TEMPLATE_KEY = "er2data_query_to_unit_check"
 FINAL_QUERY_TEMPLATE_NAME = "ER2Data_final_query_st3_v0.md"
 FINAL_QUERY_TEMPLATE_KEY = "er2data_final_query"
 SAFE_FILE_RE = re.compile(r"[^A-Za-z0-9._-]+")
+SQL_SYMBOL_SAFE_RE = re.compile(r"[^A-Za-z0-9]+")
 ANALYSIS_RESULT_SAMPLE_ROW_LIMIT = 5
 ANALYSIS_RESULT_SAMPLE_COLUMN_LIMIT = 12
 ANALYSIS_RESULT_SAMPLE_VALUE_MAX_CHARS = 160
+SIDECAR_INPUT_FILENAMES = ("input.json", "nl2er_input.json")
 SEMANTIC_UNIT_OUTPUT_CONTRACT = """[Semantic Unit Output Contract]
 
 This SQL implements one semantic unit and its final output columns will be reused later to assemble a larger final query.
@@ -111,14 +117,10 @@ def read_json(path: str | Path) -> dict[str, Any]:
     return payload
 
 
-def read_question_id(path: str | Path) -> str:
-    payload = read_json(path)
-    return str(payload.get("question_id") or payload.get("instance_id") or "").strip()
-
-
-def read_external_knowledge_from_sidecar(path: str | Path) -> str:
+def iter_sidecar_payloads(path: str | Path) -> list[tuple[Path, dict[str, Any]]]:
     input_path = Path(path)
-    for candidate_name in ("input.json", "nl2er_input.json"):
+    payloads: list[tuple[Path, dict[str, Any]]] = []
+    for candidate_name in SIDECAR_INPUT_FILENAMES:
         candidate_path = input_path.with_name(candidate_name)
         if not candidate_path.exists():
             continue
@@ -126,10 +128,306 @@ def read_external_knowledge_from_sidecar(path: str | Path) -> str:
             payload = read_json(candidate_path)
         except Exception:
             continue
-        external_knowledge = payload.get("external_knowledge")
-        if isinstance(external_knowledge, str) and external_knowledge.strip():
-            return external_knowledge
-    return ""
+        payloads.append((candidate_path, payload))
+    return payloads
+
+
+def read_sidecar_context(path: str | Path) -> dict[str, str]:
+    resolved = {
+        "question_id": "",
+        "db_id": "",
+        "user_intent": "",
+        "db_hint": "",
+        "external_knowledge": "",
+    }
+    for _candidate_path, payload in iter_sidecar_payloads(path):
+        if not resolved["question_id"]:
+            resolved["question_id"] = str(
+                payload.get("question_id") or payload.get("instance_id") or ""
+            ).strip()
+        if not resolved["db_id"]:
+            resolved["db_id"] = str(payload.get("db_id") or "").strip()
+        if not resolved["user_intent"]:
+            resolved["user_intent"] = str(
+                payload.get("user_intent") or payload.get("instruction") or ""
+            ).strip()
+        if not resolved["db_hint"]:
+            resolved["db_hint"] = str(payload.get("db_hint") or "").strip()
+        if not resolved["external_knowledge"]:
+            candidate_knowledge = payload.get("external_knowledge")
+            if isinstance(candidate_knowledge, str) and candidate_knowledge.strip():
+                resolved["external_knowledge"] = candidate_knowledge.strip()
+    return resolved
+
+
+def read_question_id(path: str | Path) -> str:
+    payload = read_json(path)
+    question_id = str(payload.get("question_id") or payload.get("instance_id") or "").strip()
+    if question_id:
+        return question_id
+    return read_sidecar_context(path).get("question_id", "").strip()
+
+
+def read_external_knowledge_from_sidecar(path: str | Path) -> str:
+    return read_sidecar_context(path).get("external_knowledge", "").strip()
+
+
+def resolve_er2query_prompt_context(
+    *,
+    er_model: dict[str, Any],
+    input_path: str | Path,
+    external_knowledge: str = "",
+) -> dict[str, str]:
+    sidecar_context = read_sidecar_context(input_path)
+
+    user_intent = str(er_model.get("user_intent") or er_model.get("instruction") or "").strip()
+    if not user_intent:
+        user_intent = sidecar_context.get("user_intent", "").strip()
+
+    db_hint = str(er_model.get("db_hint") or "").strip()
+    if not db_hint:
+        db_hint = sidecar_context.get("db_hint", "").strip()
+
+    resolved_external_knowledge = str(external_knowledge or "").strip()
+    if not resolved_external_knowledge:
+        candidate = er_model.get("external_knowledge")
+        if isinstance(candidate, str):
+            resolved_external_knowledge = candidate.strip()
+    if not resolved_external_knowledge:
+        resolved_external_knowledge = sidecar_context.get("external_knowledge", "").strip()
+
+    return {
+        "user_intent": user_intent,
+        "db_hint": db_hint,
+        "external_knowledge": resolved_external_knowledge,
+    }
+
+
+def cli_option_provided(option_name: str) -> bool:
+    flag = f"--{option_name}"
+    for argument in sys.argv[1:]:
+        if argument == flag or argument.startswith(flag + "="):
+            return True
+    return False
+
+
+def normalize_legacy_attr_list(
+    value: Any,
+    *,
+    location: str,
+    field_name: str,
+) -> list[dict[str, str]]:
+    if value is None:
+        return []
+    if not isinstance(value, list):
+        raise ValueError(f"`{field_name}` must be a list in {location}")
+    normalized: list[dict[str, str]] = []
+    for index, item in enumerate(value):
+        if isinstance(item, str):
+            name = item.strip()
+        elif isinstance(item, dict):
+            name = str(item.get("name") or item.get("attr_name") or "").strip()
+        else:
+            raise ValueError(
+                f"`{field_name}[{index}]` must be a string or object with `name` in {location}"
+            )
+        if not name:
+            continue
+        normalized.append({"name": name})
+    return normalized
+
+
+def normalize_legacy_identifier_attrs(
+    value: Any,
+    *,
+    location: str,
+    field_name: str,
+) -> list[str]:
+    if value is None:
+        return []
+    if not isinstance(value, list):
+        raise ValueError(f"`{field_name}` must be a list in {location}")
+    normalized: list[str] = []
+    for index, item in enumerate(value):
+        if not isinstance(item, str):
+            raise ValueError(f"`{field_name}[{index}]` must be a string in {location}")
+        text = item.strip()
+        if text:
+            normalized.append(text)
+    return normalized
+
+
+def normalize_legacy_participants(
+    value: Any,
+    *,
+    location: str,
+) -> list[dict[str, Any]]:
+    if value is None:
+        return []
+    if not isinstance(value, list):
+        raise ValueError(f"`participants` must be a list in {location}")
+    normalized: list[dict[str, Any]] = []
+    for index, item in enumerate(value):
+        participant_location = f"{location}.participants[{index}]"
+        if isinstance(item, str):
+            entity_name = item.strip()
+            role_name = ""
+        elif isinstance(item, dict):
+            entity_name = str(item.get("entity") or item.get("name") or "").strip()
+            role_name = str(item.get("role") or "").strip()
+        else:
+            raise ValueError(
+                f"`participants[{index}]` must be a string or object in {location}"
+            )
+        if not entity_name:
+            continue
+        normalized.append(
+            {
+                "entity": entity_name,
+                "role": role_name,
+                "cardinality": (
+                    str(item.get("cardinality") or "").strip()
+                    if isinstance(item, dict)
+                    else ""
+                )
+                or "unknown",
+                "identifier_attrs": normalize_legacy_identifier_attrs(
+                    item.get("identifier_attrs") if isinstance(item, dict) else [],
+                    location=participant_location,
+                    field_name="identifier_attrs",
+                ),
+            }
+        )
+    return normalized
+
+
+def normalize_legacy_conditions(value: Any, *, input_path: str | Path) -> list[dict[str, Any]]:
+    if value is None:
+        return []
+    if not isinstance(value, list):
+        raise ValueError(f"`conditions` must be a list in {Path(input_path)}")
+    normalized: list[dict[str, Any]] = []
+    for index, condition in enumerate(value):
+        location = f"{Path(input_path)}.conditions[{index}]"
+        if not isinstance(condition, dict):
+            raise ValueError(f"`conditions[{index}]` must be an object in {Path(input_path)}")
+        normalized_condition = dict(condition)
+        normalized_condition["name"] = str(
+            condition.get("name") or condition.get("condition_name") or ""
+        ).strip()
+        raw_target = condition.get("target", condition.get("targets", []))
+        if raw_target is None:
+            normalized_condition["target"] = []
+        elif isinstance(raw_target, str):
+            normalized_condition["target"] = [raw_target.strip()] if raw_target.strip() else []
+        elif isinstance(raw_target, list):
+            targets: list[str] = []
+            for target_index, item in enumerate(raw_target):
+                if not isinstance(item, str):
+                    raise ValueError(
+                        f"`conditions[{index}].targets[{target_index}]` must be a string in {location}"
+                    )
+                text = item.strip()
+                if text:
+                    targets.append(text)
+            normalized_condition["target"] = targets
+        else:
+            raise ValueError(f"`conditions[{index}].targets` must be a string or list in {location}")
+        normalized_condition["condition_type"] = str(condition.get("condition_type") or "").strip()
+        normalized_condition["condition_desc"] = str(
+            condition.get("condition_desc") or condition.get("description") or ""
+        ).strip()
+        basis = condition.get("basis")
+        if basis is None:
+            normalized_condition["basis"] = []
+        elif isinstance(basis, list):
+            normalized_condition["basis"] = [item.strip() for item in basis if isinstance(item, str) and item.strip()]
+        else:
+            raise ValueError(f"`conditions[{index}].basis` must be a list in {location}")
+        normalized.append(normalized_condition)
+    return normalized
+
+
+def normalize_er_input_payload(payload: dict[str, Any], *, input_path: str | Path) -> dict[str, Any]:
+    if not isinstance(payload, dict):
+        raise ValueError(f"Expected JSON object at {Path(input_path)}, got {type(payload).__name__}")
+    if "entity_types" in payload or "relationship_types" in payload:
+        return payload
+
+    has_legacy_shape = "entities" in payload or "relations" in payload
+    if not has_legacy_shape:
+        return payload
+
+    entities = payload.get("entities", [])
+    relations = payload.get("relations", [])
+    conditions = payload.get("conditions", [])
+
+    if not isinstance(entities, list):
+        raise ValueError(f"`entities` must be a list in {Path(input_path)}")
+    if not isinstance(relations, list):
+        raise ValueError(f"`relations` must be a list in {Path(input_path)}")
+
+    normalized_payload = dict(payload)
+
+    normalized_entities: list[dict[str, Any]] = []
+    for index, entity in enumerate(entities):
+        location = f"{Path(input_path)}.entities[{index}]"
+        if not isinstance(entity, dict):
+            raise ValueError(f"`entities[{index}]` must be an object in {Path(input_path)}")
+        entity_name = str(entity.get("name") or entity.get("entity_name") or "").strip()
+        if not entity_name:
+            continue
+        normalized_entities.append(
+            {
+                "name": entity_name,
+                "grain": str(entity.get("grain") or "").strip(),
+                "desc": str(entity.get("desc") or "").strip(),
+                "role": str(entity.get("role") or "").strip(),
+                "attrs": normalize_legacy_attr_list(
+                    entity.get("attrs", entity.get("attributes")),
+                    location=location,
+                    field_name="attributes",
+                ),
+                "identifier_attrs": normalize_legacy_identifier_attrs(
+                    entity.get("identifier_attrs", entity.get("primary_key")),
+                    location=location,
+                    field_name="primary_key",
+                ),
+            }
+        )
+
+    normalized_relationships: list[dict[str, Any]] = []
+    for index, relation in enumerate(relations):
+        location = f"{Path(input_path)}.relations[{index}]"
+        if not isinstance(relation, dict):
+            raise ValueError(f"`relations[{index}]` must be an object in {Path(input_path)}")
+        relation_name = str(relation.get("name") or relation.get("relation_name") or "").strip()
+        if not relation_name:
+            continue
+        normalized_relationships.append(
+            {
+                "name": relation_name,
+                "grain": str(relation.get("grain") or "").strip(),
+                "desc": str(relation.get("desc") or "").strip(),
+                "participants": normalize_legacy_participants(
+                    relation.get("participants"),
+                    location=location,
+                ),
+                "attrs": normalize_legacy_attr_list(
+                    relation.get("attrs", relation.get("attributes")),
+                    location=location,
+                    field_name="attributes",
+                ),
+            }
+        )
+
+    normalized_payload["entity_types"] = normalized_entities
+    normalized_payload["relationship_types"] = normalized_relationships
+    normalized_payload["conditions"] = normalize_legacy_conditions(
+        conditions,
+        input_path=input_path,
+    )
+    return normalized_payload
 
 
 def write_json(path: str | Path, payload: dict[str, Any]) -> None:
@@ -168,11 +466,14 @@ def unique_strings(values: Any) -> list[str]:
 
 
 def to_safe_sql_symbol(value: str, *, fallback: str) -> str:
-    text = re.sub(r"_+", "_", re.sub(r"[^A-Za-z0-9]+", "_", str(value or ""))).strip("_")
+    raw_value = str(value or "").strip()
+    text = re.sub(r"_+", "_", SQL_SYMBOL_SAFE_RE.sub("_", raw_value)).strip("_")
     if not text:
         text = fallback
     if text and text[0].isdigit():
         text = "_" + text
+    if any(ord(char) > 127 for char in raw_value):
+        text = f"{text}_{hashlib.sha1(raw_value.encode('utf-8')).hexdigest()[:8]}"
     return text
 
 
@@ -183,8 +484,13 @@ def format_alias_list(aliases: list[str]) -> str:
 
 
 def safe_file_stem(value: str) -> str:
-    cleaned = SAFE_FILE_RE.sub("_", value).strip("._")
-    return cleaned or "item"
+    raw_value = str(value or "").strip()
+    cleaned = SAFE_FILE_RE.sub("_", raw_value).strip("._")
+    if not cleaned:
+        cleaned = "item"
+    if SAFE_FILE_RE.search(raw_value):
+        cleaned = f"{cleaned}_{hashlib.sha1(raw_value.encode('utf-8')).hexdigest()[:8]}"
+    return cleaned
 
 
 def shorten_text(text: str | None, limit: int = 1200) -> str:
@@ -252,6 +558,15 @@ def extract_condition_targets(condition: dict[str, Any]) -> list[str]:
     return unique_strings(raw_target)
 
 
+def extract_condition_target_roots(condition: dict[str, Any]) -> set[str]:
+    roots: set[str] = set()
+    for target in extract_condition_targets(condition):
+        head = target.split(".", 1)[0].strip()
+        if head:
+            roots.add(head)
+    return roots
+
+
 def extract_linking_items(payload: dict[str, Any], key: str) -> list[str]:
     alias_map = {
         "gen_tb": ["gen_tb", "linked_tables"],
@@ -285,6 +600,7 @@ class ER2DataRunner:
         *,
         prompt_dir: str | Path,
         log_dir: str | Path,
+        er2query_template_name: str = DEFAULT_ER2QUERY_TEMPLATE_NAME,
         question_model_config: str | None = None,
         schema_link_model_config: str | None = None,
         nl2sql_model_config: str | None = None,
@@ -293,6 +609,7 @@ class ER2DataRunner:
     ) -> None:
         self.prompt_dir = Path(prompt_dir)
         self.log_dir = Path(log_dir)
+        self.er2query_template_name = str(er2query_template_name).strip()
         self.include_conditions_in_er2query = include_conditions_in_er2query
         self.include_conditions_in_sql2nl = include_conditions_in_sql2nl
         self.question_prompt_dir = self.log_dir / "question_prompts"
@@ -336,9 +653,14 @@ class ER2DataRunner:
         )
         self.prompt_builder.register_template(
             name=PROMPT_TEMPLATE_KEY,
-            template_name=PROMPT_TEMPLATE_NAME,
+            template_name=self.er2query_template_name,
             required_vars=["target_unit_type", "target_unit", "conditions"],
-            default_vars={"conditions": []},
+            default_vars={
+                "user_intent": "",
+                "db_hint": "",
+                "external_knowledge": "",
+                "conditions": [],
+            },
             description="Rewrite one ER unit into a natural-language retrieval question.",
         )
 
@@ -469,18 +791,35 @@ class ER2DataRunner:
 
         for condition in all_conditions:
             condition_name = str(condition.get("name", "")).strip()
+            condition_type = str(condition.get("condition_type") or "").strip().lower()
             targets = extract_condition_targets(condition)
+            target_roots = extract_condition_target_roots(condition)
             basis_roots = extract_basis_roots(condition)
             reasons: list[str] = []
+
+            if condition_type and condition_type != "single_attribute":
+                reasons.append(f"condition_type `{condition_type}` is not imported into question")
+                selection_log.append(
+                    {
+                        "condition_name": condition_name,
+                        "selected": False,
+                        "reasons": reasons,
+                    }
+                )
+                continue
 
             if unit_name and unit_name in targets:
                 reasons.append("condition.target matches current unit")
             if unit_name and unit_name in basis_roots:
                 reasons.append("condition.basis directly references current unit")
+            if unit_name and unit_name in target_roots:
+                reasons.append("condition.target root matches current unit")
 
             if target_unit_type == "relationship" and participant_entities:
                 if participant_entities.intersection(targets):
                     reasons.append("condition.target matches a relationship participant")
+                if participant_entities.intersection(target_roots):
+                    reasons.append("condition.target root matches a relationship participant")
                 if basis_roots.intersection(participant_entities):
                     reasons.append("condition.basis references a relationship participant")
 
@@ -497,10 +836,16 @@ class ER2DataRunner:
 
         return applied_conditions, selection_log
 
-    def build_prompt(self, unit: UnitTask) -> str:
+    def build_prompt(self, unit: UnitTask, *, prompt_context: dict[str, str] | None = None) -> str:
+        resolved_prompt_context = prompt_context or {}
         return self.prompt_builder.build_text(
             PROMPT_TEMPLATE_KEY,
             vars={
+                "user_intent": str(resolved_prompt_context.get("user_intent") or "").strip(),
+                "db_hint": str(resolved_prompt_context.get("db_hint") or "").strip(),
+                "external_knowledge": str(
+                    resolved_prompt_context.get("external_knowledge") or ""
+                ).strip(),
                 "target_unit_type": unit.target_unit_type,
                 "target_unit": unit.target_unit,
                 "conditions": (
@@ -513,13 +858,14 @@ class ER2DataRunner:
         self,
         units: list[UnitTask],
         *,
+        prompt_context: dict[str, str] | None = None,
         max_concurrency: int | None = None,
     ) -> list[dict[str, Any]]:
         prompts: list[str] = []
         results: list[dict[str, Any]] = []
 
         for unit in units:
-            prompt = self.build_prompt(unit)
+            prompt = self.build_prompt(unit, prompt_context=prompt_context)
             prompt_path = self.question_prompt_dir / f"{safe_file_stem(unit.unit_id)}.md"
             prompt_path.write_text(prompt, encoding="utf-8")
             prompts.append(prompt)
@@ -1372,7 +1718,7 @@ class ER2DataRunner:
             if not unit_name or not unit_type:
                 continue
 
-            safe_cte_name = to_safe_sql_symbol(unit_name, fallback="cte")
+            safe_cte_name = to_safe_sql_symbol(unit_name, fallback=f"{unit_type}_cte")
 
             if not result_sql:
                 missing_units.append(
@@ -1997,7 +2343,7 @@ class ER2DataRunner:
             engine_script=engine_script,
             nl2sql_engine_script=nl2sql_engine_script,
         )
-        er_model = read_json(input_path)
+        er_model = normalize_er_input_payload(read_json(input_path), input_path=input_path)
         resolved_external_knowledge = external_knowledge
         if not resolved_external_knowledge:
             candidate = er_model.get("external_knowledge")
@@ -2007,6 +2353,11 @@ class ER2DataRunner:
             resolved_external_knowledge = read_external_knowledge_from_sidecar(input_path)
         write_json(self.log_dir / "input.json", er_model)
         units = self.build_units(er_model)
+        prompt_context = resolve_er2query_prompt_context(
+            er_model=er_model,
+            input_path=input_path,
+            external_knowledge=resolved_external_knowledge,
+        )
 
         if not units:
             raise ValueError("No entity_types or relationship_types were found in the input ER JSON.")
@@ -2016,6 +2367,7 @@ class ER2DataRunner:
         step_started_at = time.time()
         unit_results = self.generate_questions(
             units,
+            prompt_context=prompt_context,
             max_concurrency=max_question_concurrency,
         )
         question_success_count = sum(
@@ -2176,7 +2528,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--input-path", type=Path, default=DEFAULT_INPUT_PATH)
     parser.add_argument("--question-id", default=None)
     parser.add_argument("--output-path", type=Path, default=None)
-    parser.add_argument("--db-id", default="NEW_YORK_CITIBIKE_1")
+    parser.add_argument("--db-id", default=DEFAULT_DB_ID)
     parser.add_argument("--prompt-dir", type=Path, default=DEFAULT_PROMPT_DIR)
     parser.add_argument("--log-dir", type=Path, default=None)
     parser.add_argument("--log-root", type=Path, default=DEFAULT_LOG_ROOT)
@@ -2185,6 +2537,10 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--question-model-config", default=None)
     parser.add_argument("--schema-link-model-config", default=None)
     parser.add_argument("--nl2sql-model-config", default=None)
+    parser.add_argument(
+        "--er2query-template-name",
+        default=DEFAULT_ER2QUERY_TEMPLATE_NAME,
+    )
     parser.add_argument("--include-conditions-in-er2query", action="store_true")
     parser.add_argument("--include-conditions-in-sql2nl", action="store_true")
     parser.add_argument("--max-question-concurrency", type=int, default=None)
@@ -2210,11 +2566,19 @@ def parse_args() -> argparse.Namespace:
 
 def main() -> None:
     args = parse_args()
+    sidecar_context = read_sidecar_context(args.input_path)
     question_id = str(args.question_id or read_question_id(args.input_path)).strip()
     if not question_id:
         raise ValueError(
             "`question_id` is required. Provide it in the input JSON or pass --question-id."
         )
+    db_id = str(args.db_id or "").strip()
+    if not cli_option_provided("db-id") and (not db_id or db_id == DEFAULT_DB_ID):
+        sidecar_db_id = sidecar_context.get("db_id", "").strip()
+        if sidecar_db_id:
+            db_id = sidecar_db_id
+    if not db_id:
+        db_id = DEFAULT_DB_ID
 
     run_timestamp = build_timestamp()
     run_id = f"{question_id}_{run_timestamp}"
@@ -2241,7 +2605,7 @@ def main() -> None:
         metadata_dir / "input.json",
         {
             "question_id": question_id,
-            "db_id": args.db_id,
+            "db_id": db_id,
             "input_path": str(args.input_path),
         },
     )
@@ -2250,7 +2614,7 @@ def main() -> None:
         {
             "run_id": run_id,
             "question_id": question_id,
-            "db_id": args.db_id,
+            "db_id": db_id,
             "timestamp": run_timestamp,
             "input_path": str(args.input_path),
             "metadata_dir": str(metadata_dir),
@@ -2258,6 +2622,7 @@ def main() -> None:
             "output_path": str(output_path),
             "final_query_output_path": str(final_query_output_path),
             "engine_provider": args.engine_provider,
+            "er2query_template_name": args.er2query_template_name,
             "include_conditions_in_er2query": args.include_conditions_in_er2query,
             "include_conditions_in_sql2nl": args.include_conditions_in_sql2nl,
         },
@@ -2265,11 +2630,12 @@ def main() -> None:
 
     print(f"[ER2Data] run_id={run_id}")
     print(f"[ER2Data] question_id={question_id}")
-    print(f"[ER2Data] db_id={args.db_id}")
+    print(f"[ER2Data] db_id={db_id}")
 
     runner = ER2DataRunner(
         prompt_dir=args.prompt_dir,
         log_dir=log_dir,
+        er2query_template_name=args.er2query_template_name,
         question_model_config=args.question_model_config,
         schema_link_model_config=args.schema_link_model_config,
         nl2sql_model_config=args.nl2sql_model_config,
@@ -2280,7 +2646,7 @@ def main() -> None:
     payload = runner.run(
         input_path=args.input_path,
         output_path=output_path,
-        db_id=args.db_id,
+        db_id=db_id,
         max_question_concurrency=args.max_question_concurrency,
         skip_schema_linking=args.skip_schema_linking,
         max_linking_workers=args.max_linking_workers,
@@ -2306,7 +2672,7 @@ def main() -> None:
         {
             "run_id": run_id,
             "question_id": question_id,
-            "db_id": args.db_id,
+            "db_id": db_id,
             "timestamp": run_timestamp,
             "input_path": str(args.input_path),
             "metadata_dir": str(metadata_dir),
@@ -2315,6 +2681,7 @@ def main() -> None:
             "analysis_output_path": str(payload["analysis_output_path"]),
             "final_query_output_path": str(payload["final_query_output_path"]),
             "engine_provider": args.engine_provider,
+            "er2query_template_name": args.er2query_template_name,
             "include_conditions_in_er2query": args.include_conditions_in_er2query,
             "include_conditions_in_sql2nl": args.include_conditions_in_sql2nl,
             "er2data_summary": payload,
