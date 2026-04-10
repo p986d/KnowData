@@ -8,7 +8,7 @@ set "RUN_MODE=single"
 
 @REM Used only when RUN_MODE=single.
 set "QUESTION_IDS=sf_bq050"
-@REM set "QUESTION_IDS=sf_bq017"
+set "QUESTION_IDS=sf_bq017"
 @REM set "QUESTION_IDS=sf_bq182"
 @REM set "QUESTION_IDS=sf_bq209"
 @REM set "QUESTION_IDS=sf_bq341"

@@ -119,7 +119,7 @@ class NL2ER:
         (self.log_dir / filename).write_text(content, encoding="utf-8")
 
     def extract_erc(self) -> dict[str, Any]:
-        template_name = "NL2ER_SQL_Conceptual_st1_v5.7.md" #"NL2ER_ER_st1_v5.2.md"
+        template_name = "NL2ER_SQL_Conceptual_st1_v5.8.md" #"NL2ER_ER_st1_v5.2.md"
         self.build_prompt.register_template(
             name="step_1_extract_ERC",
             template_name=template_name,
@@ -163,7 +163,7 @@ class NL2ER:
         return self.normalize_conceptual_query_plan(erc_payload)
 
     def parse_conceptual_sql(self, conceptual_sql: str) -> dict[str, Any]:
-        template_name = "NL2ER_SQL_Parse_st2_v2.md"
+        template_name = "NL2ER_SQL_Parse_st2_v2.2.md"
         self.build_prompt.register_template(
             name="step_2_parse_conceptual_sql",
             template_name=template_name,

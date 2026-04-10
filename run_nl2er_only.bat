@@ -9,11 +9,12 @@ set "RUN_MODE=single"
 
 @REM Used only when RUN_MODE=single.
 set "QUESTION_IDS=sf_bq050"
-@REM set "QUESTION_IDS=sf_bq052"
-set "QUESTION_IDS=sf_bq017"
+set "QUESTION_IDS=sf_bq052"
+@REM set "QUESTION_IDS=sf_bq017"
 
 @REM set "QUESTION_IDS=test_bird_2"
 @REM set "QUESTION_IDS=sf_bq182"
+@REM set "QUESTION_IDS=sf_bq248"
 
 @REM set "LLM=qwen3_30B_instruct"
 set "LLM=deepseek_chat"
