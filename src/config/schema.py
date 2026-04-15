@@ -14,6 +14,34 @@ class SnowflakeConfig:
     database: Optional[str] = None
     schema: Optional[str] = None
 
+
+@dataclass(slots=True)
+class MySQLConfig:
+    host: Optional[str] = None
+    port: Optional[int] = None
+    user: Optional[str] = None
+    password: Optional[str] = None
+    database: Optional[str] = None
+
+    def missing_fields(self) -> list[str]:
+        missing: list[str] = []
+
+        if not self.host:
+            missing.append("host")
+        if self.port is None:
+            missing.append("port")
+        if not self.user:
+            missing.append("user")
+        if not self.password:
+            missing.append("password")
+        if not self.database:
+            missing.append("database")
+
+        return missing
+
+    def is_configured(self) -> bool:
+        return not self.missing_fields()
+
 @dataclass(slots=True)
 class LLMConfig:
     api_key: str
@@ -63,5 +91,6 @@ class EngineSettings:
 @dataclass(slots=True)
 class Settings:
     snowflake: SnowflakeConfig
+    mysql_sy_test: MySQLConfig
     llm: LLMSettings
     engine: EngineSettings

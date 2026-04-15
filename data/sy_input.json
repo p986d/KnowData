@@ -1,0 +1,156 @@
+[
+  {
+    "question_id": "sy00",
+    "db_id": "sy_community_link",
+    "user_intent": "大桥街道常住人口总数是多少？",
+    "db_hint": "",
+    "external_knowledge": ""
+  },
+  {
+    "question_id": "sy01",
+    "db_id": "sy_community_link",
+    "user_intent": "大桥街道各居委的人口总数是多少,取前10名？",
+    "db_hint": "",
+    "external_knowledge": ""
+  },
+  {
+    "question_id": "sy02",
+    "db_id": "sy_community_link",
+    "user_intent": "大桥街道少数民族有多少人？",
+    "db_hint": "",
+    "external_knowledge": ""
+  },
+  {
+    "question_id": "sy03",
+    "db_id": "sy_community_link",
+    "user_intent": "大桥街道男女人数比例是多少？",
+    "db_hint": "",
+    "external_knowledge": ""
+  },
+  {
+    "question_id": "sy04",
+    "db_id": "sy_community_link",
+    "user_intent": "大桥街道各居委80岁以上的老人有多少，取前10名？",
+    "db_hint": "",
+    "external_knowledge": ""
+  },
+  {
+    "question_id": "sy05",
+    "db_id": "sy_community_link",
+    "user_intent": "大桥街道户籍人员总数是多少？",
+    "db_hint": "",
+    "external_knowledge": ""
+  },
+  {
+    "question_id": "sy07",
+    "db_id": "sy_community_link",
+    "user_intent": "大桥街道各居委的房屋总数分别是多少？返回前10名",
+    "db_hint": "",
+    "external_knowledge": ""
+  },
+  {
+    "question_id": "sy09",
+    "db_id": "sy_community_link",
+    "user_intent": "大桥街道有多少套房子是2000前造的？",
+    "db_hint": "",
+    "external_knowledge": ""
+  },
+  {
+    "question_id": "sy10",
+    "db_id": "sy_community_link",
+    "user_intent": "大桥街道各居委的独居老人数量分别是多少？返回前十名",
+    "db_hint": "",
+    "external_knowledge": ""
+  },
+  {
+    "question_id": "sy11",
+    "db_id": "sy_community_link",
+    "user_intent": "大桥街道周家牌居委、银河苑居委、临青居委的独居老人数量分别是多少？",
+    "db_hint": "",
+    "external_knowledge": ""
+  },
+  {
+    "question_id": "sy13",
+    "db_id": "sy_community_link",
+    "user_intent": "大桥街道退役军人有多少人？",
+    "db_hint": "",
+    "external_knowledge": ""
+  },
+  {
+    "question_id": "sy14",
+    "db_id": "sy_community_link",
+    "user_intent": "常住人口总数是多少？",
+    "db_hint": "",
+    "external_knowledge": ""
+  },
+  {
+    "question_id": "sy15",
+    "db_id": "sy_community_link",
+    "user_intent": "少数民族有多少人？",
+    "db_hint": "",
+    "external_knowledge": ""
+  },
+  {
+    "question_id": "sy16",
+    "db_id": "sy_community_link",
+    "user_intent": "80 岁以上的老人有多少？",
+    "db_hint": "",
+    "external_knowledge": ""
+  },
+  {
+    "question_id": "sy17",
+    "db_id": "sy_community_link",
+    "user_intent": "男女人数比例是多少？",
+    "db_hint": "",
+    "external_knowledge": ""
+  },
+  {
+    "question_id": "sy18",
+    "db_id": "sy_community_link",
+    "user_intent": "谢路路下常住人口总数是多少？",
+    "db_hint": "",
+    "external_knowledge": ""
+  },
+  {
+    "question_id": "sy19",
+    "db_id": "sy_community_link",
+    "user_intent": "谢路路1弄下常住人口总数是多少？",
+    "db_hint": "",
+    "external_knowledge": ""
+  },
+  {
+    "question_id": "sy20",
+    "db_id": "sy_community_link",
+    "user_intent": "谢路路1弄1号下常住人口总数是多少？",
+    "db_hint": "",
+    "external_knowledge": ""
+  },
+  {
+    "question_id": "sy21",
+    "db_id": "sy_community_link",
+    "user_intent": "房屋总数是多少？",
+    "db_hint": "",
+    "external_knowledge": ""
+  },
+  {
+    "question_id": "sy22",
+    "db_id": "sy_community_link",
+    "user_intent": "有多少套房子是2000前造的",
+    "db_hint": "",
+    "external_knowledge": ""
+  },
+  {
+    "question_id": "sy23",
+    "db_id": "sy_community_link",
+    "user_intent": "独居老人人口数量？",
+    "db_hint": "",
+    "external_knowledge": ""
+  },
+  {
+    "question_id": "sy24",
+    "db_id": "sy_community_link",
+    "user_intent": "临青居委有没有百岁老人，有的话请给出年龄最大的10位人员的详细信息？",
+    "db_hint": "",
+    "external_knowledge": ""
+  }
+]

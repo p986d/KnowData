@@ -23,6 +23,7 @@ from src.nl2sql.defaults import (
     DEFAULT_REFORCE_ROOT,
     DEFAULT_SPIDER2_ROOT,
 )
+from src.nl2sql.db_resource_locator import resolve_database_resource
 from src.nl2sql.registry import get_engine_provider, resolve_engine_runtime
 from src.prompt.prompt_builder import PromptBuilder
 from src.utils.json_util import json_check, json_parse
@@ -211,7 +212,7 @@ def cli_option_provided(option_name: str) -> bool:
     return False
 
 
-def normalize_legacy_attr_list(
+def normalize_nl2er_attr_list(
     value: Any,
     *,
     location: str,
@@ -222,22 +223,23 @@ def normalize_legacy_attr_list(
     if not isinstance(value, list):
         raise ValueError(f"`{field_name}` must be a list in {location}")
     normalized: list[dict[str, str]] = []
+    seen_names: set[str] = set()
     for index, item in enumerate(value):
-        if isinstance(item, str):
-            name = item.strip()
-        elif isinstance(item, dict):
-            name = str(item.get("name") or item.get("attr_name") or "").strip()
-        else:
+        if not isinstance(item, str):
             raise ValueError(
-                f"`{field_name}[{index}]` must be a string or object with `name` in {location}"
+                f"`{field_name}[{index}]` must be a string in {location}"
             )
+        name = item.strip()
         if not name:
             continue
+        if name in seen_names:
+            continue
         normalized.append({"name": name})
+        seen_names.add(name)
     return normalized
 
 
-def normalize_legacy_identifier_attrs(
+def normalize_nl2er_identifier_attrs(
     value: Any,
     *,
     location: str,
@@ -248,16 +250,19 @@ def normalize_legacy_identifier_attrs(
     if not isinstance(value, list):
         raise ValueError(f"`{field_name}` must be a list in {location}")
     normalized: list[str] = []
+    seen: set[str] = set()
     for index, item in enumerate(value):
         if not isinstance(item, str):
             raise ValueError(f"`{field_name}[{index}]` must be a string in {location}")
         text = item.strip()
-        if text:
-            normalized.append(text)
+        if not text or text in seen:
+            continue
+        normalized.append(text)
+        seen.add(text)
     return normalized
 
 
-def normalize_legacy_participants(
+def normalize_nl2er_participants(
     value: Any,
     *,
     location: str,
@@ -269,39 +274,63 @@ def normalize_legacy_participants(
     normalized: list[dict[str, Any]] = []
     for index, item in enumerate(value):
         participant_location = f"{location}.participants[{index}]"
-        if isinstance(item, str):
-            entity_name = item.strip()
-            role_name = ""
-        elif isinstance(item, dict):
-            entity_name = str(item.get("entity") or item.get("name") or "").strip()
-            role_name = str(item.get("role") or "").strip()
-        else:
+        if not isinstance(item, dict):
             raise ValueError(
-                f"`participants[{index}]` must be a string or object in {location}"
+                f"`participants[{index}]` must be an object in {location}"
             )
+        entity_name = str(item.get("entity") or "").strip()
+        role_name = str(item.get("role") or "").strip()
         if not entity_name:
-            continue
+            raise ValueError(f"`participants[{index}].entity` is required in {location}")
         normalized.append(
             {
                 "entity": entity_name,
                 "role": role_name,
-                "cardinality": (
-                    str(item.get("cardinality") or "").strip()
-                    if isinstance(item, dict)
-                    else ""
-                )
-                or "unknown",
-                "identifier_attrs": normalize_legacy_identifier_attrs(
-                    item.get("identifier_attrs") if isinstance(item, dict) else [],
+                "cardinality": "unknown",
+                "identifier_attrs": normalize_nl2er_identifier_attrs(
+                    item.get("anchor_attribute"),
                     location=participant_location,
-                    field_name="identifier_attrs",
+                    field_name="anchor_attribute",
                 ),
             }
         )
     return normalized
 
 
-def normalize_legacy_conditions(value: Any, *, input_path: str | Path) -> list[dict[str, Any]]:
+def normalize_nl2er_relationship_unit(
+    value: Any,
+    *,
+    location: str,
+    name_field: str,
+    source_type: str,
+) -> dict[str, Any]:
+    if not isinstance(value, dict):
+        raise ValueError(f"`{location}` must be an object")
+
+    unit_name = str(value.get(name_field) or "").strip()
+    if not unit_name:
+        raise ValueError(f"`{location}.{name_field}` is required")
+
+    return {
+        "name": unit_name,
+        "grain": str(value.get("grain") or "").strip(),
+        # Current NL2ER output carries the core relationship/connection semantics here.
+        "desc": str(value.get("link_condition") or "").strip(),
+        "participants": normalize_nl2er_participants(
+            value.get("participants"),
+            location=location,
+        ),
+        "attrs": normalize_nl2er_attr_list(
+            value.get("attributes"),
+            location=location,
+            field_name="attributes",
+        ),
+        "source_type": source_type,
+        "link_condition": str(value.get("link_condition") or "").strip(),
+    }
+
+
+def normalize_nl2er_conditions(value: Any, *, input_path: str | Path) -> list[dict[str, Any]]:
     if value is None:
         return []
     if not isinstance(value, list):
@@ -311,11 +340,11 @@ def normalize_legacy_conditions(value: Any, *, input_path: str | Path) -> list[d
         location = f"{Path(input_path)}.conditions[{index}]"
         if not isinstance(condition, dict):
             raise ValueError(f"`conditions[{index}]` must be an object in {Path(input_path)}")
-        normalized_condition = dict(condition)
-        normalized_condition["name"] = str(
-            condition.get("name") or condition.get("condition_name") or ""
-        ).strip()
-        raw_target = condition.get("target", condition.get("targets", []))
+        normalized_condition: dict[str, Any] = {}
+        normalized_condition["name"] = str(condition.get("condition_name") or "").strip()
+        if not normalized_condition["name"]:
+            raise ValueError(f"`conditions[{index}].condition_name` is required in {Path(input_path)}")
+        raw_target = condition.get("targets", [])
         if raw_target is None:
             normalized_condition["target"] = []
         elif isinstance(raw_target, str):
@@ -334,38 +363,37 @@ def normalize_legacy_conditions(value: Any, *, input_path: str | Path) -> list[d
         else:
             raise ValueError(f"`conditions[{index}].targets` must be a string or list in {location}")
         normalized_condition["condition_type"] = str(condition.get("condition_type") or "").strip()
-        normalized_condition["condition_desc"] = str(
-            condition.get("condition_desc") or condition.get("description") or ""
-        ).strip()
-        basis = condition.get("basis")
-        if basis is None:
-            normalized_condition["basis"] = []
-        elif isinstance(basis, list):
-            normalized_condition["basis"] = [item.strip() for item in basis if isinstance(item, str) and item.strip()]
-        else:
-            raise ValueError(f"`conditions[{index}].basis` must be a list in {location}")
+        normalized_condition["condition_desc"] = str(condition.get("description") or "").strip()
+        normalized_condition["basis"] = []
         normalized.append(normalized_condition)
     return normalized
 
 
-def normalize_er_input_payload(payload: dict[str, Any], *, input_path: str | Path) -> dict[str, Any]:
+def normalize_er_input_payload(
+    payload: dict[str, Any],
+    *,
+    input_path: str | Path,
+    merge_connections_into_relationships: bool = False,
+) -> dict[str, Any]:
     if not isinstance(payload, dict):
         raise ValueError(f"Expected JSON object at {Path(input_path)}, got {type(payload).__name__}")
     if "entity_types" in payload or "relationship_types" in payload:
-        return payload
-
-    has_legacy_shape = "entities" in payload or "relations" in payload
-    if not has_legacy_shape:
-        return payload
+        raise ValueError(
+            "Legacy ER input format with `entity_types` / `relationship_types` is no longer supported. "
+            "Regenerate the NL2ER output."
+        )
 
     entities = payload.get("entities", [])
     relations = payload.get("relations", [])
     conditions = payload.get("conditions", [])
+    connections = payload.get("connections", [])
 
     if not isinstance(entities, list):
         raise ValueError(f"`entities` must be a list in {Path(input_path)}")
     if not isinstance(relations, list):
         raise ValueError(f"`relations` must be a list in {Path(input_path)}")
+    if connections is not None and not isinstance(connections, list):
+        raise ValueError(f"`connections` must be a list in {Path(input_path)}")
 
     normalized_payload = dict(payload)
 
@@ -374,22 +402,22 @@ def normalize_er_input_payload(payload: dict[str, Any], *, input_path: str | Pat
         location = f"{Path(input_path)}.entities[{index}]"
         if not isinstance(entity, dict):
             raise ValueError(f"`entities[{index}]` must be an object in {Path(input_path)}")
-        entity_name = str(entity.get("name") or entity.get("entity_name") or "").strip()
+        entity_name = str(entity.get("entity_name") or "").strip()
         if not entity_name:
-            continue
+            raise ValueError(f"`entities[{index}].entity_name` is required in {Path(input_path)}")
         normalized_entities.append(
             {
                 "name": entity_name,
                 "grain": str(entity.get("grain") or "").strip(),
-                "desc": str(entity.get("desc") or "").strip(),
-                "role": str(entity.get("role") or "").strip(),
-                "attrs": normalize_legacy_attr_list(
-                    entity.get("attrs", entity.get("attributes")),
+                "desc": "",
+                "role": "",
+                "attrs": normalize_nl2er_attr_list(
+                    entity.get("attributes"),
                     location=location,
                     field_name="attributes",
                 ),
-                "identifier_attrs": normalize_legacy_identifier_attrs(
-                    entity.get("identifier_attrs", entity.get("primary_key")),
+                "identifier_attrs": normalize_nl2er_identifier_attrs(
+                    entity.get("primary_key"),
                     location=location,
                     field_name="primary_key",
                 ),
@@ -399,31 +427,30 @@ def normalize_er_input_payload(payload: dict[str, Any], *, input_path: str | Pat
     normalized_relationships: list[dict[str, Any]] = []
     for index, relation in enumerate(relations):
         location = f"{Path(input_path)}.relations[{index}]"
-        if not isinstance(relation, dict):
-            raise ValueError(f"`relations[{index}]` must be an object in {Path(input_path)}")
-        relation_name = str(relation.get("name") or relation.get("relation_name") or "").strip()
-        if not relation_name:
-            continue
         normalized_relationships.append(
-            {
-                "name": relation_name,
-                "grain": str(relation.get("grain") or "").strip(),
-                "desc": str(relation.get("desc") or "").strip(),
-                "participants": normalize_legacy_participants(
-                    relation.get("participants"),
-                    location=location,
-                ),
-                "attrs": normalize_legacy_attr_list(
-                    relation.get("attrs", relation.get("attributes")),
-                    location=location,
-                    field_name="attributes",
-                ),
-            }
+            normalize_nl2er_relationship_unit(
+                relation,
+                location=location,
+                name_field="relation_name",
+                source_type="relation",
+            )
         )
+
+    if merge_connections_into_relationships:
+        for index, connection in enumerate(connections or []):
+            location = f"{Path(input_path)}.connections[{index}]"
+            normalized_relationships.append(
+                normalize_nl2er_relationship_unit(
+                    connection,
+                    location=location,
+                    name_field="connection_name",
+                    source_type="connection",
+                )
+            )
 
     normalized_payload["entity_types"] = normalized_entities
     normalized_payload["relationship_types"] = normalized_relationships
-    normalized_payload["conditions"] = normalize_legacy_conditions(
+    normalized_payload["conditions"] = normalize_nl2er_conditions(
         conditions,
         input_path=input_path,
     )
@@ -797,8 +824,13 @@ class ER2DataRunner:
             basis_roots = extract_basis_roots(condition)
             reasons: list[str] = []
 
-            if condition_type and condition_type != "single_attribute":
-                reasons.append(f"condition_type `{condition_type}` is not imported into question")
+            if condition_type != "single_attribute":
+                if condition_type:
+                    reasons.append(
+                        f"condition_type `{condition_type}` is not imported into question"
+                    )
+                else:
+                    reasons.append("condition_type is empty and is not imported into question")
                 selection_log.append(
                     {
                         "condition_name": condition_name,
@@ -2335,6 +2367,7 @@ class ER2DataRunner:
         sample_value_max_chars: int = 300,
         similar_tables_hint_limit: int = 12,
         external_knowledge: str = "",
+        merge_connections_into_relationships: bool = False,
     ) -> dict[str, Any]:
         runtime = resolve_engine_runtime(
             provider_name=engine_provider,
@@ -2343,7 +2376,11 @@ class ER2DataRunner:
             engine_script=engine_script,
             nl2sql_engine_script=nl2sql_engine_script,
         )
-        er_model = normalize_er_input_payload(read_json(input_path), input_path=input_path)
+        er_model = normalize_er_input_payload(
+            read_json(input_path),
+            input_path=input_path,
+            merge_connections_into_relationships=merge_connections_into_relationships,
+        )
         resolved_external_knowledge = external_knowledge
         if not resolved_external_knowledge:
             candidate = er_model.get("external_knowledge")
@@ -2360,7 +2397,14 @@ class ER2DataRunner:
         )
 
         if not units:
-            raise ValueError("No entity_types or relationship_types were found in the input ER JSON.")
+            if ensure_dict_list(er_model.get("connections")) and not merge_connections_into_relationships:
+                raise ValueError(
+                    "No `entities` or `relations` were found in the input ER JSON. "
+                    "`connections` exist but `merge_connections_into_relationships` is disabled."
+                )
+            raise ValueError(
+                "No `entities`, `relations`, or `connections` were found in the input ER JSON."
+            )
 
         print(f"[ER2Data] loaded {len(units)} units from {Path(input_path)}")
 
@@ -2561,6 +2605,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--sample-row-limit", type=int, default=2)
     parser.add_argument("--sample-value-max-chars", type=int, default=300)
     parser.add_argument("--similar-tables-hint-limit", type=int, default=12)
+    parser.add_argument("--merge-connections-into-relationships", action="store_true")
     return parser.parse_args()
 
 
@@ -2579,6 +2624,27 @@ def main() -> None:
             db_id = sidecar_db_id
     if not db_id:
         db_id = DEFAULT_DB_ID
+
+    runtime_preview = resolve_engine_runtime(
+        provider_name=args.engine_provider,
+        spider2_root=args.spider2_root,
+        reforce_root=args.reforce_root,
+        engine_script=args.engine_script,
+        nl2sql_engine_script=args.nl2sql_engine_script,
+    )
+    database_source = None
+    database_root = None
+    database_resolution_error = None
+    try:
+        database_resolution = resolve_database_resource(
+            db_id,
+            spider2_root=runtime_preview.spider2_root or DEFAULT_SPIDER2_ROOT,
+        )
+    except Exception as exc:
+        database_resolution_error = str(exc)
+    else:
+        database_source = database_resolution.source
+        database_root = str(database_resolution.db_root)
 
     run_timestamp = build_timestamp()
     run_id = f"{question_id}_{run_timestamp}"
@@ -2622,15 +2688,24 @@ def main() -> None:
             "output_path": str(output_path),
             "final_query_output_path": str(final_query_output_path),
             "engine_provider": args.engine_provider,
+            "database_source": database_source,
+            "database_root": database_root,
+            "database_resolution_error": database_resolution_error,
             "er2query_template_name": args.er2query_template_name,
             "include_conditions_in_er2query": args.include_conditions_in_er2query,
             "include_conditions_in_sql2nl": args.include_conditions_in_sql2nl,
+            "merge_connections_into_relationships": args.merge_connections_into_relationships,
         },
     )
 
     print(f"[ER2Data] run_id={run_id}")
     print(f"[ER2Data] question_id={question_id}")
     print(f"[ER2Data] db_id={db_id}")
+    if database_source and database_root:
+        print(f"[ER2Data] database_source={database_source}")
+        print(f"[ER2Data] database_root={database_root}")
+    elif database_resolution_error:
+        print(f"[ER2Data] database_resolution_error={database_resolution_error}")
 
     runner = ER2DataRunner(
         prompt_dir=args.prompt_dir,
@@ -2665,6 +2740,7 @@ def main() -> None:
         sample_row_limit=args.sample_row_limit,
         sample_value_max_chars=args.sample_value_max_chars,
         similar_tables_hint_limit=args.similar_tables_hint_limit,
+        merge_connections_into_relationships=args.merge_connections_into_relationships,
     )
 
     write_json(
@@ -2681,9 +2757,13 @@ def main() -> None:
             "analysis_output_path": str(payload["analysis_output_path"]),
             "final_query_output_path": str(payload["final_query_output_path"]),
             "engine_provider": args.engine_provider,
+            "database_source": database_source,
+            "database_root": database_root,
+            "database_resolution_error": database_resolution_error,
             "er2query_template_name": args.er2query_template_name,
             "include_conditions_in_er2query": args.include_conditions_in_er2query,
             "include_conditions_in_sql2nl": args.include_conditions_in_sql2nl,
+            "merge_connections_into_relationships": args.merge_connections_into_relationships,
             "er2data_summary": payload,
         },
     )

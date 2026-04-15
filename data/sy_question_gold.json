@@ -1,0 +1,475 @@
+[
+    {
+        "question_id": 0,
+        "question": "大桥街道常住人口总数是多少？",
+        "auth": {
+            "deptIds": [
+                "310110018",
+                "310110018004",
+                "310110018006",
+                "310110018007",
+                "310110018008",
+                "310110018011",
+                "310110018012",
+                "310110018013",
+                "310110018014",
+                "310110018015",
+                "310110018016",
+                "310110018017",
+                "310110018018",
+                "310110018019",
+                "310110018021",
+                "310110018022",
+                "310110018024",
+                "310110018026",
+                "310110018028",
+                "310110018029",
+                "310110018030",
+                "310110018031"
+            ]
+        },
+        "db_id": "sy_community_link",
+        "SQL": "SELECT COUNT(p.person_id) AS total_count FROM ads_person_basic_info p INNER JOIN ads_residence_relation rr ON p.person_id = rr.person_id AND rr.delete_flag = 0 INNER JOIN ads_house_basic_info h ON rr.house_id = h.house_id AND h.delete_flag = 0 WHERE p.delete_flag = 0 AND h.street = '310110018';"
+    },
+    {
+        "question_id": 1,
+        "question": "大桥街道各居委的人口总数是多少,取前10名？",
+        "auth": {
+            "deptIds": [
+                "310110018",
+                "310110018004",
+                "310110018006",
+                "310110018007",
+                "310110018008",
+                "310110018011",
+                "310110018012",
+                "310110018013",
+                "310110018014",
+                "310110018015",
+                "310110018016",
+                "310110018017",
+                "310110018018",
+                "310110018019",
+                "310110018021",
+                "310110018022",
+                "310110018024",
+                "310110018026",
+                "310110018028",
+                "310110018029",
+                "310110018030",
+                "310110018031"
+            ]
+        },
+        "db_id": "sy_community_link",
+        "SQL": "SELECT d.dept_name, COUNT(DISTINCT p.person_id) AS person_count FROM ads_person_basic_info p INNER JOIN ads_residence_relation rr ON p.person_id = rr.person_id AND rr.delete_flag = 0 INNER JOIN ads_house_basic_info h ON rr.house_id = h.house_id AND h.delete_flag = 0 JOIN sys_dept d on d.dept_id = h.dept_id AND d.delete_flag = 0 WHERE p.delete_flag = 0 AND h.street = '310110018' GROUP BY d.dept_name,d.dept_id ORDER BY person_count DESC limit 10;"
+    },
+    {
+        "question_id": 2,
+        "question": "大桥街道少数民族有多少人？",
+        "auth": {
+            "deptIds": [
+                "310110018",
+                "310110018004",
+                "310110018006",
+                "310110018007",
+                "310110018008",
+                "310110018011",
+                "310110018012",
+                "310110018013",
+                "310110018014",
+                "310110018015",
+                "310110018016",
+                "310110018017",
+                "310110018018",
+                "310110018019",
+                "310110018021",
+                "310110018022",
+                "310110018024",
+                "310110018026",
+                "310110018028",
+                "310110018029",
+                "310110018030",
+                "310110018031"
+            ]
+        },
+        "db_id": "sy_community_link",
+        "SQL": "SELECT COUNT(DISTINCT p.person_id) AS minority_count FROM ads_person_basic_info p INNER JOIN ads_residence_relation rr ON p.person_id = rr.person_id AND rr.delete_flag = 0 INNER JOIN ads_house_basic_info h ON rr.house_id = h.house_id AND h.delete_flag = 0 WHERE p.delete_flag = 0 AND h.street = '310110018' AND p.ethnicity IS NOT NULL AND p.ethnicity != 1; -- 1=汉族"
+    },
+    {
+        "question_id": 3,
+        "question": "大桥街道男女人数比例是多少？",
+        "auth": {
+            "deptIds": [
+                "310110018",
+                "310110018004",
+                "310110018006",
+                "310110018007",
+                "310110018008",
+                "310110018011",
+                "310110018012",
+                "310110018013",
+                "310110018014",
+                "310110018015",
+                "310110018016",
+                "310110018017",
+                "310110018018",
+                "310110018019",
+                "310110018021",
+                "310110018022",
+                "310110018024",
+                "310110018026",
+                "310110018028",
+                "310110018029",
+                "310110018030",
+                "310110018031"
+            ]
+        },
+        "db_id": "sy_community_link",
+        "SQL": "SELECT SUM(CASE WHEN p.gender = 1 THEN 1 ELSE 0 END) AS male_count, SUM(CASE WHEN p.gender = 2 THEN 1 ELSE 0 END) AS female_count, ROUND(SUM(CASE WHEN p.gender = 1 THEN 1 ELSE 0 END) / NULLIF(SUM(CASE WHEN p.gender = 2 THEN 1 ELSE 0 END), 0), 2) AS male_female_ratio FROM ads_person_basic_info p INNER JOIN ads_residence_relation rr ON p.person_id = rr.person_id AND rr.delete_flag = 0 INNER JOIN ads_house_basic_info h ON rr.house_id = h.house_id AND h.delete_flag = 0 WHERE p.delete_flag = 0 AND h.street = '310110018';"
+    },
+    {
+        "question_id": 4,
+        "question": "大桥街道各居委80岁以上的老人有多少，取前10名？",
+        "auth": {
+            "deptIds": [
+                "310110018",
+                "310110018004",
+                "310110018006",
+                "310110018007",
+                "310110018008",
+                "310110018011",
+                "310110018012",
+                "310110018013",
+                "310110018014",
+                "310110018015",
+                "310110018016",
+                "310110018017",
+                "310110018018",
+                "310110018019",
+                "310110018021",
+                "310110018022",
+                "310110018024",
+                "310110018026",
+                "310110018028",
+                "310110018029",
+                "310110018030",
+                "310110018031"
+            ]
+        },
+        "db_id": "sy_community_link",
+        "SQL": "SELECT d.dept_name, COUNT(DISTINCT p.person_id) AS elderly_over_80_count FROM ads_person_basic_info p INNER JOIN ads_residence_relation rr ON p.person_id = rr.person_id AND rr.delete_flag = 0 INNER JOIN ads_house_basic_info h ON rr.house_id = h.house_id AND h.delete_flag = 0 INNER JOIN sys_dept d on h.dept_id = d.dept_id AND d.delete_flag =0 WHERE p.delete_flag = 0 AND h.street = '310110018' AND p.birth_date IS NOT NULL AND TIMESTAMPDIFF(YEAR, p.birth_date, CURDATE()) >= 80 GROUP BY d.dept_name,d.dept_id ORDER BY elderly_over_80_count DESC limit 10;"
+    },
+    {
+        "question_id": 5,
+        "question": "大桥街道户籍人员总数是多少？",
+        "auth": {
+            "deptIds": [
+                "310110018",
+                "310110018004",
+                "310110018006",
+                "310110018007",
+                "310110018008",
+                "310110018011",
+                "310110018012",
+                "310110018013",
+                "310110018014",
+                "310110018015",
+                "310110018016",
+                "310110018017",
+                "310110018018",
+                "310110018019",
+                "310110018021",
+                "310110018022",
+                "310110018024",
+                "310110018026",
+                "310110018028",
+                "310110018029",
+                "310110018030",
+                "310110018031"
+            ]
+        },
+        "db_id": "sy_community_link",
+        "SQL": "select COUNT(distinct hr.person_id) as household_count from ads_household_registration hr inner join ads_house_basic_info h on hr.house_id = h.house_id and h.delete_flag = 0 where hr.delete_flag = 0 and h.street = '310110018';"
+    },
+    {
+        "question_id": 7,
+        "question": "大桥街道各居委的房屋总数分别是多少？返回前10名",
+        "auth": {
+            "deptIds": [
+                "310110018",
+                "310110018004",
+                "310110018006",
+                "310110018007",
+                "310110018008",
+                "310110018011",
+                "310110018012",
+                "310110018013",
+                "310110018014",
+                "310110018015",
+                "310110018016",
+                "310110018017",
+                "310110018018",
+                "310110018019",
+                "310110018021",
+                "310110018022",
+                "310110018024",
+                "310110018026",
+                "310110018028",
+                "310110018029",
+                "310110018030",
+                "310110018031"
+            ]
+        },
+        "db_id": "sy_community_link",
+        "SQL": "SELECT d.dept_name, COUNT(house_id) AS house_count FROM ads_house_basic_info h JOIN sys_dept d ON h.dept_id = d.dept_id WHERE h.delete_flag = 0 AND d.delete_flag = 0 AND street = '310110018' GROUP BY d.dept_name,d.dept_id ORDER BY house_count DESC LIMIT 10;"
+    },
+    {
+        "question_id": 9,
+        "question": "大桥街道有多少套房子是2000前造的？",
+        "auth": {
+            "deptIds": [
+                "310110018",
+                "310110018004",
+                "310110018006",
+                "310110018007",
+                "310110018008",
+                "310110018011",
+                "310110018012",
+                "310110018013",
+                "310110018014",
+                "310110018015",
+                "310110018016",
+                "310110018017",
+                "310110018018",
+                "310110018019",
+                "310110018021",
+                "310110018022",
+                "310110018024",
+                "310110018026",
+                "310110018028",
+                "310110018029",
+                "310110018030",
+                "310110018031"
+            ]
+        },
+        "db_id": "sy_community_link",
+        "SQL": "SELECT COUNT(house_id) AS old_house_count FROM ads_house_basic_info WHERE delete_flag = 0 AND street = '310110018' AND build_year IS NOT NULL AND build_year < 2000;"
+    },
+    {
+        "question_id": 10,
+        "question": "大桥街道各居委的独居老人数量分别是多少？返回前十名",
+        "auth": {
+            "deptIds": [
+                "310110018",
+                "310110018004",
+                "310110018006",
+                "310110018007",
+                "310110018008",
+                "310110018011",
+                "310110018012",
+                "310110018013",
+                "310110018014",
+                "310110018015",
+                "310110018016",
+                "310110018017",
+                "310110018018",
+                "310110018019",
+                "310110018021",
+                "310110018022",
+                "310110018024",
+                "310110018026",
+                "310110018028",
+                "310110018029",
+                "310110018030",
+                "310110018031"
+            ]
+        },
+        "db_id": "sy_community_link",
+        "SQL": "SELECT d.dept_name, COUNT(DISTINCT p.person_id) AS elderly_alone_count FROM ads_person_basic_info p INNER JOIN ads_person_label_relation plr ON p.person_id = plr.person_id AND plr.delete_flag = 0 INNER JOIN ads_label_info li ON plr.label_id = li.label_id AND li.delete_flag = 0 AND li.label_name = '独居老人' INNER JOIN ads_residence_relation rr ON p.person_id = rr.person_id AND rr.delete_flag = 0 INNER JOIN ads_house_basic_info h ON rr.house_id = h.house_id AND h.delete_flag = 0 INNER JOIN sys_dept d on d.dept_id = h.dept_id AND d.delete_flag = 0 WHERE p.delete_flag = 0 AND h.street = '310110018' GROUP BY d.dept_name,d.dept_id ORDER BY d.dept_id;"
+    },
+    {
+        "question_id": 11,
+        "question": "大桥街道周家牌居委、银河苑居委、临青居委的独居老人数量分别是多少？",
+        "auth": {
+            "deptIds": [
+                "310110018",
+                "310110018004",
+                "310110018006",
+                "310110018007",
+                "310110018008",
+                "310110018011",
+                "310110018012",
+                "310110018013",
+                "310110018014",
+                "310110018015",
+                "310110018016",
+                "310110018017",
+                "310110018018",
+                "310110018019",
+                "310110018021",
+                "310110018022",
+                "310110018024",
+                "310110018026",
+                "310110018028",
+                "310110018029",
+                "310110018030",
+                "310110018031"
+            ]
+        },
+        "db_id": "sy_community_link",
+        "SQL": "SELECT d.dept_name, COUNT(DISTINCT p.person_id) AS elderly_alone_count FROM ads_person_basic_info p INNER JOIN ads_person_label_relation plr ON p.person_id = plr.person_id AND plr.delete_flag = 0 INNER JOIN ads_label_info li ON plr.label_id = li.label_id AND li.delete_flag = 0 AND li.label_name = '独居老人' INNER JOIN ads_residence_relation rr ON p.person_id = rr.person_id AND rr.delete_flag = 0 INNER JOIN ads_house_basic_info h ON rr.house_id = h.house_id AND h.delete_flag = 0 INNER JOIN sys_dept d on d.dept_id = h.dept_id AND d.delete_flag = 0 WHERE p.delete_flag = 0 AND h.street= '310110018' AND h.dept_id IN ('310110018007','310110018028','310110018012') GROUP BY d.dept_name,d.dept_id;"
+    },
+    {
+        "question_id": 13,
+        "question": "大桥街道退役军人有多少人？",
+        "auth": {
+            "deptIds": [
+                "310110018",
+                "310110018004",
+                "310110018006",
+                "310110018007",
+                "310110018008",
+                "310110018011",
+                "310110018012",
+                "310110018013",
+                "310110018014",
+                "310110018015",
+                "310110018016",
+                "310110018017",
+                "310110018018",
+                "310110018019",
+                "310110018021",
+                "310110018022",
+                "310110018024",
+                "310110018026",
+                "310110018028",
+                "310110018029",
+                "310110018030",
+                "310110018031"
+            ]
+        },
+        "db_id": "sy_community_link",
+        "SQL": "SELECT COUNT(DISTINCT p.person_id) AS veteran_count FROM ads_person_basic_info p INNER JOIN ads_person_label_relation plr ON p.person_id = plr.person_id AND plr.delete_flag = 0 INNER JOIN ads_label_info li ON plr.label_id = li.label_id AND li.delete_flag = 0 INNER JOIN ads_residence_relation rr ON p.person_id = rr.person_id AND rr.delete_flag = 0 INNER JOIN ads_house_basic_info h ON rr.house_id = h.house_id AND h.delete_flag = 0 WHERE p.delete_flag = 0 AND h.street = '310110018' AND li.label_name IN ('参战退役军人', '参试退役军人（铀矿开采人员）');"
+    },
+    {
+        "question_id": 14,
+        "question": "常住人口总数是多少？",
+        "auth": {
+            "deptIds": [
+                "310105004005"
+            ]
+        },
+        "db_id": "sy_community_link",
+        "SQL": "SELECT COUNT(DISTINCT p.person_id) AS total_count FROM ads_person_basic_info p INNER JOIN ads_residence_relation rr ON p.person_id = rr.person_id AND rr.delete_flag = 0 INNER JOIN ads_house_basic_info h ON rr.house_id = h.house_id AND h.delete_flag = 0 WHERE p.delete_flag = 0 AND h.dept_id = 310105004005;"
+    },
+    {
+        "question_id": 15,
+        "question": "少数民族有多少人？",
+        "auth": {
+            "deptIds": [
+                "310105004005"
+            ]
+        },
+        "db_id": "sy_community_link",
+        "SQL": "SELECT COUNT(DISTINCT p.person_id) AS minority_count FROM ads_person_basic_info p INNER JOIN ads_residence_relation rr ON p.person_id = rr.person_id AND rr.delete_flag = 0 INNER JOIN ads_house_basic_info h ON rr.house_id = h.house_id AND h.delete_flag = 0 WHERE p.delete_flag = 0 AND h.dept_id = 310105004005 AND p.ethnicity IS NOT NULL AND p.ethnicity != 1; -- 1=汉族"
+    },
+    {
+        "question_id": 16,
+        "question": "80 岁以上的老人有多少？",
+        "auth": {
+            "deptIds": [
+                "310105004005"
+            ]
+        },
+        "db_id": "sy_community_link",
+        "SQL": "SELECT COUNT(DISTINCT p.person_id) AS elderly_over_80_count FROM ads_person_basic_info p INNER JOIN ads_residence_relation rr ON p.person_id = rr.person_id AND rr.delete_flag = 0 INNER JOIN ads_house_basic_info h ON rr.house_id = h.house_id AND h.delete_flag = 0 WHERE p.delete_flag = 0 AND h.dept_id = 310105004005 AND p.birth_date IS NOT NULL AND TIMESTAMPDIFF(YEAR, p.birth_date, CURDATE()) >= 80;"
+    },
+    {
+        "question_id": 17,
+        "question": "男女人数比例是多少？",
+        "auth": {
+            "deptIds": [
+                "310105004005"
+            ]
+        },
+        "db_id": "sy_community_link",
+        "SQL": "SELECT SUM(CASE WHEN p.gender = 1 THEN 1 ELSE 0 END) AS male_count, SUM(CASE WHEN p.gender = 2 THEN 1 ELSE 0 END) AS female_count, ROUND(SUM(CASE WHEN p.gender = 1 THEN 1 ELSE 0 END) / NULLIF(SUM(CASE WHEN p.gender = 2 THEN 1 ELSE 0 END), 0), 2) AS male_female_ratio FROM ads_person_basic_info p INNER JOIN ads_residence_relation rr ON p.person_id = rr.person_id AND rr.delete_flag = 0 INNER JOIN ads_house_basic_info h ON rr.house_id = h.house_id AND h.delete_flag = 0 WHERE p.delete_flag = 0 AND h.dept_id = 310105004005;"
+    },
+    {
+        "question_id": 18,
+        "question": "谢路路下常住人口总数是多少？",
+        "auth": {
+            "deptIds": [
+                "310110018004"
+            ]
+        },
+        "db_id": "sy_community_link",
+        "SQL": "SELECT COUNT(DISTINCT p.person_id) AS total_count FROM ads_person_basic_info p INNER JOIN ads_residence_relation rr ON p.person_id = rr.person_id AND rr.delete_flag = 0 INNER JOIN ads_house_basic_info h ON rr.house_id = h.house_id AND h.delete_flag = 0 WHERE p.delete_flag = 0 and h.dept_id = 310110018004 AND h.road = 480894;"
+    },
+    {
+        "question_id": 19,
+        "question": "谢路路1弄下常住人口总数是多少？",
+        "auth": {
+            "deptIds": [
+                "310110018004"
+            ]
+        },
+        "db_id": "sy_community_link",
+        "SQL": "SELECT COUNT(DISTINCT p.person_id) AS total_count FROM ads_person_basic_info p INNER JOIN ads_residence_relation rr ON p.person_id = rr.person_id AND rr.delete_flag = 0 INNER JOIN ads_house_basic_info h ON rr.house_id = h.house_id AND h.delete_flag = 0 WHERE p.delete_flag = 0 and h.dept_id = 310110018004 AND h.road = 480894 AND h.nong = 480895;"
+    },
+    {
+        "question_id": 20,
+        "question": "谢路路1弄1号下常住人口总数是多少？",
+        "auth": {
+            "deptIds": [
+                "310110018004"
+            ]
+        },
+        "db_id": "sy_community_link",
+        "SQL": "SELECT COUNT(DISTINCT p.person_id) AS total_count FROM ads_person_basic_info p INNER JOIN ads_residence_relation rr ON p.person_id = rr.person_id AND rr.delete_flag = 0 INNER JOIN ads_house_basic_info h ON rr.house_id = h.house_id AND h.delete_flag = 0 WHERE p.delete_flag = 0 and h.dept_id = 310110018004 AND h.road = 480894 AND h.nong = 480895 AND h.house_number = 480896;"
+    },
+    {
+        "question_id": 21,
+        "question": "房屋总数是多少？",
+        "auth": {
+            "deptIds": [
+                "310110018004"
+            ]
+        },
+        "db_id": "sy_community_link",
+        "SQL": "SELECT COUNT(house_id) AS house_count FROM ads_house_basic_info WHERE delete_flag = 0 AND dept_id = 310110018004"
+    },
+    {
+        "question_id": 22,
+        "question": "有多少套房子是2000前造的",
+        "auth": {
+            "deptIds": [
+                "310110018004"
+            ]
+        },
+        "db_id": "sy_community_link",
+        "SQL": "SELECT COUNT(house_id) AS old_house_count FROM ads_house_basic_info WHERE delete_flag = 0 AND dept_id = 310110018004 AND build_year IS NOT NULL AND build_year < 2000;"
+    },
+    {
+        "question_id": 23,
+        "question": "独居老人人口数量？",
+        "auth": {
+            "deptIds": [
+                "310110018007"
+            ]
+        },
+        "db_id": "sy_community_link",
+        "SQL": "SELECT COUNT(DISTINCT p.person_id) AS elderly_alone_count FROM ads_person_basic_info p INNER JOIN ads_person_label_relation plr ON p.person_id = plr.person_id AND plr.delete_flag = 0 INNER JOIN ads_label_info li ON plr.label_id = li.label_id AND li.delete_flag = 0 AND li.label_name = '独居老人' INNER JOIN ads_residence_relation rr ON p.person_id = rr.person_id AND rr.delete_flag = 0 INNER JOIN ads_house_basic_info h ON rr.house_id = h.house_id AND h.delete_flag = 0 WHERE p.delete_flag = 0 AND h.dept_id = '310110018007';"
+    },
+    {
+        "question_id": 24,
+        "question": "临青居委有没有百岁老人，有的话请给出年龄最大的10位人员的详细信息？",
+        "auth": {
+            "deptIds": [
+                "310110018012"
+            ]
+        },
+        "db_id": "sy_community_link",
+        "SQL": "SELECT p.person_id, p.name, p.id_number, p.gender, p.ethnicity, p.birth_date, TIMESTAMPDIFF(YEAR, p.birth_date, CURDATE()) AS age, h.detailed_address FROM ads_person_basic_info p INNER JOIN ads_residence_relation rr ON p.person_id = rr.person_id AND rr.delete_flag = 0 INNER JOIN ads_house_basic_info h ON rr.house_id = h.house_id AND h.delete_flag = 0 WHERE p.delete_flag = 0 AND h.dept_id = '310110018012' AND p.birth_date IS NOT NULL AND TIMESTAMPDIFF(YEAR, p.birth_date, CURDATE()) >= 100 ORDER BY age DESC limit 10;"
+    }
+]

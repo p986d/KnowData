@@ -4,6 +4,14 @@ snowflake:
   database: null
   schema: null
 
+mysql_sy_test:
+  host: "sycommu_mysql_HOST"
+  port: "sycommu_mysql_PORT"
+  user: "test"
+  password: "sycommu_mysql_PASSWORD"
+  database: "sy_community_link"
+
+
 llm:
   default_model: "qwen3_30B_instruct"
 
@@ -31,6 +39,18 @@ llm:
       max_completion_tokens: 204800
       max_concurrency: 8
       default_system_prompt: "You are a helpful assistant."  
+
+    deepseek_chat_2:
+      api_key_env: "API_KEY_Comp_DashScope"
+      base_url_env: "BASE_URL_Comp_DashScope"
+      model: "deepseek/deepseek-chat"
+      temperature: 0.1
+      top_p: 0.95
+      timeout: 600.0
+      max_retries: 2
+      max_completion_tokens: 204800
+      max_concurrency: 8
+      default_system_prompt: "" 
 
     deepseek_chat_personal:
       api_key_env: "API_KEY_Personal_Volces"

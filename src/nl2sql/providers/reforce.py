@@ -17,6 +17,7 @@ from src.nl2sql.base import (
     SchemaLinkingRequest,
     SchemaLinkingResult,
 )
+from src.nl2sql.database_profile import resolve_database_execution_profile
 from src.nl2sql.defaults import (
     DEFAULT_NL2SQL_ENGINE_SCRIPT,
     DEFAULT_PROVIDER_LOG_ROOT,
@@ -24,10 +25,14 @@ from src.nl2sql.defaults import (
     DEFAULT_SCHEMA_LINKING_ENGINE_SCRIPT,
     DEFAULT_SPIDER2_ROOT,
 )
+from src.nl2sql.db_resource_locator import resolve_database_resource
 
 
 SCHEMA_LINKING_ENGINE_NAME = "reforce_online_schema_linking"
 NL2SQL_ENGINE_NAME = "reforce_online_nl2sql"
+WRAPPER_DIR = Path(__file__).resolve().parent
+SCHEMA_LINKING_WRAPPER_SCRIPT = WRAPPER_DIR / "reforce_online_schema_linking.py"
+NL2SQL_WRAPPER_SCRIPT = WRAPPER_DIR / "reforce_online_nl2sql.py"
 
 
 def _load_json(path: str | Path) -> dict[str, Any]:
@@ -140,27 +145,44 @@ def _unique_strings(values: Any) -> list[str]:
 
 def _parse_table_fqn(fullname: str) -> dict[str, str]:
     parts = [part.strip() for part in fullname.split(".") if part.strip()]
-    if len(parts) < 3:
+    if len(parts) >= 3:
+        return {
+            "fullname": fullname,
+            "database": ".".join(parts[:-2]),
+            "schema": parts[-2],
+            "table": parts[-1],
+        }
+    if len(parts) == 2:
+        return {
+            "fullname": fullname,
+            "database": parts[0],
+            "table": parts[1],
+        }
+    if len(parts) < 2:
         return {"fullname": fullname}
-    return {
-        "fullname": fullname,
-        "database": ".".join(parts[:-2]),
-        "schema": parts[-2],
-        "table": parts[-1],
-    }
+    return {"fullname": fullname}
 
 
 def _parse_column_fqn(fullname: str) -> dict[str, str]:
     parts = [part.strip() for part in fullname.split(".") if part.strip()]
-    if len(parts) < 4:
+    if len(parts) >= 4:
+        return {
+            "fullname": fullname,
+            "database": ".".join(parts[:-3]),
+            "schema": parts[-3],
+            "table": parts[-2],
+            "column": parts[-1],
+        }
+    if len(parts) == 3:
+        return {
+            "fullname": fullname,
+            "database": parts[0],
+            "table": parts[1],
+            "column": parts[2],
+        }
+    if len(parts) < 3:
         return {"fullname": fullname}
-    return {
-        "fullname": fullname,
-        "database": ".".join(parts[:-3]),
-        "schema": parts[-3],
-        "table": parts[-2],
-        "column": parts[-1],
-    }
+    return {"fullname": fullname}
 
 
 def _extract_items(payload: dict[str, Any], *candidate_keys: str) -> list[str]:
@@ -233,8 +255,24 @@ def _normalize_runtime(runtime: EngineRuntimeConfig | None) -> EngineRuntimeConf
             normalized.schema_linking_script or DEFAULT_SCHEMA_LINKING_ENGINE_SCRIPT
         ),
         nl2sql_script=Path(normalized.nl2sql_script or DEFAULT_NL2SQL_ENGINE_SCRIPT),
+        database_root=Path(normalized.database_root) if normalized.database_root else None,
+        database_source=normalized.database_source,
         python_executable=normalized.python_executable or (sys.executable or "python"),
     )
+
+
+def _resolve_database_binding(
+    runtime: EngineRuntimeConfig,
+    db_id: str,
+) -> tuple[Path, str]:
+    if runtime.database_root is not None:
+        return Path(runtime.database_root), str(runtime.database_source or "explicit")
+
+    resolution = resolve_database_resource(
+        db_id,
+        spider2_root=runtime.spider2_root or DEFAULT_SPIDER2_ROOT,
+    )
+    return resolution.db_root, resolution.source
 
 
 class ReforceEngineProvider:
@@ -246,6 +284,23 @@ class ReforceEngineProvider:
         raise_on_error: bool = False,
     ) -> SchemaLinkingResult:
         runtime = _normalize_runtime(runtime)
+        try:
+            database_root, database_source = _resolve_database_binding(runtime, request.db_id)
+        except Exception as exc:
+            result = SchemaLinkingResult(
+                ok=False,
+                engine=SCHEMA_LINKING_ENGINE_NAME,
+                result_path=request.output_path,
+                temporary_output=False,
+                stdout="",
+                stderr="",
+                exit_code=None,
+                error=str(exc),
+            )
+            if raise_on_error:
+                raise RuntimeError(result.error or "Schema linking database resolution failed.") from exc
+            return result
+        db_profile = resolve_database_execution_profile(request.db_id)
         resolved_output_path, is_temporary_output = _resolve_output_path(
             request.output_path,
             namespace="schema_linking",
@@ -254,7 +309,7 @@ class ReforceEngineProvider:
         )
         command = [
             runtime.python_executable,
-            str(runtime.schema_linking_script),
+            str(SCHEMA_LINKING_WRAPPER_SCRIPT),
             "--api_key",
             request.api_key,
             "--base_url",
@@ -267,6 +322,8 @@ class ReforceEngineProvider:
             request.question,
             "--spider2_root",
             str(runtime.spider2_root),
+            "--upstream_script",
+            str(runtime.schema_linking_script),
             "--output_path",
             resolved_output_path,
             "--temperature",
@@ -281,6 +338,14 @@ class ReforceEngineProvider:
             str(request.sample_value_max_chars),
             "--similar_tables_hint_limit",
             str(request.similar_tables_hint_limit),
+            "--db_root",
+            str(database_root),
+            "--database_source",
+            database_source,
+            "--backend",
+            db_profile.backend,
+            "--dialect",
+            db_profile.dialect,
         ]
 
         try:
@@ -405,6 +470,23 @@ class ReforceEngineProvider:
         raise_on_error: bool = False,
     ) -> NL2SQLResult:
         runtime = _normalize_runtime(runtime)
+        try:
+            database_root, database_source = _resolve_database_binding(runtime, request.db_id)
+        except Exception as exc:
+            result = NL2SQLResult(
+                ok=False,
+                engine=NL2SQL_ENGINE_NAME,
+                result_path=request.output_path,
+                temporary_output=False,
+                stdout="",
+                stderr="",
+                exit_code=None,
+                error=str(exc),
+            )
+            if raise_on_error:
+                raise RuntimeError(result.error or "NL2SQL database resolution failed.") from exc
+            return result
+        db_profile = resolve_database_execution_profile(request.db_id)
         resolved_output_path, is_temporary_output = _resolve_output_path(
             request.output_path,
             namespace="nl2sql",
@@ -421,10 +503,9 @@ class ReforceEngineProvider:
         )
         settings = load_settings()
         llm_config = settings.llm.get(request.llm_config_name)
-        snowflake_config = settings.snowflake
         command = [
             runtime.python_executable,
-            str(runtime.nl2sql_script),
+            str(NL2SQL_WRAPPER_SCRIPT),
             "--api_key",
             llm_config.api_key,
             "--base_url",
@@ -439,6 +520,8 @@ class ReforceEngineProvider:
             str(external_knowledge_path),
             "--spider2_root",
             str(runtime.spider2_root),
+            "--upstream_script",
+            str(runtime.nl2sql_script),
             "--output_path",
             resolved_output_path,
             "--temperature",
@@ -453,26 +536,72 @@ class ReforceEngineProvider:
             str(request.max_iter),
             "--timeout_seconds",
             str(request.timeout_seconds),
-            "--snowflake_account",
-            snowflake_config.account,
-            "--snowflake_user",
-            snowflake_config.user,
-            "--snowflake_password",
-            snowflake_config.password,
+            "--db_root",
+            str(database_root),
+            "--database_source",
+            database_source,
+            "--backend",
+            db_profile.backend,
+            "--dialect",
+            db_profile.dialect,
         ]
-        if snowflake_config.role:
-            command.extend(["--snowflake_role", snowflake_config.role])
-        if snowflake_config.warehouse:
-            command.extend(["--snowflake_warehouse", snowflake_config.warehouse])
+        if db_profile.backend == "snowflake":
+            snowflake_config = settings.snowflake
+            command.extend(
+                [
+                    "--snowflake_account",
+                    snowflake_config.account,
+                    "--snowflake_user",
+                    snowflake_config.user,
+                    "--snowflake_password",
+                    snowflake_config.password,
+                ]
+            )
+            if snowflake_config.role:
+                command.extend(["--snowflake_role", snowflake_config.role])
+            if snowflake_config.warehouse:
+                command.extend(["--snowflake_warehouse", snowflake_config.warehouse])
+        elif db_profile.backend == "mysql":
+            mysql_connection = getattr(settings, db_profile.connection_name or "", None)
+            if mysql_connection is None:
+                raise KeyError(
+                    f"MySQL connection config not found: {db_profile.connection_name or '(missing)'}"
+                )
+            missing_fields = mysql_connection.missing_fields()
+            if missing_fields:
+                raise ValueError(
+                    "MySQL config is incomplete for "
+                    f"{db_profile.connection_name}: {', '.join(missing_fields)}"
+                )
+            command.extend(
+                [
+                    "--mysql_host",
+                    mysql_connection.host,
+                    "--mysql_port",
+                    str(mysql_connection.port),
+                    "--mysql_user",
+                    mysql_connection.user,
+                    "--mysql_password",
+                    mysql_connection.password,
+                    "--mysql_database",
+                    mysql_connection.database,
+                ]
+            )
+        else:
+            raise ValueError(f"Unsupported backend for ReFoRCE provider: {db_profile.backend}")
         if request.generation_model:
             command.extend(["--generation_model", request.generation_model])
         if request.column_exploration_model:
             command.extend(["--column_exploration_model", request.column_exploration_model])
+        if request.vote_model:
+            command.extend(["--vote_model", request.vote_model])
 
         _configure_stdio_utf8()
         print(
             f"[NL2SQL API] starting request db_id={request.db_id} "
-            f"engine_script={runtime.nl2sql_script}",
+            f"engine_script={runtime.nl2sql_script} "
+            f"db_source={database_source} "
+            f"backend={db_profile.backend}",
             flush=True,
         )
         print(

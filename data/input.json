@@ -1,17 +1,5 @@
 [
   {
-    "question_id": "test_bird_1",
-    "db_id": "california_school",
-    "user_intent":"What is the highest eligible free rate for K-12 students in the schools in Alameda County?",
-    "db_hint":""
-  },
-  {
-    "question_id": "test_bird_2",
-    "db_id": "california_school",
-    "user_intent":"Under whose administration does the school with the highest number of test takers whose total SAT Scores are greater or equal to 1500 belong to? Indicate his or her full name.?",
-    "db_hint":""
-  },
-  {
     "question_id": "sf_bq050",
     "db_id": "NEW_YORK_CITIBIKE_1",
     "user_intent": "I want to analyze bike trips in New York City for 2014 by linking trip data with weather information to understand how weather conditions (temperature, wind speed, and precipitation) affect bike trips between neighborhoods.\n\nFor each combination of starting and ending neighborhoods, I need the following:\n1. Total number of bike trips between the neighborhoods.\n2. Average trip duration in minutes (rounded to 1 decimal).\n3. Average temperature at the start of the trip (rounded to 1 decimal).\n4. Average wind speed at the start (in meters per second, rounded to 1 decimal).\n5. Average precipitation at the start (in centimeters, rounded to 1 decimal).\n6. The month with the most trips (e.g., `4` for April).\n\nThe data should be grouped by the starting and ending neighborhoods, with:`zip_codes` in `geo_us_boundaries` used to map the bike trip locations based on latitude and longitude. `zip_codes` in `cyclistic` used to obtain the borough and neighborhood names. Using weather data from the Central Park station for the trip date, covering all trips in 2014.",

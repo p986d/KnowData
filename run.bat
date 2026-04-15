@@ -3,12 +3,20 @@ setlocal EnableExtensions
 
 pushd "%~dp0" || exit /b 1
 
-@REM Choose `single` to run specified question_id values, or `all` to traverse every question in data\input.json.
-set "RUN_MODE=single"
+set "PYTHON_EXE=D:\Tools\MiniConda\envs\spider2\python.exe"
+
+@REM Choose the source input file.
+@REM set "INPUT_PATH=%CD%\data\input.json"
+set "INPUT_PATH=%CD%\data\sy_input.json"
+
+@REM Choose `single` to run specified question_id values, or `all` to traverse every question in INPUT_PATH.
+set "RUN_MODE=all"
 
 @REM Used only when RUN_MODE=single.
-set "QUESTION_IDS=sf_bq050"
-set "QUESTION_IDS=sf_bq017"
+set "QUESTION_IDS=sy00"
+@REM set "QUESTION_IDS=sy24"
+@REM set "QUESTION_IDS=sf_bq050"
+@REM set "QUESTION_IDS=sf_bq017"
 @REM set "QUESTION_IDS=sf_bq182"
 @REM set "QUESTION_IDS=sf_bq209"
 @REM set "QUESTION_IDS=sf_bq341"
@@ -33,8 +41,8 @@ popd
 exit /b 1
 
 :run_single
-python -m src.run.pipeline ^
-  --input-path "%CD%\data\input.json" ^
+"%PYTHON_EXE%" -m src.run.pipeline ^
+  --input-path "%INPUT_PATH%" ^
   --question-id %QUESTION_IDS% ^
   --nl2er-model-config "%LLM%" ^
   --question-model-config "%LLM%" ^
@@ -45,8 +53,8 @@ python -m src.run.pipeline ^
 goto after_run
 
 :run_all
-python -m src.run.pipeline ^
-  --input-path "%CD%\data\input.json" ^
+"%PYTHON_EXE%" -m src.run.pipeline ^
+  --input-path "%INPUT_PATH%" ^
   --engine-provider "%ENGINE_PROVIDER%" ^
   --nl2er-model-config "%LLM%" ^
   --question-model-config "%LLM%" ^

@@ -13,6 +13,8 @@ class EngineRuntimeConfig:
     spider2_root: Path | None = None
     schema_linking_script: Path | None = None
     nl2sql_script: Path | None = None
+    database_root: Path | None = None
+    database_source: str | None = None
     python_executable: str = sys.executable or "python"
 
 
@@ -50,6 +52,7 @@ class NL2SQLRequest:
     timeout_seconds: float = 600.0
     generation_model: str | None = None
     column_exploration_model: str | None = None
+    vote_model: str | None = None
 
 
 @dataclass(slots=True)

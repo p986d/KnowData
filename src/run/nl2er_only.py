@@ -1,18 +1,24 @@
 from __future__ import annotations
 
 import argparse
+from concurrent.futures import ThreadPoolExecutor, as_completed
 import json
+import traceback
 from dataclasses import dataclass
 from pathlib import Path
+from typing import Any
 
-from src.run.nl2er import (
+from src.run.nl2er_1 import (
     DEFAULT_INPUT_PATH,
     DEFAULT_LOG_ROOT,
     DEFAULT_OUTPUT_FILENAME,
     DEFAULT_PROMPT_DIR,
+    ERSkeletonIntegrityError,
     NL2ER,
     NL2ERInput,
     build_output_payload,
+    write_case_metadata,
+    write_conceptual_sql_parse_metadata,
 )
 from src.utils.run_log import build_timestamp, resolve_run_dir, write_json
 
@@ -127,6 +133,17 @@ def select_inputs(all_inputs: list[BatchInput], requested_question_ids: list[str
     return [input_by_question_id[question_id] for question_id in requested_question_ids]
 
 
+def positive_int(value: str) -> int:
+    try:
+        parsed = int(value)
+    except ValueError as exc:
+        raise argparse.ArgumentTypeError(f"Expected a positive integer, got `{value}`.") from exc
+
+    if parsed < 1:
+        raise argparse.ArgumentTypeError(f"Expected a positive integer, got `{value}`.")
+    return parsed
+
+
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description="Run only the NL2ER stage for one or more questions from the input file."
@@ -142,7 +159,115 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--nl2er-log-root", type=Path, default=DEFAULT_LOG_ROOT)
     parser.add_argument("--prompt-dir", type=Path, default=DEFAULT_PROMPT_DIR)
     parser.add_argument("--model-config", default=None)
+    parser.add_argument("--max-workers", type=positive_int, default=1)
     return parser.parse_args()
+
+
+def build_case_summary(
+    *,
+    input_payload: BatchInput,
+    run_id: str,
+    run_timestamp: str,
+    metadata_dir: Path,
+    log_dir: Path,
+    output_path: Path,
+    status: str,
+    elapsed_seconds: float | None = None,
+    error_message: str | None = None,
+) -> dict[str, object]:
+    summary: dict[str, object] = {
+        "run_id": run_id,
+        "question_id": input_payload.question_id,
+        "db_id": input_payload.db_id,
+        "timestamp": run_timestamp,
+        "metadata_dir": str(metadata_dir),
+        "log_dir": str(log_dir),
+        "output_path": str(output_path),
+        "status": status,
+    }
+    if elapsed_seconds is not None:
+        summary["elapsed_seconds"] = elapsed_seconds
+    if error_message:
+        summary["error_message"] = error_message
+    return summary
+
+
+def write_case_failure_log(
+    *,
+    log_dir: Path,
+    input_payload: BatchInput,
+    run_id: str,
+    error_type: str,
+    error_message: str,
+    traceback_text: str | None = None,
+    integrity_report: dict[str, Any] | None = None,
+) -> None:
+    payload: dict[str, Any] = {
+        "run_id": run_id,
+        "question_id": input_payload.question_id,
+        "db_id": input_payload.db_id,
+        "error_type": error_type,
+        "error_message": error_message,
+    }
+    if traceback_text:
+        payload["traceback"] = traceback_text
+    if integrity_report is not None:
+        payload["integrity_report"] = integrity_report
+    write_json(log_dir / "error.json", payload)
+
+
+def _resolve_case_dir_path(run_root: Path, *, question_id: str, run_timestamp: str) -> Path:
+    resolved_root = run_root.expanduser()
+    if not resolved_root.is_absolute():
+        resolved_root = (Path.cwd() / resolved_root).resolve()
+    else:
+        resolved_root = resolved_root.resolve()
+    return resolved_root / f"{question_id}_{run_timestamp}"
+
+
+def build_unhandled_case_summary(
+    *,
+    input_payload: BatchInput,
+    run_timestamp: str,
+    args: argparse.Namespace,
+    error_message: str,
+) -> dict[str, object]:
+    metadata_dir = _resolve_case_dir_path(
+        args.metadata_root,
+        question_id=input_payload.question_id,
+        run_timestamp=run_timestamp,
+    )
+    log_dir = _resolve_case_dir_path(
+        args.nl2er_log_root,
+        question_id=input_payload.question_id,
+        run_timestamp=run_timestamp,
+    )
+    output_path = metadata_dir / DEFAULT_OUTPUT_FILENAME
+    run_id = f"{input_payload.question_id}_{run_timestamp}"
+    return build_case_summary(
+        input_payload=input_payload,
+        run_id=run_id,
+        run_timestamp=run_timestamp,
+        metadata_dir=metadata_dir,
+        log_dir=log_dir,
+        output_path=output_path,
+        status="failed",
+        error_message=error_message,
+    )
+
+
+def emit_batch_progress(
+    *,
+    completed_count: int,
+    total_count: int,
+    run_summary: dict[str, object],
+) -> None:
+    print(
+        "[NL2ER-ONLY] progress "
+        f"completed={completed_count}/{total_count} "
+        f"question_id={run_summary.get('question_id', '')} "
+        f"status={run_summary.get('status', 'unknown')}"
+    )
 
 
 def run_single_question(
@@ -167,20 +292,14 @@ def run_single_question(
     )
     output_path = metadata_dir / DEFAULT_OUTPUT_FILENAME
 
-    write_json(metadata_dir / "input.json", serialize_input_payload(input_payload))
-    write_json(
-        metadata_dir / "run_context.json",
-        {
-            "run_id": run_id,
-            "question_id": input_payload.question_id,
-            "db_id": input_payload.db_id,
-            "timestamp": run_timestamp,
-            "metadata_dir": str(metadata_dir),
-            "log_dir": str(log_dir),
-            "output_path": str(output_path),
-        },
+    serialized_input = serialize_input_payload(input_payload)
+    write_case_metadata(
+        metadata_dir=metadata_dir,
+        serialized_input=serialized_input,
+        source_input_path=args.input_path,
+        question_id=input_payload.question_id,
     )
-    write_json(log_dir / "input.json", serialize_input_payload(input_payload))
+    write_json(log_dir / "input.json", serialized_input)
 
     print(f"[NL2ER-ONLY] run_id={run_id}")
     print(f"[NL2ER-ONLY] question_id={input_payload.question_id}")
@@ -200,7 +319,78 @@ def run_single_question(
         ),
         model_config=args.model_config,
     )
-    payload = nl2er.run()
+    try:
+        payload = nl2er.run()
+    except ERSkeletonIntegrityError as exc:
+        write_conceptual_sql_parse_metadata(
+            metadata_dir=metadata_dir,
+            conceptual_sql_parse=dict(exc.result.get("conceptual_sql_parse") or {}),
+        )
+        write_json(
+            output_path,
+            build_output_payload(
+                input_payload=NL2ERInput(
+                    question_id=input_payload.question_id,
+                    user_intent=input_payload.user_intent,
+                    db_id=input_payload.db_id,
+                    db_hint=input_payload.db_hint,
+                    external_knowledge=input_payload.external_knowledge,
+                ),
+                er_result={
+                    **exc.result,
+                    "integrity_report": exc.integrity_report,
+                },
+            ),
+        )
+        run_summary = build_case_summary(
+            input_payload=input_payload,
+            run_id=run_id,
+            run_timestamp=run_timestamp,
+            metadata_dir=metadata_dir,
+            log_dir=log_dir,
+            output_path=output_path,
+            status="integrity_failed",
+            error_message=str(exc),
+        )
+        write_case_failure_log(
+            log_dir=log_dir,
+            input_payload=input_payload,
+            run_id=run_id,
+            error_type=type(exc).__name__,
+            error_message=str(exc),
+            integrity_report=exc.integrity_report,
+        )
+        print(
+            f"[NL2ER-ONLY] integrity check failed for {input_payload.question_id}: {exc}"
+        )
+        print(f"[NL2ER-ONLY] partial output wrote to {output_path}")
+        return run_summary
+    except Exception as exc:
+        run_summary = build_case_summary(
+            input_payload=input_payload,
+            run_id=run_id,
+            run_timestamp=run_timestamp,
+            metadata_dir=metadata_dir,
+            log_dir=log_dir,
+            output_path=output_path,
+            status="failed",
+            error_message=str(exc),
+        )
+        write_case_failure_log(
+            log_dir=log_dir,
+            input_payload=input_payload,
+            run_id=run_id,
+            error_type=type(exc).__name__,
+            error_message=str(exc),
+            traceback_text=traceback.format_exc(),
+        )
+        print(f"[NL2ER-ONLY] run failed for {input_payload.question_id}: {exc}")
+        return run_summary
+
+    write_conceptual_sql_parse_metadata(
+        metadata_dir=metadata_dir,
+        conceptual_sql_parse=dict(payload["result"].get("conceptual_sql_parse") or {}),
+    )
     write_json(
         output_path,
         build_output_payload(
@@ -211,22 +401,24 @@ def run_single_question(
                 db_hint=input_payload.db_hint,
                 external_knowledge=input_payload.external_knowledge,
             ),
-            er_result=payload["result"],
+            er_result={
+                **payload["result"],
+                "integrity_report": payload["integrity_report"],
+            },
         ),
     )
     print(f"[NL2ER-ONLY] output wrote to {output_path}")
 
-    run_summary = {
-        "run_id": run_id,
-        "question_id": input_payload.question_id,
-        "db_id": input_payload.db_id,
-        "timestamp": run_timestamp,
-        "metadata_dir": str(metadata_dir),
-        "log_dir": str(log_dir),
-        "output_path": str(output_path),
-        "elapsed_seconds": payload["elapsed_seconds"],
-    }
-    write_json(metadata_dir / "run_context.json", run_summary)
+    run_summary = build_case_summary(
+        input_payload=input_payload,
+        run_id=run_id,
+        run_timestamp=run_timestamp,
+        metadata_dir=metadata_dir,
+        log_dir=log_dir,
+        output_path=output_path,
+        status="succeeded",
+        elapsed_seconds=float(payload["elapsed_seconds"]),
+    )
     return run_summary
 
 
@@ -242,29 +434,85 @@ def main() -> None:
         print(f"[NL2ER-ONLY] requested question_id values: {', '.join(requested_question_ids)}")
 
     batch_timestamp = build_timestamp()
-    batch_summary: list[dict[str, object]] = []
     total = len(selected_inputs)
-    for index, input_payload in enumerate(selected_inputs, start=1):
-        print(f"[NL2ER-ONLY] starting question {index}/{total}: {input_payload.question_id}")
-        batch_summary.append(
-            run_single_question(
-                input_payload=input_payload,
-                run_timestamp=batch_timestamp,
-                args=args,
-            )
-        )
+    should_run_parallel = not requested_question_ids and args.max_workers > 1 and total > 1
+    completed_count = 0
 
-    batch_summary_path = args.metadata_root / f"nl2er_batch_{batch_timestamp}.json"
-    write_json(
-        batch_summary_path,
-        {
-            "timestamp": batch_timestamp,
-            "input_path": str(args.input_path),
-            "selected_question_ids": [item.question_id for item in selected_inputs],
-            "runs": batch_summary,
-        },
+    if should_run_parallel:
+        worker_count = min(args.max_workers, total)
+        print(f"[NL2ER-ONLY] running in parallel with max_workers={worker_count}")
+        batch_summary_slots: list[dict[str, object] | None] = [None] * total
+        with ThreadPoolExecutor(max_workers=worker_count) as executor:
+            future_map = {}
+            for index, input_payload in enumerate(selected_inputs, start=1):
+                print(f"[NL2ER-ONLY] starting question {index}/{total}: {input_payload.question_id}")
+                future = executor.submit(
+                    run_single_question,
+                    input_payload=input_payload,
+                    run_timestamp=batch_timestamp,
+                    args=args,
+                )
+                future_map[future] = (index - 1, input_payload)
+
+            for future in as_completed(future_map):
+                result_index, input_payload = future_map[future]
+                try:
+                    run_summary = future.result()
+                except Exception as exc:
+                    print(
+                        f"[NL2ER-ONLY] unhandled failure for {input_payload.question_id}: {exc}"
+                    )
+                    run_summary = build_unhandled_case_summary(
+                        input_payload=input_payload,
+                        run_timestamp=batch_timestamp,
+                        args=args,
+                        error_message=str(exc),
+                    )
+                batch_summary_slots[result_index] = run_summary
+                completed_count += 1
+                emit_batch_progress(
+                    completed_count=completed_count,
+                    total_count=total,
+                    run_summary=run_summary,
+                )
+
+        if any(item is None for item in batch_summary_slots):
+            raise RuntimeError("NL2ER batch summary collection incomplete.")
+        batch_summary = [item for item in batch_summary_slots if item is not None]
+    else:
+        batch_summary: list[dict[str, object]] = []
+        for index, input_payload in enumerate(selected_inputs, start=1):
+            print(f"[NL2ER-ONLY] starting question {index}/{total}: {input_payload.question_id}")
+            try:
+                run_summary = run_single_question(
+                    input_payload=input_payload,
+                    run_timestamp=batch_timestamp,
+                    args=args,
+                )
+            except Exception as exc:
+                print(
+                    f"[NL2ER-ONLY] unhandled failure for {input_payload.question_id}: {exc}"
+                )
+                run_summary = build_unhandled_case_summary(
+                    input_payload=input_payload,
+                    run_timestamp=batch_timestamp,
+                    args=args,
+                    error_message=str(exc),
+                )
+            batch_summary.append(run_summary)
+            completed_count += 1
+            emit_batch_progress(
+                completed_count=completed_count,
+                total_count=total,
+                run_summary=run_summary,
+            )
+
+    succeeded_count = sum(1 for item in batch_summary if item.get("status") == "succeeded")
+    failed_count = total - succeeded_count
+    print(
+        f"[NL2ER-ONLY] completed {total} question(s): "
+        f"succeeded={succeeded_count}, failed={failed_count}"
     )
-    print(f"[NL2ER-ONLY] batch summary wrote to {batch_summary_path}")
 
 
 if __name__ == "__main__":

@@ -195,6 +195,7 @@ class LLMClient:
             return ""
 
         messages = self._build_single_turn_messages(text, system_prompt)
+        output = ""
 
         for attempt in range(max_retry):
             try:
@@ -210,7 +211,6 @@ class LLMClient:
                 return output
 
             except Exception as e:
-                print(output)
                 self.logger.warning(
                     "abatch item failed on attempt %s/%s: %s",
                     attempt + 1,

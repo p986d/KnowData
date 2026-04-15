@@ -21,7 +21,6 @@ from src.utils.run_log import (
     resolve_run_log_dir,
     write_json,
 )
-from src.utils.sqlglot_parser import SqlglotParser
 
 
 DEFAULT_INPUT_PATH = Path("data/input.json")
@@ -30,7 +29,6 @@ DEFAULT_LOG_ROOT = Path("log/nl2er")
 DEFAULT_METADATA_ROOT = Path("metadata")
 DEFAULT_OUTPUT_FILENAME = "nl2er_output.json"
 GROUND_TRUTH_OUTPUT_FILENAME = "ground_truth.sql"
-CONCEPTUAL_SQL_PARSE_OUTPUT_FILENAME = "conceptual_sql_parse.json"
 _NAME_FUZZY_RE = re.compile(r"[^0-9a-z]+")
 
 
@@ -169,17 +167,6 @@ def write_case_metadata(
     )
 
 
-def write_conceptual_sql_parse_metadata(
-    *,
-    metadata_dir: str | Path,
-    conceptual_sql_parse: dict[str, Any],
-) -> None:
-    write_json(
-        Path(metadata_dir) / CONCEPTUAL_SQL_PARSE_OUTPUT_FILENAME,
-        conceptual_sql_parse,
-    )
-
-
 def build_output_payload(
     *,
     input_payload: NL2ERInput,
@@ -242,17 +229,17 @@ class NL2ER:
     def _write_text_log(self, filename: str, content: str) -> None:
         (self.log_dir / filename).write_text(content, encoding="utf-8")
 
-    def extract_erc(self) -> dict[str, Any]:
-        template_name = "NL2ER_SQL_Conceptual_st1_v7.1.md" #"NL2ER_ER_st1_v6.1.md"
+    def extract_query_units(self) -> dict[str, Any]:
+        template_name = "NL2ER_SQL_Conceptual_2_st1_v1.2.md"
         self.build_prompt.register_template(
-            name="step_1_extract_ERC",
+            name="step_1_extract_query_units",
             template_name=template_name,
             required_vars=["user_intent"],
             default_vars={"db_hint": "", "external_knowledge": ""},
-            description="Extract the conceptual virtual SQL and ER skeleton from the user intent.",
+            description="Extract named query units from the user intent.",
         )
         prompt = self.build_prompt.build_text(
-            "step_1_extract_ERC",
+            "step_1_extract_query_units",
             vars={
                 "user_intent": self.input_payload.user_intent,
                 "db_hint": self.input_payload.db_hint,
@@ -268,47 +255,82 @@ class NL2ER:
 
         if not response.strip():
             raise RuntimeError(
-                "NL2ER LLM returned an empty response. Check model connectivity, credentials, or prompt validity."
+                "NL2ER query unit extraction LLM returned an empty response. Check model connectivity, credentials, or prompt validity."
             )
 
-        return json_parse(response)
+        return self.normalize_query_units_payload(json_parse(response))
+
+    @staticmethod
+    def normalize_query_units_payload(payload: dict[str, Any]) -> dict[str, Any]:
+        if not isinstance(payload, dict):
+            raise ValueError(
+                f"Expected query unit JSON object, got {type(payload).__name__}"
+            )
+
+        query_units = payload.get("query_units")
+        if not isinstance(query_units, list):
+            raise ValueError("NL2ER query unit extraction result is missing `query_units`.")
+
+        normalized_query_units: list[dict[str, Any]] = []
+        for index, query_unit in enumerate(query_units):
+            if not isinstance(query_unit, dict):
+                raise ValueError(f"`query_units[{index}]` must be an object.")
+            normalized_query_units.append(query_unit)
+
+        return {"query_units": normalized_query_units}
 
     @staticmethod
     def normalize_conceptual_query_plan(payload: dict[str, Any]) -> dict[str, Any]:
         conceptual_sql = str(payload.get("conceptual_sql") or "").strip()
         if not conceptual_sql:
             raise ValueError("NL2ER conceptual query plan is missing `conceptual_sql`.")
-        return {
-            "conceptual_sql": conceptual_sql,
-            "conceptual_sql_parse": NL2ER.parse_stage1_conceptual_sql(conceptual_sql),
-        }
+        return {"conceptual_sql": conceptual_sql}
 
-    def conceptual_query_plan(self) -> dict[str, Any]:
-        erc_payload = self.extract_erc()
-        return self.normalize_conceptual_query_plan(erc_payload)
+    def conceptual_query_plan(self, query_units: list[dict[str, Any]]) -> dict[str, Any]:
+        template_name = "NL2ER_SQL_Conceptual_2_st2_v1.2.md"
+        self.build_prompt.register_template(
+            name="step_2_conceptual_query_plan",
+            template_name=template_name,
+            required_vars=["user_intent", "query_units"],
+            default_vars={"db_hint": "", "external_knowledge": ""},
+            description="Build the conceptual SQL from the named query units.",
+        )
+        prompt = self.build_prompt.build_text(
+            "step_2_conceptual_query_plan",
+            vars={
+                "user_intent": self.input_payload.user_intent,
+                "db_hint": self.input_payload.db_hint,
+                "external_knowledge": self.input_payload.external_knowledge,
+                "query_units": json.dumps(query_units, ensure_ascii=False, indent=2),
+            },
+        )
 
-    @staticmethod
-    def parse_stage1_conceptual_sql(conceptual_sql: str) -> dict[str, Any]:
-        try:
-            return SqlglotParser.extract_table_columns_and_join_conditions(conceptual_sql)
-        except ValueError as exc:
-            return {
-                "tables": [],
-                "join_conditions": [],
-                "error": str(exc),
-            }
+        step = 2
+        self._write_text_log(f"prompt_{step}.md", prompt)
+
+        response = self.llm.single_turn(prompt, check_func=json_check)
+        self._write_text_log(f"response_{step}.md", response)
+
+        if not response.strip():
+            raise RuntimeError(
+                "NL2ER conceptual query plan LLM returned an empty response. Check model connectivity, credentials, or prompt validity."
+            )
+
+        conceptual_plan = self.normalize_conceptual_query_plan(json_parse(response))
+        conceptual_plan["query_units"] = query_units
+        return conceptual_plan
 
     def parse_conceptual_sql(self, conceptual_sql: str) -> dict[str, Any]:
         template_name = "NL2ER_SQL_Parse_st2_v7.0.md"
         self.build_prompt.register_template(
-            name="step_2_parse_conceptual_sql",
+            name="step_3_parse_conceptual_sql",
             template_name=template_name,
             required_vars=["user_intent", "conceptual_sql"],
             default_vars={"db_hint": "", "external_knowledge": ""},
             description="Parse conceptual SQL into the raw ER retrieval spec fields.",
         )
         prompt = self.build_prompt.build_text(
-            "step_2_parse_conceptual_sql",
+            "step_3_parse_conceptual_sql",
             vars={
                 "user_intent": self.input_payload.user_intent,
                 "db_hint": self.input_payload.db_hint,
@@ -317,7 +339,7 @@ class NL2ER:
             },
         )
 
-        step = 2
+        step = 3
         self._write_text_log(f"prompt_{step}.md", prompt)
 
         response = self.llm.single_turn(prompt, check_func=json_check)
@@ -963,21 +985,22 @@ class NL2ER:
         started_at = time.time()
 
         step_started_at = time.time()
-        conceptual_plan = self.conceptual_query_plan()
+        query_unit_payload = self.extract_query_units()
+        write_json(self.log_dir / "query_units.json", query_unit_payload)
+        emit_step_done_log(
+            prefix="NL2ER",
+            step="extract_query_units",
+            elapsed_seconds=time.time() - step_started_at,
+            query_unit_count=len(query_unit_payload.get("query_units") or []),
+        )
+
+        step_started_at = time.time()
+        conceptual_plan = self.conceptual_query_plan(query_unit_payload["query_units"])
         emit_step_done_log(
             prefix="NL2ER",
             step="conceptual_query_plan",
             elapsed_seconds=time.time() - step_started_at,
             has_conceptual_sql=bool(conceptual_plan.get("conceptual_sql")),
-            parsed_table_count=len(
-                list((conceptual_plan.get("conceptual_sql_parse") or {}).get("tables") or [])
-            ),
-            parsed_join_condition_count=len(
-                list(
-                    (conceptual_plan.get("conceptual_sql_parse") or {}).get("join_conditions")
-                    or []
-                )
-            ),
         )
 
         step_started_at = time.time()
@@ -1022,7 +1045,6 @@ class NL2ER:
         )
         result = {
             "conceptual_sql": conceptual_plan["conceptual_sql"],
-            "conceptual_sql_parse": conceptual_plan.get("conceptual_sql_parse", {}),
             "entities": sql_parse_result.get("entities", []),
             "relations": sql_parse_result.get("relations", []),
             "connections": sql_parse_result.get("connections", []),
@@ -1117,10 +1139,6 @@ def main() -> None:
         payload = nl2er.run()
     except ERSkeletonIntegrityError as exc:
         elapsed_seconds = time.time() - started_at
-        write_conceptual_sql_parse_metadata(
-            metadata_dir=metadata_dir,
-            conceptual_sql_parse=dict(exc.result.get("conceptual_sql_parse") or {}),
-        )
         write_json(
             output_path,
             build_output_payload(
@@ -1137,10 +1155,6 @@ def main() -> None:
         print(f"[NL2ER] logs wrote to {log_dir}")
         print(f"[NL2ER] metadata wrote to {metadata_dir}")
         raise SystemExit(2) from exc
-    write_conceptual_sql_parse_metadata(
-        metadata_dir=metadata_dir,
-        conceptual_sql_parse=dict(payload["result"].get("conceptual_sql_parse") or {}),
-    )
     write_json(
         output_path,
         build_output_payload(

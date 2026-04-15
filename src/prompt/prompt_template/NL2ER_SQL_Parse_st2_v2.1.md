@@ -308,7 +308,7 @@ conceptual SQL 中的属性、条件和连接表达是草稿，必须对照用�
           {
             "role": "",
             "entity": "",
-            "anchor_atribute":[]
+            "anchor_attribute":[]
           },
           ...
         ],
@@ -324,7 +324,7 @@ conceptual SQL 中的属性、条件和连接表达是草稿，必须对照用�
           {
             "role": "",
             "entity": "",
-            "anchor_atribute":[]
+            "anchor_attribute":[]
           },
           ...
         ],

@@ -3,6 +3,7 @@ from .schema import (
     EngineSettings,
     LLMConfig,
     LLMSettings,
+    MySQLConfig,
     Settings,
     SnowflakeConfig,
 )
@@ -13,6 +14,7 @@ __all__ = [
     "EngineSettings",
     "Settings",
     "SnowflakeConfig",
+    "MySQLConfig",
     "LLMConfig",
     "LLMSettings",
     "load_settings",

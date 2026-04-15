@@ -243,7 +243,7 @@ class NL2ER:
         (self.log_dir / filename).write_text(content, encoding="utf-8")
 
     def extract_erc(self) -> dict[str, Any]:
-        template_name = "NL2ER_SQL_Conceptual_st1_v7.1.md" #"NL2ER_ER_st1_v6.1.md"
+        template_name = "NL2ER_SQL_Conceptual_st1_v7.25.md" #"NL2ER_ER_st1_v6.1.md"
         self.build_prompt.register_template(
             name="step_1_extract_ERC",
             template_name=template_name,

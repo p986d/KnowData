@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import os
+import re
 from pathlib import Path
 from typing import Any, Optional, Union
 
@@ -20,6 +21,7 @@ from .schema import (
     EngineSettings,
     LLMConfig,
     LLMSettings,
+    MySQLConfig,
     Settings,
     SnowflakeConfig,
 )
@@ -46,6 +48,24 @@ def _resolve_project_path(value: Union[str, Path]) -> Path:
     return (PROJECT_ROOT / path).resolve()
 
 
+ENV_NAME_PATTERN = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*$")
+
+
+def _get_env_backed_value(raw_value: Optional[str]) -> Optional[str]:
+    if not raw_value:
+        return None
+    if ENV_NAME_PATTERN.fullmatch(raw_value):
+        return os.environ.get(raw_value, raw_value)
+    return raw_value
+
+
+def _get_env_backed_int(raw_value: Optional[str]) -> Optional[int]:
+    value = _get_env_backed_value(raw_value)
+    if value in (None, ""):
+        return None
+    return int(value)
+
+
 def load_settings(
     config_path: Optional[Union[str, Path]] = None,
     env_path: Optional[Union[str, Path]] = None,
@@ -65,13 +85,25 @@ def load_settings(
     # -------------------------
     snowflake_raw = raw.get("snowflake", {})
     snowflake = SnowflakeConfig(
-        account=os.environ["SNOWFLAKE_ACCOUNT"],
-        user=os.environ["SNOWFLAKE_USER"],
-        password=os.environ["SNOWFLAKE_PASSWORD"],
+        account=os.environ.get("SNOWFLAKE_ACCOUNT", ""),
+        user=os.environ.get("SNOWFLAKE_USER", ""),
+        password=os.environ.get("SNOWFLAKE_PASSWORD", ""),
         role=snowflake_raw.get("role"),
         warehouse=snowflake_raw.get("warehouse"),
         database=snowflake_raw.get("database"),
         schema=snowflake_raw.get("schema"),
+    )
+
+    # -------------------------
+    # MySQL
+    # -------------------------
+    mysql_sy_test_raw = raw.get("mysql_sy_test", {})
+    mysql_sy_test = MySQLConfig(
+        host=_get_env_backed_value(mysql_sy_test_raw.get("host")),
+        port=_get_env_backed_int(mysql_sy_test_raw.get("port")),
+        user=_get_env_backed_value(mysql_sy_test_raw.get("user")),
+        password=_get_env_backed_value(mysql_sy_test_raw.get("password")),
+        database=mysql_sy_test_raw.get("database"),
     )
 
     # -------------------------
@@ -153,6 +185,7 @@ def load_settings(
 
     return Settings(
         snowflake=snowflake,
+        mysql_sy_test=mysql_sy_test,
         llm=llm,
         engine=engine,
     )

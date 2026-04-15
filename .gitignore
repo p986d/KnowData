@@ -8,5 +8,6 @@ analysis/**
 log/**
 metadata/**
 test/**
+databases/**
 
 .env
