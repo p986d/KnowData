@@ -26,7 +26,8 @@ SQL_TEMPLATE_KEY = "nl2er_synth_sql"
 JUDGE_TEMPLATE_KEY = "nl2er_synth_judge"
 
 SIDECAR_INPUT_FILENAMES = ("input.json", "nl2er_input.json")
-SAFE_SQL_SYMBOL_RE = re.compile(r"[^A-Za-z0-9_]+")
+SAFE_SQL_SYMBOL_RE = re.compile(r"[^\w]+", re.UNICODE)
+SAFE_PATH_NAME_RE = re.compile(r"[^\w.-]+", re.UNICODE)
 SQL_FENCE_RE = re.compile(r"```sql\s*(.*?)\s*```", flags=re.IGNORECASE | re.DOTALL)
 CONSTANT_CONDITION_TYPE_RE = re.compile(r"[\s-]+")
 QUOTED_LITERAL_RE = re.compile(r"""['"`]([^'"`\r\n]{1,120})['"`]""")
@@ -143,10 +144,9 @@ def normalize_constant_value_conditions(value: Any) -> list[dict[str, Any]]:
 
 def to_safe_sql_symbol(value: str, *, fallback: str) -> str:
     raw_value = str(value or "").strip()
-    text = SAFE_SQL_SYMBOL_RE.sub("_", raw_value).strip("_")
+    text = re.sub(r"_+", "_", SAFE_SQL_SYMBOL_RE.sub("_", raw_value)).strip("_")
     if not text:
         text = fallback
-    text = text.lower()
     if text[0].isdigit():
         text = "_" + text
     return text
@@ -1306,10 +1306,12 @@ def resolve_cli_log_dir(
     ts = build_timestamp()
 
     base_name = (question_id or input_file.stem or "run").strip()
-    safe_base_name = re.sub(r"[^A-Za-z0-9._-]+", "_", base_name).strip("._-") or "run"
+    safe_base_name = re.sub(r"_+", "_", SAFE_PATH_NAME_RE.sub("_", base_name)).strip("._-") or "run"
 
     if run_name.strip():
-        safe_run_name = re.sub(r"[^A-Za-z0-9._-]+", "_", run_name.strip()).strip("._-") or ts
+        safe_run_name = (
+            re.sub(r"_+", "_", SAFE_PATH_NAME_RE.sub("_", run_name.strip())).strip("._-") or ts
+        )
         final_name = safe_run_name
     else:
         final_name = f"{safe_base_name}_{ts}"

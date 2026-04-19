@@ -28,8 +28,13 @@ DEFAULT_PROMPT_DIR = Path("src/prompt/prompt_template")
 DEFAULT_LOG_ROOT = Path("log/nl2er")
 DEFAULT_METADATA_ROOT = Path("metadata")
 DEFAULT_OUTPUT_FILENAME = "nl2er_output.json"
+ER_TEST_ST1_OUTPUT_FILENAME = "nl2er_er_test_st1_output.json"
+ER_TEST_ST2_OUTPUT_FILENAME = DEFAULT_OUTPUT_FILENAME
 GROUND_TRUTH_OUTPUT_FILENAME = "ground_truth.sql"
 _NAME_FUZZY_RE = re.compile(r"[^0-9a-z]+")
+_SQL_LIKE_RE = re.compile(
+    r"(?is)\bselect\b.+\bfrom\b|\bgroup\s+by\b|\border\s+by\b|\bhaving\b|\blimit\b",
+)
 
 
 @dataclass(slots=True)
@@ -62,13 +67,17 @@ class ERSkeletonIntegrityError(ValueError):
         super().__init__(message)
 
 
-def read_input_payload(path: str | Path) -> NL2ERInput:
-    input_path = Path(path)
-    with input_path.open("r", encoding="utf-8") as file:
-        payload = json.load(file)
-
+def _parse_input_payload_object(
+    payload: object,
+    *,
+    input_path: Path,
+    location: str | None = None,
+) -> NL2ERInput:
+    resolved_location = location or str(input_path)
     if not isinstance(payload, dict):
-        raise ValueError(f"Expected JSON object at {input_path}, got {type(payload).__name__}")
+        raise ValueError(
+            f"Expected JSON object at {resolved_location}, got {type(payload).__name__}"
+        )
 
     question_id = str(payload.get("question_id") or payload.get("instance_id") or "").strip()
     user_intent = str(payload.get("user_intent") or "").strip()
@@ -77,13 +86,13 @@ def read_input_payload(path: str | Path) -> NL2ERInput:
     external_knowledge = payload.get("external_knowledge", "")
 
     if not user_intent:
-        raise ValueError(f"`user_intent` is required in {input_path}")
+        raise ValueError(f"`user_intent` is required in {resolved_location}")
     if not db_id:
-        raise ValueError(f"`db_id` is required in {input_path}")
+        raise ValueError(f"`db_id` is required in {resolved_location}")
     if not isinstance(db_hint, str):
-        raise ValueError(f"`db_hint` must be a string in {input_path}")
+        raise ValueError(f"`db_hint` must be a string in {resolved_location}")
     if not isinstance(external_knowledge, str):
-        raise ValueError(f"`external_knowledge` must be a string in {input_path}")
+        raise ValueError(f"`external_knowledge` must be a string in {resolved_location}")
 
     return NL2ERInput(
         question_id=question_id,
@@ -91,6 +100,54 @@ def read_input_payload(path: str | Path) -> NL2ERInput:
         db_id=db_id,
         db_hint=db_hint,
         external_knowledge=external_knowledge,
+    )
+
+
+def read_input_payload(
+    path: str | Path,
+    *,
+    question_id: str | None = None,
+) -> NL2ERInput:
+    input_path = Path(path)
+    with input_path.open("r", encoding="utf-8") as file:
+        payload = json.load(file)
+
+    if isinstance(payload, dict):
+        return _parse_input_payload_object(payload, input_path=input_path)
+
+    if not isinstance(payload, list):
+        raise ValueError(
+            f"Expected JSON object or JSON list at {input_path}, got {type(payload).__name__}"
+        )
+
+    if not payload:
+        raise ValueError(f"Input list at {input_path} is empty.")
+
+    normalized_question_id = str(question_id or "").strip()
+    parsed_inputs: list[NL2ERInput] = []
+    for index, item in enumerate(payload):
+        parsed_inputs.append(
+            _parse_input_payload_object(
+                item,
+                input_path=input_path,
+                location=f"{input_path}[{index}]",
+            )
+        )
+
+    if normalized_question_id:
+        for parsed_input in parsed_inputs:
+            if parsed_input.question_id == normalized_question_id:
+                return parsed_input
+        raise ValueError(
+            f"`question_id` `{normalized_question_id}` was not found in list input {input_path}"
+        )
+
+    if len(parsed_inputs) == 1:
+        return parsed_inputs[0]
+
+    raise ValueError(
+        f"Input file {input_path} contains a JSON list with {len(parsed_inputs)} items. "
+        "Provide --question-id to select one item."
     )
 
 
@@ -172,7 +229,38 @@ def build_output_payload(
     input_payload: NL2ERInput,
     er_result: dict[str, Any],
 ) -> dict[str, Any]:
-    integrity_report = er_result.get("integrity_report")
+    del input_payload
+
+    direct_entities = er_result.get("entities")
+    direct_relations = er_result.get("relations")
+    direct_conditions = er_result.get("conditions")
+    if (
+        isinstance(direct_entities, list)
+        or isinstance(direct_relations, list)
+        or isinstance(direct_conditions, list)
+    ):
+        return {
+            "entities": list(direct_entities or []),
+            "relations": list(direct_relations or []),
+            "conditions": list(direct_conditions or []),
+        }
+
+    refined_object_sketch = dict(er_result.get("refined_object_sketch") or {})
+    constraints = list(er_result.get("constraints") or [])
+    if refined_object_sketch:
+        return {
+            "entities": build_legacy_entities_payload(
+                list(refined_object_sketch.get("entities") or [])
+            ),
+            "relations": build_legacy_relations_payload(
+                list(refined_object_sketch.get("relations") or [])
+            ),
+            "conditions": build_legacy_conditions_payload(constraints),
+        }
+    return {"entities": [], "relations": [], "conditions": []}
+
+
+def build_compact_integrity_report(integrity_report: Any) -> dict[str, Any]:
     compact_integrity_report: dict[str, Any] = {
         "passed": False,
         "summary": "",
@@ -194,15 +282,104 @@ def build_output_payload(
                 if str(item).strip()
             ],
         }
+    return compact_integrity_report
+
+
+def build_er_test_st1_output_payload(
+    *,
+    object_sketch: dict[str, Any],
+    integrity_report: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    return {
+        "mode": "er_test_st1",
+        "answer_target": dict(object_sketch.get("answer_target") or {}),
+        "entities": list(object_sketch.get("entities") or []),
+        "relations": list(object_sketch.get("relations") or []),
+        "integrity_report": build_compact_integrity_report(integrity_report),
+    }
+
+
+def build_er_test_st2_output_payload(
+    *,
+    stage1_object_sketch: dict[str, Any],
+    stage1_integrity_report: dict[str, Any] | None = None,
+    semantic_review: dict[str, Any],
+    integrity_report: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    del stage1_object_sketch
+    del stage1_integrity_report
+    del integrity_report
 
     return {
-        "conceptual_sql": str(er_result.get("conceptual_sql") or "").strip(),
-        "entities": list(er_result.get("entities") or []),
-        "relations": list(er_result.get("relations") or []),
-        "connections": list(er_result.get("connections") or []),
-        "conditions": list(er_result.get("conditions") or []),
-        "integrity_report": compact_integrity_report,
+        "entities": list(semantic_review.get("entities") or []),
+        "relations": list(semantic_review.get("relations") or []),
+        "conditions": list(semantic_review.get("conditions") or []),
     }
+
+
+def build_legacy_entities_payload(entities: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    legacy_entities: list[dict[str, Any]] = []
+    for entity in entities:
+        if not isinstance(entity, dict):
+            continue
+        entity_name = str(entity.get("name") or "").strip()
+        if not entity_name:
+            continue
+        legacy_entities.append(
+            {
+                "entity_name": entity_name,
+                "desc": str(entity.get("desc") or "").strip(),
+                "grain": str(entity.get("grain") or "").strip(),
+                "primary_key": list(entity.get("key_attributes") or []),
+                "attributes": list(entity.get("attributes") or []),
+            }
+        )
+    return legacy_entities
+
+
+def build_legacy_relations_payload(relations: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    legacy_relations: list[dict[str, Any]] = []
+    for relation in relations:
+        if not isinstance(relation, dict):
+            continue
+        relation_name = str(relation.get("name") or "").strip()
+        if not relation_name:
+            continue
+        legacy_relations.append(
+            {
+                "relation_name": relation_name,
+                "desc": str(relation.get("desc") or "").strip(),
+                "grain": str(relation.get("grain") or "").strip(),
+                "participants": list(relation.get("participants") or []),
+                "attributes": list(relation.get("attributes") or []),
+            }
+        )
+    return legacy_relations
+
+
+def build_legacy_conditions_payload(constraints: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    legacy_conditions: list[dict[str, Any]] = []
+    for index, constraint in enumerate(constraints, start=1):
+        if not isinstance(constraint, dict):
+            continue
+        target = str(constraint.get("target") or "").strip()
+        condition_type = str(constraint.get("type") or "").strip()
+        description = str(constraint.get("description") or "").strip()
+        based_on = list(constraint.get("based_on") or [])
+        condition_name = str(constraint.get("name") or "").strip()
+        if not condition_name:
+            suffix = target or f"constraint_{index}"
+            condition_name = f"{suffix}__constraint_{index}"
+        legacy_condition: dict[str, Any] = {
+            "condition_name": condition_name,
+            "targets": [target] if target else [],
+            "condition_type": condition_type,
+            "description": description,
+        }
+        if based_on:
+            legacy_condition["based_on"] = based_on
+        legacy_conditions.append(legacy_condition)
+    return legacy_conditions
 
 
 class NL2ER:
@@ -228,6 +405,73 @@ class NL2ER:
 
     def _write_text_log(self, filename: str, content: str) -> None:
         (self.log_dir / filename).write_text(content, encoding="utf-8")
+
+    def extract_er_object_sketch(self) -> dict[str, Any]:
+        template_name = "NL2ER_ER_test_st1_v0.13.md"
+        self.build_prompt.register_template(
+            name="step_1_extract_er_object_sketch",
+            template_name=template_name,
+            required_vars=["user_intent"],
+            default_vars={"db_hint": "", "external_knowledge": ""},
+            description="Extract a lightweight ER object sketch via semantic dependency backtracking.",
+        )
+        prompt = self.build_prompt.build_text(
+            "step_1_extract_er_object_sketch",
+            vars={
+                "user_intent": self.input_payload.user_intent,
+                "db_hint": self.input_payload.db_hint,
+                "external_knowledge": self.input_payload.external_knowledge,
+            },
+        )
+
+        step = 1
+        self._write_text_log(f"prompt_{step}.md", prompt)
+
+        response = self.llm.single_turn(prompt, check_func=json_check)
+        self._write_text_log(f"response_{step}.md", response)
+
+        if not response.strip():
+            raise RuntimeError(
+                "NL2ER ER test stage1 LLM returned an empty response. Check model connectivity, credentials, or prompt validity."
+            )
+
+        return self.normalize_er_object_sketch(json_parse(response))
+
+    def review_er_object_sketch(self, stage1_object_sketch: dict[str, Any]) -> dict[str, Any]:
+        template_name = "NL2ER_ER_test_st2_v0.1.md"
+        self.build_prompt.register_template(
+            name="step_2_review_er_object_sketch",
+            template_name=template_name,
+            required_vars=["user_intent", "stage1_object_sketch"],
+            default_vars={"db_hint": "", "external_knowledge": ""},
+            description="Review and refine the stage1 ER object sketch, add constraints, and build a logical query sketch.",
+        )
+        prompt = self.build_prompt.build_text(
+            "step_2_review_er_object_sketch",
+            vars={
+                "user_intent": self.input_payload.user_intent,
+                "db_hint": self.input_payload.db_hint,
+                "external_knowledge": self.input_payload.external_knowledge,
+                "stage1_object_sketch": json.dumps(
+                    stage1_object_sketch,
+                    ensure_ascii=False,
+                    indent=2,
+                ),
+            },
+        )
+
+        step = 2
+        self._write_text_log(f"prompt_{step}.md", prompt)
+
+        response = self.llm.single_turn(prompt, check_func=json_check)
+        self._write_text_log(f"response_{step}.md", response)
+
+        if not response.strip():
+            raise RuntimeError(
+                "NL2ER ER test stage2 LLM returned an empty response. Check model connectivity, credentials, or prompt validity."
+            )
+
+        return self.normalize_er_semantic_review(json_parse(response))
 
     def extract_query_units(self) -> dict[str, Any]:
         template_name = "NL2ER_SQL_Conceptual_2_st1_v1.2.md"
@@ -320,6 +564,337 @@ class NL2ER:
         conceptual_plan["query_units"] = query_units
         return conceptual_plan
 
+    @staticmethod
+    def _normalize_boolean(
+        value: Any,
+        *,
+        location: str,
+        field_name: str,
+    ) -> bool:
+        if isinstance(value, bool):
+            return value
+        if isinstance(value, int) and value in (0, 1):
+            return bool(value)
+        if isinstance(value, str):
+            normalized = value.strip().casefold()
+            if normalized == "true":
+                return True
+            if normalized == "false":
+                return False
+        raise ValueError(f"`{field_name}` must be a boolean in {location}")
+
+    @classmethod
+    def _normalize_er_test_answer_target(cls, value: Any) -> dict[str, Any]:
+        location = "answer_target"
+        if not isinstance(value, dict):
+            raise ValueError(f"`{location}` must be an object.")
+
+        name = str(value.get("name") or "").strip()
+        if not name:
+            raise ValueError(f"`{location}.name` is required.")
+
+        grain = str(value.get("grain") or "").strip()
+        if not grain:
+            raise ValueError(f"`{location}.grain` is required.")
+
+        return {
+            "name": name,
+            "grain": grain,
+            "is_derived": cls._normalize_boolean(
+                value.get("is_derived"),
+                location=location,
+                field_name="is_derived",
+            ),
+            "reason": str(value.get("reason") or "").strip(),
+        }
+
+    @classmethod
+    def _normalize_er_test_entities(cls, value: Any) -> list[dict[str, Any]]:
+        if value is None:
+            return []
+        if not isinstance(value, list):
+            raise ValueError("`entities` must be a list.")
+
+        normalized_entities: list[dict[str, Any]] = []
+        for index, entity in enumerate(value):
+            location = f"entities[{index}]"
+            if not isinstance(entity, dict):
+                raise ValueError(f"`{location}` must be an object.")
+
+            name = str(entity.get("name") or "").strip()
+            if not name:
+                raise ValueError(f"`{location}.name` is required.")
+
+            normalized_entities.append(
+                {
+                    "name": name,
+                    "desc": str(entity.get("desc") or "").strip(),
+                    "grain": str(entity.get("grain") or "").strip(),
+                    "key_attributes": entity.get("key_attributes"),
+                    "attributes": entity.get("attributes"),
+                }
+            )
+
+        return normalized_entities
+
+    @classmethod
+    def _normalize_er_test_participants(
+        cls,
+        value: Any,
+        *,
+        location: str,
+    ) -> list[dict[str, Any]]:
+        if value is None:
+            return []
+        if not isinstance(value, list):
+            raise ValueError(f"`participants` must be a list in {location}")
+
+        normalized_participants: list[dict[str, Any]] = []
+        for index, participant in enumerate(value):
+            participant_location = f"{location}.participants[{index}]"
+            if not isinstance(participant, dict):
+                raise ValueError(f"`{participant_location}` must be an object.")
+
+            entity_name = str(participant.get("entity") or "").strip()
+            if not entity_name:
+                raise ValueError(f"`{participant_location}.entity` is required.")
+
+            normalized_participants.append(
+                {
+                    "entity": entity_name,
+                    "role": str(participant.get("role") or "").strip(),
+                }
+            )
+
+        return normalized_participants
+
+    @classmethod
+    def _normalize_er_test_relations(cls, value: Any) -> list[dict[str, Any]]:
+        if value is None:
+            return []
+        if not isinstance(value, list):
+            raise ValueError("`relations` must be a list.")
+
+        normalized_relations: list[dict[str, Any]] = []
+        for index, relation in enumerate(value):
+            location = f"relations[{index}]"
+            if not isinstance(relation, dict):
+                raise ValueError(f"`{location}` must be an object.")
+
+            name = str(relation.get("name") or "").strip()
+            if not name:
+                raise ValueError(f"`{location}.name` is required.")
+
+            normalized_relations.append(
+                {
+                    "name": name,
+                    "desc": str(relation.get("desc") or "").strip(),
+                    "grain": str(relation.get("grain") or "").strip(),
+                    "participants": cls._normalize_er_test_participants(
+                        relation.get("participants"),
+                        location=location,
+                    ),
+                    "attributes": relation.get("attributes"),
+                }
+            )
+
+        return normalized_relations
+
+    @classmethod
+    def normalize_er_object_sketch(cls, payload: dict[str, Any]) -> dict[str, Any]:
+        if not isinstance(payload, dict):
+            raise ValueError(
+                f"Expected ER object sketch JSON object, got {type(payload).__name__}"
+            )
+
+        return {
+            "answer_target": cls._normalize_er_test_answer_target(payload.get("answer_target")),
+            "entities": cls._normalize_er_test_entities(payload.get("entities")),
+            "relations": cls._normalize_er_test_relations(payload.get("relations")),
+        }
+
+    @classmethod
+    def _normalize_er_review_constraints(cls, value: Any) -> list[dict[str, Any]]:
+        if value is None:
+            return []
+        if not isinstance(value, list):
+            raise ValueError("`constraints` must be a list.")
+
+        allowed_types = {
+            "attribute_filter",
+            "temporal",
+            "spatial",
+            "existence",
+            "role",
+            "set_membership",
+            "distinctness",
+        }
+        normalized_constraints: list[dict[str, Any]] = []
+        for index, constraint in enumerate(value):
+            location = f"constraints[{index}]"
+            if not isinstance(constraint, dict):
+                raise ValueError(f"`{location}` must be an object.")
+
+            target = str(constraint.get("target") or "").strip()
+            if not target:
+                raise ValueError(f"`{location}.target` is required.")
+
+            constraint_type = str(constraint.get("type") or "").strip()
+            if not constraint_type:
+                raise ValueError(f"`{location}.type` is required.")
+            if constraint_type not in allowed_types:
+                raise ValueError(
+                    f"`{location}.type` must be one of: {', '.join(sorted(allowed_types))}."
+                )
+
+            description = str(constraint.get("description") or "").strip()
+            if not description:
+                raise ValueError(f"`{location}.description` is required.")
+
+            normalized_constraints.append(
+                {
+                    "target": target,
+                    "type": constraint_type,
+                    "description": description,
+                    "based_on": cls._normalize_string_list(
+                        constraint.get("based_on"),
+                        location=location,
+                        field_name="based_on",
+                    ),
+                }
+            )
+
+        return normalized_constraints
+
+    @classmethod
+    def _normalize_er_review_derived_metrics(cls, value: Any) -> list[dict[str, Any]]:
+        if value is None:
+            return []
+        if not isinstance(value, list):
+            raise ValueError("`derived_metrics` must be a list.")
+
+        normalized_metrics: list[dict[str, Any]] = []
+        for index, metric in enumerate(value):
+            location = f"derived_metrics[{index}]"
+            if not isinstance(metric, dict):
+                raise ValueError(f"`{location}` must be an object.")
+
+            name = str(metric.get("name") or "").strip()
+            if not name:
+                raise ValueError(f"`{location}.name` is required.")
+
+            definition = str(metric.get("definition") or "").strip()
+            if not definition:
+                raise ValueError(f"`{location}.definition` is required.")
+
+            normalized_metrics.append(
+                {
+                    "name": name,
+                    "definition": definition,
+                    "depends_on": cls._normalize_string_list(
+                        metric.get("depends_on"),
+                        location=location,
+                        field_name="depends_on",
+                    ),
+                }
+            )
+
+        return normalized_metrics
+
+    @classmethod
+    def _normalize_er_review_logical_query_sketch(cls, value: Any) -> dict[str, Any]:
+        location = "logical_query_sketch"
+        if value is None:
+            return {}
+        if not isinstance(value, dict):
+            raise ValueError(f"`{location}` must be an object.")
+
+        answer_grain = str(value.get("answer_grain") or "").strip()
+        if not answer_grain:
+            raise ValueError(f"`{location}.answer_grain` is required.")
+
+        return {
+            "answer_grain": answer_grain,
+            "base_scope": cls._normalize_string_list(
+                value.get("base_scope"),
+                location=location,
+                field_name="base_scope",
+            ),
+            "join_semantics": cls._normalize_string_list(
+                value.get("join_semantics"),
+                location=location,
+                field_name="join_semantics",
+            ),
+            "filters": cls._normalize_string_list(
+                value.get("filters"),
+                location=location,
+                field_name="filters",
+            ),
+            "group_by": cls._normalize_string_list(
+                value.get("group_by"),
+                location=location,
+                field_name="group_by",
+            ),
+            "derived_metrics": cls._normalize_er_review_derived_metrics(
+                value.get("derived_metrics")
+            ),
+            "ranking": cls._normalize_string_list(
+                value.get("ranking"),
+                location=location,
+                field_name="ranking",
+            ),
+            "final_projection": cls._normalize_string_list(
+                value.get("final_projection"),
+                location=location,
+                field_name="final_projection",
+            ),
+        }
+
+    @classmethod
+    def _normalize_er_review_report(cls, value: Any) -> dict[str, Any]:
+        location = "review_report"
+        if value is None:
+            return {}
+        if not isinstance(value, dict):
+            raise ValueError(f"`{location}` must be an object.")
+        return dict(value)
+
+    @classmethod
+    def normalize_er_semantic_review(cls, payload: dict[str, Any]) -> dict[str, Any]:
+        if not isinstance(payload, dict):
+            raise ValueError(
+                f"Expected ER semantic review JSON object, got {type(payload).__name__}"
+            )
+
+        if any(key in payload for key in ("entities", "relations", "conditions")):
+            return {
+                "entities": cls._normalize_entities(payload.get("entities")),
+                "relations": cls._normalize_units(
+                    payload.get("relations"),
+                    unit_type="relation",
+                ),
+                "conditions": cls._normalize_conditions(payload.get("conditions")),
+            }
+
+        refined_object_sketch = payload.get("refined_object_sketch")
+        if not isinstance(refined_object_sketch, dict):
+            raise ValueError(
+                "ER semantic review output must contain either top-level "
+                "`entities`/`relations`/`conditions` or `refined_object_sketch`."
+            )
+
+        return {
+            "entities": build_legacy_entities_payload(
+                cls._normalize_er_test_entities(refined_object_sketch.get("entities"))
+            ),
+            "relations": build_legacy_relations_payload(
+                cls._normalize_er_test_relations(refined_object_sketch.get("relations"))
+            ),
+            "conditions": build_legacy_conditions_payload(
+                cls._normalize_er_review_constraints(payload.get("constraints"))
+            ),
+        }
+
     def parse_conceptual_sql(self, conceptual_sql: str) -> dict[str, Any]:
         template_name = "NL2ER_SQL_Parse_st2_v7.0.md"
         self.build_prompt.register_template(
@@ -406,11 +981,29 @@ class NL2ER:
         normalized: list[str] = []
         seen: set[str] = set()
         for index, item in enumerate(value):
-            if not isinstance(item, str):
+            text = ""
+            if isinstance(item, str):
+                text = item.strip()
+            elif isinstance(item, dict):
+                for candidate_key in (
+                    "name",
+                    "attribute_name",
+                    "field_name",
+                    "key",
+                    "value",
+                ):
+                    candidate_value = str(item.get(candidate_key) or "").strip()
+                    if candidate_value:
+                        text = candidate_value
+                        break
+                if not text:
+                    raise ValueError(
+                        f"`{field_name}[{index}]` must be a string or a named object in {location}"
+                    )
+            else:
                 raise ValueError(
-                    f"`{field_name}[{index}]` must be a string in {location}"
+                    f"`{field_name}[{index}]` must be a string or a named object in {location}"
                 )
-            text = item.strip()
             if not text or text in seen:
                 continue
             normalized.append(text)
@@ -456,6 +1049,7 @@ class NL2ER:
             normalized_entities.append(
                 {
                     "entity_name": entity_name,
+                    "desc": str(entity.get("desc") or "").strip(),
                     "grain": str(entity.get("grain") or "").strip(),
                     "attributes": merged_attributes,
                     "primary_key": primary_key,
@@ -526,6 +1120,7 @@ class NL2ER:
             normalized_units.append(
                 {
                     unit_name_key: unit_name,
+                    "desc": str(unit.get("desc") or "").strip(),
                     "grain": str(unit.get("grain") or "").strip(),
                     "participants": cls._normalize_participants(
                         unit.get("participants"),
@@ -981,91 +1576,319 @@ class NL2ER:
             "components": components,
         }
 
-    def run(self) -> dict[str, Any]:
+    def validate_er_object_sketch_integrity(
+        self,
+        object_sketch: dict[str, Any],
+    ) -> dict[str, Any]:
+        errors: list[str] = []
+        warnings: list[str] = []
+
+        answer_target = object_sketch.get("answer_target") or {}
+        entities = list(object_sketch.get("entities") or [])
+        relations = list(object_sketch.get("relations") or [])
+
+        entity_names: list[str] = []
+        entity_name_set: set[str] = set()
+        for entity in entities:
+            entity_name = str(entity.get("name") or "").strip()
+            if not entity_name:
+                continue
+            if entity_name in entity_name_set:
+                errors.append(f"Entity `{entity_name}` is duplicated in object sketch.")
+                continue
+            entity_names.append(entity_name)
+            entity_name_set.add(entity_name)
+            raw_key_attributes = entity.get("key_attributes")
+            if raw_key_attributes in (None, "", [], {}):
+                warnings.append(
+                    f"Entity `{entity_name}` does not declare any key_attributes."
+                )
+
+        relation_names: list[str] = []
+        relation_name_set: set[str] = set()
+        for relation in relations:
+            relation_name = str(relation.get("name") or "").strip()
+            if not relation_name:
+                continue
+            if relation_name in relation_name_set:
+                errors.append(f"Relation `{relation_name}` is duplicated in object sketch.")
+                continue
+            relation_names.append(relation_name)
+            relation_name_set.add(relation_name)
+
+            participants = list(relation.get("participants") or [])
+            if len(participants) < 2:
+                errors.append(
+                    f"Relation `{relation_name}` must reference at least 2 participants."
+                )
+
+            participant_roles: set[str] = set()
+            participant_entities: list[str] = []
+            for participant in participants:
+                participant_entity = str(participant.get("entity") or "").strip()
+                participant_role = str(participant.get("role") or "").strip()
+                if not participant_entity:
+                    errors.append(
+                        f"Relation `{relation_name}` has a participant with empty entity."
+                    )
+                    continue
+                participant_entities.append(participant_entity)
+                if participant_entity not in entity_name_set:
+                    errors.append(
+                        f"Relation `{relation_name}` references unknown entity `{participant_entity}`."
+                    )
+                if participant_role:
+                    if participant_role in participant_roles:
+                        warnings.append(
+                            f"Relation `{relation_name}` reuses role `{participant_role}` across participants."
+                        )
+                    participant_roles.add(participant_role)
+
+            if len(participant_entities) >= 2 and len(set(participant_entities)) == 1:
+                warnings.append(
+                    f"Relation `{relation_name}` is self-referential; verify participant roles are distinct."
+                )
+
+        if not entity_names:
+            errors.append("Object sketch must contain at least one entity.")
+
+        answer_target_name = str(answer_target.get("name") or "").strip()
+        answer_target_is_derived = bool(answer_target.get("is_derived"))
+        if answer_target_name and not answer_target_is_derived:
+            if answer_target_name not in entity_name_set and answer_target_name not in relation_name_set:
+                warnings.append(
+                    f"Non-derived answer_target `{answer_target_name}` does not match any entity or relation name."
+                )
+
+        passed = not errors
+        if passed:
+            summary = (
+                "ER object sketch integrity check passed."
+                if not warnings
+                else "ER object sketch integrity check passed with warnings."
+            )
+        else:
+            summary = "ER object sketch integrity check failed."
+
+        return {
+            "passed": passed,
+            "summary": summary,
+            "errors": errors,
+            "warnings": warnings,
+            "stats": {
+                "entity_count": len(entity_names),
+                "relation_count": len(relation_names),
+            },
+        }
+
+    def validate_er_semantic_review_integrity(
+        self,
+        semantic_review: dict[str, Any],
+    ) -> dict[str, Any]:
+        entities = list(semantic_review.get("entities") or [])
+        relations = list(semantic_review.get("relations") or [])
+        conditions = list(semantic_review.get("conditions") or [])
+
+        skeleton_integrity = self.validate_er_skeleton_integrity(
+            {
+                "entities": entities,
+                "relations": relations,
+                "connections": [],
+                "conditions": conditions,
+            }
+        )
+        errors: list[str] = list(skeleton_integrity.get("errors") or [])
+        warnings: list[str] = list(skeleton_integrity.get("warnings") or [])
+
+        entity_names = {
+            str(entity.get("entity_name") or "").strip()
+            for entity in entities
+            if str(entity.get("entity_name") or "").strip()
+        }
+        relation_names = {
+            str(relation.get("relation_name") or "").strip()
+            for relation in relations
+            if str(relation.get("relation_name") or "").strip()
+        }
+        role_names = {
+            str(participant.get("role") or "").strip()
+            for relation in relations
+            if isinstance(relation, dict)
+            for participant in list(relation.get("participants") or [])
+            if isinstance(participant, dict) and str(participant.get("role") or "").strip()
+        }
+        valid_target_roots = entity_names | relation_names | role_names
+
+        for condition in conditions:
+            condition_name = str(condition.get("condition_name") or "").strip() or "<unnamed>"
+            targets = list(condition.get("targets") or [])
+            if not targets:
+                warnings.append(f"Condition `{condition_name}` has no targets.")
+                continue
+            description = str(condition.get("description") or "").strip()
+            if not description:
+                warnings.append(f"Condition `{condition_name}` has empty description.")
+            condition_type = str(condition.get("condition_type") or "").strip()
+            if not condition_type:
+                warnings.append(f"Condition `{condition_name}` has empty condition_type.")
+            for target in targets:
+                target_text = str(target or "").strip()
+                target_root = target_text.split(".", 1)[0] if target_text else ""
+                if target_root and target_root not in valid_target_roots:
+                    warnings.append(
+                        f"Condition `{condition_name}` target `{target_text}` does not match any entity, relation, or role."
+                    )
+
+        passed = not errors
+        if passed:
+            summary = (
+                "ER semantic review integrity check passed."
+                if not warnings
+                else "ER semantic review integrity check passed with warnings."
+            )
+        else:
+            summary = "ER semantic review integrity check failed."
+
+        return {
+            "passed": passed,
+            "summary": summary,
+            "errors": errors,
+            "warnings": warnings,
+            "stats": {
+                "entity_count": len(entity_names),
+                "relation_count": len(relation_names),
+                "condition_count": len(conditions),
+            },
+        }
+
+    def run_er_test_st1(self) -> dict[str, Any]:
         started_at = time.time()
 
         step_started_at = time.time()
-        query_unit_payload = self.extract_query_units()
-        write_json(self.log_dir / "query_units.json", query_unit_payload)
+        object_sketch = self.extract_er_object_sketch()
+        write_json(self.log_dir / "er_object_sketch.json", object_sketch)
         emit_step_done_log(
             prefix="NL2ER",
-            step="extract_query_units",
+            step="extract_er_object_sketch",
             elapsed_seconds=time.time() - step_started_at,
-            query_unit_count=len(query_unit_payload.get("query_units") or []),
+            answer_target=str(
+                (object_sketch.get("answer_target") or {}).get("name") or ""
+            ).strip(),
+            entity_count=len(object_sketch.get("entities") or []),
+            relation_count=len(object_sketch.get("relations") or []),
         )
 
         step_started_at = time.time()
-        conceptual_plan = self.conceptual_query_plan(query_unit_payload["query_units"])
+        integrity_report = self.validate_er_object_sketch_integrity(object_sketch)
+        write_json(self.log_dir / "er_object_sketch_integrity.json", integrity_report)
         emit_step_done_log(
             prefix="NL2ER",
-            step="conceptual_query_plan",
-            elapsed_seconds=time.time() - step_started_at,
-            has_conceptual_sql=bool(conceptual_plan.get("conceptual_sql")),
-        )
-
-        step_started_at = time.time()
-        sql_parse_result = self.parse_conceptual_sql(conceptual_plan["conceptual_sql"])
-        emit_step_done_log(
-            prefix="NL2ER",
-            step="parse_conceptual_sql",
-            elapsed_seconds=time.time() - step_started_at,
-            entity_count=len(sql_parse_result.get("entities") or []),
-            relation_count=len(sql_parse_result.get("relations") or []),
-            connection_count=len(sql_parse_result.get("connections") or []),
-            condition_count=len(sql_parse_result.get("conditions") or []),
-        )
-
-        step_started_at = time.time()
-        sql_parse_result, connection_cleanup_warnings = self._prune_invalid_connections(
-            sql_parse_result
-        )
-        emit_step_done_log(
-            prefix="NL2ER",
-            step="prune_invalid_connections",
-            elapsed_seconds=time.time() - step_started_at,
-            connection_count=len(sql_parse_result.get("connections") or []),
-            dropped_count=len(connection_cleanup_warnings),
-        )
-
-        step_started_at = time.time()
-        integrity_report = self.validate_er_skeleton_integrity(
-            sql_parse_result,
-            pre_warnings=connection_cleanup_warnings,
-        )
-        write_json(self.log_dir / "er_skeleton_integrity.json", integrity_report)
-        emit_step_done_log(
-            prefix="NL2ER",
-            step="validate_er_skeleton_integrity",
+            step="validate_er_object_sketch_integrity",
             elapsed_seconds=time.time() - step_started_at,
             ok=integrity_report["passed"],
             passed=integrity_report["passed"],
             error_count=len(integrity_report["errors"]),
             warning_count=len(integrity_report["warnings"]),
-            component_count=integrity_report["stats"]["component_count"],
         )
-        result = {
-            "conceptual_sql": conceptual_plan["conceptual_sql"],
-            "entities": sql_parse_result.get("entities", []),
-            "relations": sql_parse_result.get("relations", []),
-            "connections": sql_parse_result.get("connections", []),
-            "conditions": sql_parse_result.get("conditions", []),
+
+        return {
+            "result": object_sketch,
+            "integrity_report": integrity_report,
+            "elapsed_seconds": time.time() - started_at,
         }
-        if not integrity_report["passed"]:
+
+    def run_er_test_st2(self) -> dict[str, Any]:
+        started_at = time.time()
+
+        step_started_at = time.time()
+        stage1_object_sketch = self.extract_er_object_sketch()
+        write_json(self.log_dir / "er_object_sketch.json", stage1_object_sketch)
+        emit_step_done_log(
+            prefix="NL2ER",
+            step="extract_er_object_sketch",
+            elapsed_seconds=time.time() - step_started_at,
+            answer_target=str(
+                (stage1_object_sketch.get("answer_target") or {}).get("name") or ""
+            ).strip(),
+            entity_count=len(stage1_object_sketch.get("entities") or []),
+            relation_count=len(stage1_object_sketch.get("relations") or []),
+        )
+
+        step_started_at = time.time()
+        stage1_integrity_report = self.validate_er_object_sketch_integrity(stage1_object_sketch)
+        write_json(self.log_dir / "er_object_sketch_integrity.json", stage1_integrity_report)
+        emit_step_done_log(
+            prefix="NL2ER",
+            step="validate_er_object_sketch_integrity",
+            elapsed_seconds=time.time() - step_started_at,
+            ok=stage1_integrity_report["passed"],
+            passed=stage1_integrity_report["passed"],
+            error_count=len(stage1_integrity_report["errors"]),
+            warning_count=len(stage1_integrity_report["warnings"]),
+        )
+
+        step_started_at = time.time()
+        semantic_review = self.review_er_object_sketch(stage1_object_sketch)
+        write_json(self.log_dir / "er_semantic_review.json", semantic_review)
+        emit_step_done_log(
+            prefix="NL2ER",
+            step="review_er_object_sketch",
+            elapsed_seconds=time.time() - step_started_at,
+            entity_count=len(semantic_review.get("entities") or []),
+            relation_count=len(semantic_review.get("relations") or []),
+            condition_count=len(semantic_review.get("conditions") or []),
+        )
+
+        step_started_at = time.time()
+        integrity_report = self.validate_er_semantic_review_integrity(semantic_review)
+        write_json(self.log_dir / "er_semantic_review_integrity.json", integrity_report)
+        emit_step_done_log(
+            prefix="NL2ER",
+            step="validate_er_semantic_review_integrity",
+            elapsed_seconds=time.time() - step_started_at,
+            ok=integrity_report["passed"],
+            passed=integrity_report["passed"],
+            error_count=len(integrity_report["errors"]),
+            warning_count=len(integrity_report["warnings"]),
+        )
+
+        return {
+            "stage1_object_sketch": stage1_object_sketch,
+            "stage1_integrity_report": stage1_integrity_report,
+            "result": semantic_review,
+            "integrity_report": integrity_report,
+            "elapsed_seconds": time.time() - started_at,
+        }
+
+    def run(self) -> dict[str, Any]:
+        payload = self.run_er_test_st2()
+        result = {
+            "entities": list(payload["result"].get("entities") or []),
+            "relations": list(payload["result"].get("relations") or []),
+            "conditions": list(payload["result"].get("conditions") or []),
+        }
+        if not payload["integrity_report"]["passed"]:
             raise ERSkeletonIntegrityError(
-                integrity_report=integrity_report,
+                integrity_report=payload["integrity_report"],
                 result=result,
             )
-
-        elapsed_seconds = time.time() - started_at
         return {
+            "stage1_object_sketch": payload["stage1_object_sketch"],
+            "stage1_integrity_report": payload["stage1_integrity_report"],
             "result": result,
-            "integrity_report": integrity_report,
-            "elapsed_seconds": elapsed_seconds,
+            "integrity_report": payload["integrity_report"],
+            "elapsed_seconds": payload["elapsed_seconds"],
         }
 
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Run NL2ER from a parameterized JSON input.")
+    parser.add_argument(
+        "--mode",
+        choices=["pipeline", "er_test_st1", "er_test_st2"],
+        default="pipeline",
+        help="`pipeline` runs the current stage1/stage2 ER workflow and writes `nl2er_output` using the current st2 final schema; `er_test_st1` runs only the stage1 object sketch prompt; `er_test_st2` runs stage1 object sketch extraction plus stage2 ER review.",
+    )
     parser.add_argument("--input-path", type=Path, default=DEFAULT_INPUT_PATH)
     parser.add_argument("--question-id", default=None)
     parser.add_argument("--db-id", default=None)
@@ -1081,7 +1904,7 @@ def parse_args() -> argparse.Namespace:
 
 def main() -> None:
     args = parse_args()
-    input_payload = read_input_payload(args.input_path)
+    input_payload = read_input_payload(args.input_path, question_id=args.question_id)
     if args.question_id:
         input_payload = replace(input_payload, question_id=str(args.question_id).strip())
     if args.db_id:
@@ -1109,7 +1932,15 @@ def main() -> None:
     output_path = resolve_output_path(
         output_path=args.output_path,
         run_dir=metadata_dir,
-        default_filename=DEFAULT_OUTPUT_FILENAME,
+        default_filename=(
+            DEFAULT_OUTPUT_FILENAME
+            if args.mode == "pipeline"
+            else (
+                ER_TEST_ST1_OUTPUT_FILENAME
+                if args.mode == "er_test_st1"
+                else ER_TEST_ST2_OUTPUT_FILENAME
+            )
+        ),
     )
 
     serialized_input = serialize_input_payload(input_payload)
@@ -1127,6 +1958,7 @@ def main() -> None:
     print(f"[NL2ER] run_id={run_id}")
     print(f"[NL2ER] question_id={input_payload.question_id}")
     print(f"[NL2ER] db_id={input_payload.db_id}")
+    print(f"[NL2ER] mode={args.mode}")
 
     nl2er = NL2ER(
         prompt_dir=args.prompt_dir,
@@ -1134,6 +1966,49 @@ def main() -> None:
         input_payload=input_payload,
         model_config=args.model_config,
     )
+
+    if args.mode == "er_test_st1":
+        payload = nl2er.run_er_test_st1()
+        write_json(
+            output_path,
+            build_er_test_st1_output_payload(
+                object_sketch=payload["result"],
+                integrity_report=payload["integrity_report"],
+            ),
+        )
+
+        print(f"[NL2ER] elapsed={format_elapsed_seconds(payload['elapsed_seconds'])}")
+        print(f"[NL2ER] output wrote to {output_path}")
+        print(f"[NL2ER] logs wrote to {log_dir}")
+        print(f"[NL2ER] metadata wrote to {metadata_dir}")
+
+        if not payload["integrity_report"]["passed"]:
+            print(f"[NL2ER] object sketch integrity check failed.")
+            raise SystemExit(2)
+        return
+
+    if args.mode == "er_test_st2":
+        payload = nl2er.run_er_test_st2()
+        write_json(
+            output_path,
+            build_er_test_st2_output_payload(
+                stage1_object_sketch=payload["stage1_object_sketch"],
+                stage1_integrity_report=payload["stage1_integrity_report"],
+                semantic_review=payload["result"],
+                integrity_report=payload["integrity_report"],
+            ),
+        )
+
+        print(f"[NL2ER] elapsed={format_elapsed_seconds(payload['elapsed_seconds'])}")
+        print(f"[NL2ER] output wrote to {output_path}")
+        print(f"[NL2ER] logs wrote to {log_dir}")
+        print(f"[NL2ER] metadata wrote to {metadata_dir}")
+
+        if not payload["integrity_report"]["passed"]:
+            print(f"[NL2ER] semantic review integrity check failed.")
+            raise SystemExit(2)
+        return
+
     started_at = time.time()
     try:
         payload = nl2er.run()

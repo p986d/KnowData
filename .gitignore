@@ -3,7 +3,7 @@
 *.py[cod]
 *$py.class
 setup.bat
-
+.vscode/
 analysis/**
 log/**
 metadata/**

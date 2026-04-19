@@ -3,7 +3,6 @@
 import argparse
 import copy
 import csv
-import hashlib
 import json
 import re
 import sys
@@ -51,8 +50,8 @@ ANALYSIS_TEMPLATE_NAME = "ER2Data_query2unit_check_st2_v0.md"
 ANALYSIS_TEMPLATE_KEY = "er2data_query_to_unit_check"
 FINAL_QUERY_TEMPLATE_NAME = "ER2Data_final_query_st3_v0.md"
 FINAL_QUERY_TEMPLATE_KEY = "er2data_final_query"
-SAFE_FILE_RE = re.compile(r"[^A-Za-z0-9._-]+")
-SQL_SYMBOL_SAFE_RE = re.compile(r"[^A-Za-z0-9]+")
+SAFE_FILE_RE = re.compile(r"[^\w.-]+", re.UNICODE)
+SQL_SYMBOL_SAFE_RE = re.compile(r"[^\w]+", re.UNICODE)
 ANALYSIS_RESULT_SAMPLE_ROW_LIMIT = 5
 ANALYSIS_RESULT_SAMPLE_COLUMN_LIMIT = 12
 ANALYSIS_RESULT_SAMPLE_VALUE_MAX_CHARS = 160
@@ -67,21 +66,21 @@ Requirements for the outermost SELECT of this semantic-unit SQL:
 - Every output alias must represent the semantic attribute alias of this unit, not the raw physical database column name.
 - If a physical source column or expression represents a semantic attribute, project it as `<source_expression> AS <semantic_alias>`.
 - The outermost output aliases must be stable and reusable across later SQL composition.
-- All output aliases must be in English, even if the semantic unit definition is written in Chinese.
+- Output aliases may keep explicit Chinese or other original semantic names when appropriate.
 """.strip()
 RELATIONSHIP_OUTPUT_ALIAS_CONTRACT = """[Relationship Output Alias Contract]
 
-This SQL implements one relationship semantic unit.
+This SQL implements one relationship or connection semantic unit.
 
-For the outermost SELECT of this relationship SQL:
+For the outermost SELECT of this relationship or connection SQL:
 - Every output column must use an explicit alias with `AS`.
 - Do not use `SELECT *`.
-- Every relationship-owned attribute must be projected using its semantic attribute alias.
+- Every relationship-owned or connection-owned attribute must be projected using its semantic attribute alias.
 - Every participant identifier used by this relationship must be projected using the required semantic alias defined below.
 """.strip()
 PARTICIPANT_IDENTIFIER_DEPENDENCY_CONTRACT = """[Participant Identifier Dependency Contract]
 
-This relationship depends on identifier attributes from its participant entities.
+This relationship or connection depends on identifier attributes from its participant entities.
 
 Rules:
 - If a relationship output column semantically represents a participant entity identifier, reuse the required semantic alias for that participant identifier.
@@ -91,10 +90,10 @@ Rules:
 - Do not invent a new alias for a participant identifier when a required semantic alias is already defined.
 """.strip()
 RELATIONSHIP_ALIAS_EXAMPLES = """Examples:
-- If the relationship uses `buyer_no` for the buyer Customer identifier, project `buyer_no AS customer_id`.
-- If the relationship uses `sales_order_no` for the Order identifier, project `sales_order_no AS order_id`.
-- If the relationship uses `COALESCE(account_id, user_id)` for the Customer identifier, project `COALESCE(account_id, user_id) AS customer_id`.
-- If the same entity participates with multiple roles, use the required role-aware aliases, for example `buyer_no AS buyer__customer_id` and `seller_no AS seller__customer_id`.
+- If the association uses `buyer_no` for the buyer Customer identifier, project `buyer_no AS 客户_id`.
+- If the association uses `sales_order_no` for the Order identifier, project `sales_order_no AS 订单_id`.
+- If the association uses `COALESCE(account_id, user_id)` for the Customer identifier, project `COALESCE(account_id, user_id) AS 客户_id`.
+- If the same entity participates with multiple roles, use the required role-aware aliases, for example `buyer_no AS 买方__客户_id` and `seller_no AS 卖方__客户_id`.
 """.strip()
 
 
@@ -314,8 +313,7 @@ def normalize_nl2er_relationship_unit(
     return {
         "name": unit_name,
         "grain": str(value.get("grain") or "").strip(),
-        # Current NL2ER output carries the core relationship/connection semantics here.
-        "desc": str(value.get("link_condition") or "").strip(),
+        "desc": str(value.get("desc") or value.get("link_condition") or "").strip(),
         "participants": normalize_nl2er_participants(
             value.get("participants"),
             location=location,
@@ -362,8 +360,11 @@ def normalize_nl2er_conditions(value: Any, *, input_path: str | Path) -> list[di
             normalized_condition["target"] = targets
         else:
             raise ValueError(f"`conditions[{index}].targets` must be a string or list in {location}")
+        normalized_condition["condition_name"] = normalized_condition["name"]
+        normalized_condition["targets"] = list(normalized_condition["target"])
         normalized_condition["condition_type"] = str(condition.get("condition_type") or "").strip()
         normalized_condition["condition_desc"] = str(condition.get("description") or "").strip()
+        normalized_condition["description"] = normalized_condition["condition_desc"]
         normalized_condition["basis"] = []
         normalized.append(normalized_condition)
     return normalized
@@ -409,7 +410,7 @@ def normalize_er_input_payload(
             {
                 "name": entity_name,
                 "grain": str(entity.get("grain") or "").strip(),
-                "desc": "",
+                "desc": str(entity.get("desc") or "").strip(),
                 "role": "",
                 "attrs": normalize_nl2er_attr_list(
                     entity.get("attributes"),
@@ -421,13 +422,14 @@ def normalize_er_input_payload(
                     location=location,
                     field_name="primary_key",
                 ),
+                "source_type": "entity",
             }
         )
 
-    normalized_relationships: list[dict[str, Any]] = []
+    normalized_relations: list[dict[str, Any]] = []
     for index, relation in enumerate(relations):
         location = f"{Path(input_path)}.relations[{index}]"
-        normalized_relationships.append(
+        normalized_relations.append(
             normalize_nl2er_relationship_unit(
                 relation,
                 location=location,
@@ -436,20 +438,21 @@ def normalize_er_input_payload(
             )
         )
 
-    if merge_connections_into_relationships:
-        for index, connection in enumerate(connections or []):
-            location = f"{Path(input_path)}.connections[{index}]"
-            normalized_relationships.append(
-                normalize_nl2er_relationship_unit(
-                    connection,
-                    location=location,
-                    name_field="connection_name",
-                    source_type="connection",
-                )
+    normalized_connections: list[dict[str, Any]] = []
+    for index, connection in enumerate(connections or []):
+        location = f"{Path(input_path)}.connections[{index}]"
+        normalized_connections.append(
+            normalize_nl2er_relationship_unit(
+                connection,
+                location=location,
+                name_field="connection_name",
+                source_type="connection",
             )
+        )
 
-    normalized_payload["entity_types"] = normalized_entities
-    normalized_payload["relationship_types"] = normalized_relationships
+    normalized_payload["entities"] = normalized_entities
+    normalized_payload["relations"] = normalized_relations
+    normalized_payload["connections"] = normalized_connections
     normalized_payload["conditions"] = normalize_nl2er_conditions(
         conditions,
         input_path=input_path,
@@ -499,8 +502,6 @@ def to_safe_sql_symbol(value: str, *, fallback: str) -> str:
         text = fallback
     if text and text[0].isdigit():
         text = "_" + text
-    if any(ord(char) > 127 for char in raw_value):
-        text = f"{text}_{hashlib.sha1(raw_value.encode('utf-8')).hexdigest()[:8]}"
     return text
 
 
@@ -512,11 +513,9 @@ def format_alias_list(aliases: list[str]) -> str:
 
 def safe_file_stem(value: str) -> str:
     raw_value = str(value or "").strip()
-    cleaned = SAFE_FILE_RE.sub("_", raw_value).strip("._")
+    cleaned = re.sub(r"_+", "_", SAFE_FILE_RE.sub("_", raw_value)).strip("._-")
     if not cleaned:
         cleaned = "item"
-    if SAFE_FILE_RE.search(raw_value):
-        cleaned = f"{cleaned}_{hashlib.sha1(raw_value.encode('utf-8')).hexdigest()[:8]}"
     return cleaned
 
 
@@ -631,12 +630,14 @@ class ER2DataRunner:
         question_model_config: str | None = None,
         schema_link_model_config: str | None = None,
         nl2sql_model_config: str | None = None,
+        include_desc_in_er2query: bool = True,
         include_conditions_in_er2query: bool = False,
         include_conditions_in_sql2nl: bool = False,
     ) -> None:
         self.prompt_dir = Path(prompt_dir)
         self.log_dir = Path(log_dir)
         self.er2query_template_name = str(er2query_template_name).strip()
+        self.include_desc_in_er2query = include_desc_in_er2query
         self.include_conditions_in_er2query = include_conditions_in_er2query
         self.include_conditions_in_sql2nl = include_conditions_in_sql2nl
         self.question_prompt_dir = self.log_dir / "question_prompts"
@@ -719,9 +720,106 @@ class ER2DataRunner:
             description="Generate the final SQL query from prepared ER-derived CTEs.",
         )
 
+    @staticmethod
+    def build_prompt_participants(target_unit: dict[str, Any]) -> list[dict[str, Any]]:
+        prompt_participants: list[dict[str, Any]] = []
+        for participant in ensure_dict_list(target_unit.get("participants")):
+            participant_payload: dict[str, Any] = {}
+            entity_name = str(participant.get("entity") or "").strip()
+            if entity_name:
+                participant_payload["entity"] = entity_name
+
+            role_name = str(participant.get("role") or "").strip()
+            if role_name:
+                participant_payload["role"] = role_name
+
+            identifier_attrs = unique_strings(participant.get("identifier_attrs", []))
+            if identifier_attrs:
+                participant_payload["identifier_attrs"] = identifier_attrs
+
+            if participant_payload:
+                prompt_participants.append(participant_payload)
+        return prompt_participants
+
+    def build_prompt_target_unit(
+        self,
+        target_unit_type: str,
+        target_unit: dict[str, Any],
+    ) -> dict[str, Any]:
+        prompt_target_unit: dict[str, Any] = {}
+
+        name = str(target_unit.get("name") or "").strip()
+        if name:
+            prompt_target_unit["name"] = name
+
+        desc = str(target_unit.get("desc") or "").strip()
+        if self.include_desc_in_er2query and desc:
+            prompt_target_unit["desc"] = desc
+
+        grain = str(target_unit.get("grain") or "").strip()
+        if grain:
+            prompt_target_unit["grain"] = grain
+
+        if target_unit_type == "entity":
+            identifier_attrs = unique_strings(target_unit.get("identifier_attrs", []))
+            if identifier_attrs:
+                prompt_target_unit["identifier_attrs"] = identifier_attrs
+            attrs = ensure_dict_list(target_unit.get("attrs"))
+            if attrs:
+                prompt_target_unit["attrs"] = copy.deepcopy(attrs)
+            return prompt_target_unit
+
+        participants = ER2DataRunner.build_prompt_participants(target_unit)
+        if participants:
+            prompt_target_unit["participants"] = participants
+
+        if target_unit_type == "relationship":
+            attrs = ensure_dict_list(target_unit.get("attrs"))
+            if attrs:
+                prompt_target_unit["attrs"] = copy.deepcopy(attrs)
+
+        link_condition = str(target_unit.get("link_condition") or "").strip()
+        if link_condition:
+            prompt_target_unit["link_condition"] = link_condition
+
+        return prompt_target_unit
+
+    @staticmethod
+    def build_prompt_conditions(conditions: list[dict[str, Any]]) -> list[dict[str, Any]]:
+        prompt_conditions: list[dict[str, Any]] = []
+        for condition in conditions:
+            if not isinstance(condition, dict):
+                continue
+            payload: dict[str, Any] = {}
+
+            condition_name = str(
+                condition.get("condition_name") or condition.get("name") or ""
+            ).strip()
+            if condition_name:
+                payload["condition_name"] = condition_name
+
+            condition_type = str(condition.get("condition_type") or "").strip()
+            if condition_type:
+                payload["condition_type"] = condition_type
+
+            targets = extract_condition_targets(condition)
+            if targets:
+                payload["targets"] = targets
+
+            description = str(
+                condition.get("description") or condition.get("condition_desc") or ""
+            ).strip()
+            if description:
+                payload["description"] = description
+
+            if payload:
+                prompt_conditions.append(payload)
+        return prompt_conditions
+
     def build_units(self, er_model: dict[str, Any]) -> list[UnitTask]:
-        entity_types = ensure_dict_list(er_model.get("entity_types"))
-        relationship_types = ensure_dict_list(er_model.get("relationship_types"))
+        entity_types = ensure_dict_list(er_model.get("entities"))
+        relation_types = ensure_dict_list(er_model.get("relations"))
+        connection_types = ensure_dict_list(er_model.get("connections"))
         conditions = ensure_dict_list(er_model.get("conditions"))
         entity_index = {
             entity["name"]: entity
@@ -752,7 +850,7 @@ class ER2DataRunner:
                 )
             )
 
-        for idx, relationship in enumerate(relationship_types):
+        for idx, relationship in enumerate(relation_types):
             relationship_name = str(relationship.get("name", "")).strip()
             if not relationship_name:
                 continue
@@ -769,6 +867,28 @@ class ER2DataRunner:
                     target_unit_type="relationship",
                     target_unit_name=relationship_name,
                     target_unit=enriched_relationship,
+                    applied_conditions=applied_conditions,
+                    condition_selection=condition_selection,
+                )
+            )
+
+        for idx, connection in enumerate(connection_types):
+            connection_name = str(connection.get("name", "")).strip()
+            if not connection_name:
+                continue
+            enriched_connection = self.enrich_relationship(connection, entity_index)
+            applied_conditions, condition_selection = self.select_conditions_for_unit(
+                target_unit_type="connection",
+                target_unit=enriched_connection,
+                all_conditions=conditions,
+            )
+            units.append(
+                UnitTask(
+                    unit_id=f"connection::{connection_name}",
+                    source_index=idx,
+                    target_unit_type="connection",
+                    target_unit_name=connection_name,
+                    target_unit=enriched_connection,
                     applied_conditions=applied_conditions,
                     condition_selection=condition_selection,
                 )
@@ -824,22 +944,6 @@ class ER2DataRunner:
             basis_roots = extract_basis_roots(condition)
             reasons: list[str] = []
 
-            if condition_type != "single_attribute":
-                if condition_type:
-                    reasons.append(
-                        f"condition_type `{condition_type}` is not imported into question"
-                    )
-                else:
-                    reasons.append("condition_type is empty and is not imported into question")
-                selection_log.append(
-                    {
-                        "condition_name": condition_name,
-                        "selected": False,
-                        "reasons": reasons,
-                    }
-                )
-                continue
-
             if unit_name and unit_name in targets:
                 reasons.append("condition.target matches current unit")
             if unit_name and unit_name in basis_roots:
@@ -847,18 +951,19 @@ class ER2DataRunner:
             if unit_name and unit_name in target_roots:
                 reasons.append("condition.target root matches current unit")
 
-            if target_unit_type == "relationship" and participant_entities:
+            if target_unit_type in {"relationship", "connection"} and participant_entities:
                 if participant_entities.intersection(targets):
-                    reasons.append("condition.target matches a relationship participant")
+                    reasons.append("condition.target matches an association participant")
                 if participant_entities.intersection(target_roots):
-                    reasons.append("condition.target root matches a relationship participant")
+                    reasons.append("condition.target root matches an association participant")
                 if basis_roots.intersection(participant_entities):
-                    reasons.append("condition.basis references a relationship participant")
+                    reasons.append("condition.basis references an association participant")
 
             selected = bool(reasons)
             selection_log.append(
                 {
                     "condition_name": condition_name,
+                    "condition_type": condition_type,
                     "selected": selected,
                     "reasons": reasons,
                 }
@@ -879,8 +984,11 @@ class ER2DataRunner:
                     resolved_prompt_context.get("external_knowledge") or ""
                 ).strip(),
                 "target_unit_type": unit.target_unit_type,
-                "target_unit": unit.target_unit,
-                "conditions": (
+                "target_unit": self.build_prompt_target_unit(
+                    unit.target_unit_type,
+                    unit.target_unit,
+                ),
+                "conditions": self.build_prompt_conditions(
                     unit.applied_conditions if self.include_conditions_in_er2query else []
                 ),
             },
@@ -1206,33 +1314,32 @@ class ER2DataRunner:
         return entity_sql_by_name
 
     @staticmethod
-    def build_entity_output_aliases(target_unit: dict[str, Any]) -> tuple[list[str], list[str]]:
-        identifier_aliases: list[str] = []
-        seen_identifier_aliases: set[str] = set()
+    def build_entity_output_aliases(target_unit: dict[str, Any]) -> list[str]:
+        required_aliases: list[str] = []
+        seen_aliases: set[str] = set()
+
         for identifier_attr in unique_strings(target_unit.get("identifier_attrs", [])):
             alias = to_safe_sql_symbol(identifier_attr, fallback="id")
-            if alias in seen_identifier_aliases:
+            if alias in seen_aliases:
                 continue
-            identifier_aliases.append(alias)
-            seen_identifier_aliases.add(alias)
+            required_aliases.append(alias)
+            seen_aliases.add(alias)
 
-        attr_aliases: list[str] = []
-        seen_attr_aliases: set[str] = set()
         for attr in ensure_dict_list(target_unit.get("attrs")):
             attr_name = str(attr.get("name") or "").strip()
             if not attr_name:
                 continue
             alias = to_safe_sql_symbol(attr_name, fallback="attr")
-            if alias in seen_attr_aliases:
+            if alias in seen_aliases:
                 continue
-            attr_aliases.append(alias)
-            seen_attr_aliases.add(alias)
+            required_aliases.append(alias)
+            seen_aliases.add(alias)
 
-        return identifier_aliases, attr_aliases
+        return required_aliases
 
     @staticmethod
     def build_entity_alias_contract(target_unit: dict[str, Any]) -> str:
-        identifier_aliases, attr_aliases = ER2DataRunner.build_entity_output_aliases(target_unit)
+        required_aliases = ER2DataRunner.build_entity_output_aliases(target_unit)
         return "\n".join(
             [
                 "[Entity Output Alias Contract]",
@@ -1245,13 +1352,12 @@ class ER2DataRunner:
                 "- If the source column name is different from the semantic attribute alias, still use the semantic attribute alias in the final output.",
                 "",
                 "Required entity output aliases:",
-                f"- Identifier attributes: {format_alias_list(identifier_aliases)}",
-                f"- Other attributes: {format_alias_list(attr_aliases)}",
+                f"- {format_alias_list(required_aliases)}",
                 "",
                 "Examples:",
-                "- `customer_no AS customer_id`",
-                "- `customer_name_raw AS customer_name`",
-                "- `COALESCE(account_id, user_id) AS customer_id`",
+                "- `customer_no AS 客户_id`",
+                "- `customer_name_raw AS 客户名称`",
+                "- `COALESCE(account_id, user_id) AS 客户_id`",
             ]
         ).strip()
 
@@ -1648,7 +1754,7 @@ class ER2DataRunner:
             resolved_question = "Answer the original user request using the available ER-derived SQL units."
 
         def is_safe_sql_identifier(value: str) -> bool:
-            return bool(re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]*", value))
+            return bool(re.fullmatch(r"(?!\d)\w+", value, flags=re.UNICODE))
 
         def quote_identifier(value: str) -> str:
             return '"' + value.replace('"', '""') + '"'
@@ -1727,11 +1833,11 @@ class ER2DataRunner:
 
             aliases: list[str] = []
             for match in re.finditer(
-                r"\bAS\s+(?:\"([^\"]+)\"|([A-Za-z_][A-Za-z0-9_]*))",
+                r"\bAS\s+(?:\"([^\"]+)\"|`([^`]+)`|((?!\d)\w+))",
                 sql_text,
-                flags=re.IGNORECASE,
+                flags=re.IGNORECASE | re.UNICODE,
             ):
-                alias = str(match.group(1) or match.group(2) or "").strip()
+                alias = str(match.group(1) or match.group(2) or match.group(3) or "").strip()
                 if alias:
                     aliases.append(alias)
             return aliases
@@ -2267,10 +2373,9 @@ class ER2DataRunner:
                 )
                 continue
 
+            unit_type = str(unit_result.get("target_unit_type") or "").strip()
             analysis_external_knowledge = (
-                external_knowledge
-                if str(unit_result.get("target_unit_type") or "").strip() != "relationship"
-                else ""
+                external_knowledge if unit_type not in {"relationship", "connection"} else ""
             )
             prompt = self.build_analysis_prompt(
                 unit_result,
@@ -2432,10 +2537,10 @@ class ER2DataRunner:
                 for idx, item in enumerate(unit_results)
                 if str(item.get("target_unit_type") or "").strip() == "entity"
             ]
-            relationship_indices = [
+            association_indices = [
                 idx
                 for idx, item in enumerate(unit_results)
-                if str(item.get("target_unit_type") or "").strip() == "relationship"
+                if str(item.get("target_unit_type") or "").strip() in {"relationship", "connection"}
             ]
 
             self.run_nl2sql_batch(
@@ -2455,7 +2560,7 @@ class ER2DataRunner:
             self.run_nl2sql_batch(
                 unit_results,
                 db_id=db_id,
-                target_indices=relationship_indices,
+                target_indices=association_indices,
                 external_knowledge_resolver=lambda unit_result: self.build_relationship_external_knowledge(
                     unit_result,
                     base_external_knowledge=resolved_external_knowledge,
@@ -2585,6 +2690,11 @@ def parse_args() -> argparse.Namespace:
         "--er2query-template-name",
         default=DEFAULT_ER2QUERY_TEMPLATE_NAME,
     )
+    parser.add_argument(
+        "--exclude-desc-in-er2query",
+        action="store_true",
+        help="Do not pass target-unit desc into the ER2Query prompt.",
+    )
     parser.add_argument("--include-conditions-in-er2query", action="store_true")
     parser.add_argument("--include-conditions-in-sql2nl", action="store_true")
     parser.add_argument("--max-question-concurrency", type=int, default=None)
@@ -2692,6 +2802,7 @@ def main() -> None:
             "database_root": database_root,
             "database_resolution_error": database_resolution_error,
             "er2query_template_name": args.er2query_template_name,
+            "include_desc_in_er2query": not args.exclude_desc_in_er2query,
             "include_conditions_in_er2query": args.include_conditions_in_er2query,
             "include_conditions_in_sql2nl": args.include_conditions_in_sql2nl,
             "merge_connections_into_relationships": args.merge_connections_into_relationships,
@@ -2714,6 +2825,7 @@ def main() -> None:
         question_model_config=args.question_model_config,
         schema_link_model_config=args.schema_link_model_config,
         nl2sql_model_config=args.nl2sql_model_config,
+        include_desc_in_er2query=not args.exclude_desc_in_er2query,
         include_conditions_in_er2query=args.include_conditions_in_er2query,
         include_conditions_in_sql2nl=args.include_conditions_in_sql2nl,
     )
@@ -2761,6 +2873,7 @@ def main() -> None:
             "database_root": database_root,
             "database_resolution_error": database_resolution_error,
             "er2query_template_name": args.er2query_template_name,
+            "include_desc_in_er2query": not args.exclude_desc_in_er2query,
             "include_conditions_in_er2query": args.include_conditions_in_er2query,
             "include_conditions_in_sql2nl": args.include_conditions_in_sql2nl,
             "merge_connections_into_relationships": args.merge_connections_into_relationships,

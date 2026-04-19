@@ -243,7 +243,7 @@ class NL2ER:
         (self.log_dir / filename).write_text(content, encoding="utf-8")
 
     def extract_erc(self) -> dict[str, Any]:
-        template_name = "NL2ER_SQL_Conceptual_st1_v7.25.md" #"NL2ER_ER_st1_v6.1.md"
+        template_name = "NL2ER_SQL_Conceptual_st1_v7.7.md" #"NL2ER_ER_st1_v6.1.md"
         self.build_prompt.register_template(
             name="step_1_extract_ERC",
             template_name=template_name,
@@ -299,7 +299,7 @@ class NL2ER:
             }
 
     def parse_conceptual_sql(self, conceptual_sql: str) -> dict[str, Any]:
-        template_name = "NL2ER_SQL_Parse_st2_v7.0.md"
+        template_name = "NL2ER_SQL_Parse_st2_v7.7.md"
         self.build_prompt.register_template(
             name="step_2_parse_conceptual_sql",
             template_name=template_name,
@@ -434,6 +434,7 @@ class NL2ER:
             normalized_entities.append(
                 {
                     "entity_name": entity_name,
+                    "desc": str(entity.get("desc") or "").strip(),
                     "grain": str(entity.get("grain") or "").strip(),
                     "attributes": merged_attributes,
                     "primary_key": primary_key,
@@ -504,6 +505,7 @@ class NL2ER:
             normalized_units.append(
                 {
                     unit_name_key: unit_name,
+                    "desc": str(unit.get("desc") or "").strip(),
                     "grain": str(unit.get("grain") or "").strip(),
                     "participants": cls._normalize_participants(
                         unit.get("participants"),

@@ -13,7 +13,7 @@ mysql_sy_test:
 
 
 llm:
-  default_model: "qwen3_30B_instruct"
+  default_model: "deepseek_chat"
 
   models:
     deepseek_reason:
@@ -43,7 +43,7 @@ llm:
     deepseek_chat_2:
       api_key_env: "API_KEY_Comp_DashScope"
       base_url_env: "BASE_URL_Comp_DashScope"
-      model: "deepseek/deepseek-chat"
+      model: "deepseek-v3.2"
       temperature: 0.1
       top_p: 0.95
       timeout: 600.0

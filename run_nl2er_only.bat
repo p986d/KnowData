@@ -7,20 +7,21 @@ pushd "%~dp0" || exit /b 1
 @REM Choose `single` to run specified question_id values, or `all` to traverse every question in data\input.json.
 set "RUN_MODE=single"
 
-@REM Used only when RUN_MODE=single.
+set "INPUT_PATH=%CD%\data\input.json"
+set "INPUT_PATH=%CD%\data\sy_input.json"
 
 @REM set "QUESTION_IDS=sf_bq017"
-
-@REM set "QUESTION_IDS=test_bird_2"
 @REM set "QUESTION_IDS=sf_bq182"
-set "QUESTION_IDS=sf_bq209"
+@REM set "QUESTION_IDS=sf_bq209"
 @REM set "QUESTION_IDS=sf_bq248"
+@REM set "QUESTION_IDS=sf_bq050"
 @REM set "QUESTION_IDS=sf_local015"
-set "QUESTION_IDS=sf_bq017"
-@REM set "QUESTION_IDS=test_senyao"
+@REM set "QUESTION_IDS=sf_bq017"
 @REM set "QUESTION_IDS=sf_bq341"
+set "QUESTION_IDS=sy00"
+
 @REM set "LLM=qwen3_30B_instruct"
-set "LLM=deepseek_chat"
+set "LLM=deepseek_chat_2"
 
 @REM set "LLM=qwen_max"
 
@@ -37,14 +38,14 @@ exit /b 1
 
 :run_single
 python -m src.run.nl2er_only ^
-  --input-path "%CD%\data\input.json" ^
+  --input-path "%INPUT_PATH%" ^
   --question-id %QUESTION_IDS% ^
   --model-config "%LLM%"
 goto after_run
 
 :run_all
 python -m src.run.nl2er_only ^
-  --input-path "%CD%\data\input.json" ^
+  --input-path "%INPUT_PATH%" ^
   --model-config "%LLM%" ^
   --max-workers %MAX_WORKERS%
 

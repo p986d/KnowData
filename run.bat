@@ -3,8 +3,6 @@ setlocal EnableExtensions
 
 pushd "%~dp0" || exit /b 1
 
-set "PYTHON_EXE=D:\Tools\MiniConda\envs\spider2\python.exe"
-
 @REM Choose the source input file.
 @REM set "INPUT_PATH=%CD%\data\input.json"
 set "INPUT_PATH=%CD%\data\sy_input.json"
@@ -12,23 +10,24 @@ set "INPUT_PATH=%CD%\data\sy_input.json"
 @REM Choose `single` to run specified question_id values, or `all` to traverse every question in INPUT_PATH.
 set "RUN_MODE=all"
 
-@REM Used only when RUN_MODE=single.
-set "QUESTION_IDS=sy00"
-@REM set "QUESTION_IDS=sy24"
+
+set "QUESTION_IDS=sy02"
+
 @REM set "QUESTION_IDS=sf_bq050"
 @REM set "QUESTION_IDS=sf_bq017"
 @REM set "QUESTION_IDS=sf_bq182"
 @REM set "QUESTION_IDS=sf_bq209"
 @REM set "QUESTION_IDS=sf_bq341"
-
 @REM set "QUESTION_IDS=sf_bq248"
 @REM set "QUESTION_IDS=sf_bq254"
 @REM set "QUESTION_IDS=sf_local015"
 @REM set "QUESTION_IDS=sf_local030"
 @REM set "QUESTION_IDS=sf_local157"
 
+
+
 @REM set "LLM=qwen3_30B_instruct"
-set "LLM=deepseek_chat"
+set "LLM=deepseek_chat_2"
 @REM set "LLM=qwen_max"
 
 set "NL2SQL_ENGINE=reforce_gen_sl_m1"
@@ -41,7 +40,7 @@ popd
 exit /b 1
 
 :run_single
-"%PYTHON_EXE%" -m src.run.pipeline ^
+python -m src.run.pipeline ^
   --input-path "%INPUT_PATH%" ^
   --question-id %QUESTION_IDS% ^
   --nl2er-model-config "%LLM%" ^
@@ -53,7 +52,7 @@ exit /b 1
 goto after_run
 
 :run_all
-"%PYTHON_EXE%" -m src.run.pipeline ^
+python -m src.run.pipeline ^
   --input-path "%INPUT_PATH%" ^
   --engine-provider "%ENGINE_PROVIDER%" ^
   --nl2er-model-config "%LLM%" ^
@@ -61,6 +60,8 @@ goto after_run
   --nl2sql-model-config "%LLM%" ^
   --include-conditions-in-er2query ^
   --include-conditions-in-sql2nl ^
+  --exclude-desc-in-er2query ^
+  --max-batch-worker 3 ^
   --max-nl2sql-workers 64
 
 :after_run
