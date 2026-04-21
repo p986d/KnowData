@@ -1,0 +1,77 @@
+{
+  "人": {
+    "question": "找出实体“人”（一个具体的、可唯一标识的个人），并给出它的相关属性：该实体的主键、出生日期、是否老人、是否独居，其中要求“是否老人”为是且“是否独居”为是。",
+    "schema_linking": {
+      "tables": [],
+      "columns": []
+    },
+    "result_sql": "",
+    "nl2sql_result": false
+  },
+  "房屋": {
+    "question": "找出所有作为具体居住场所的房屋，并给出用于识别每个房屋的主键。",
+    "schema_linking": {
+      "tables": [
+        "sy_community_link.ads_address_hierarchy",
+        "sy_community_link.ads_house_basic_info",
+        "sy_community_link.ads_house_relation_info",
+        "sy_community_link.ads_residence_relation"
+      ],
+      "columns": [
+        "sy_community_link.ads_address_hierarchy.id",
+        "sy_community_link.ads_address_hierarchy.name",
+        "sy_community_link.ads_address_hierarchy.level",
+        "sy_community_link.ads_house_basic_info.house_id",
+        "sy_community_link.ads_house_basic_info.house_type",
+        "sy_community_link.ads_house_basic_info.usage_type",
+        "sy_community_link.ads_house_basic_info.valid_status",
+        "sy_community_link.ads_house_basic_info.is_virtual",
+        "sy_community_link.ads_house_basic_info.delete_flag",
+        "sy_community_link.ads_house_relation_info.house_id",
+        "sy_community_link.ads_residence_relation.house_id",
+        "sy_community_link.ads_residence_relation.live_status",
+        "sy_community_link.ads_residence_relation.is_primary_residence",
+        "sy_community_link.ads_residence_relation.valid_status",
+        "sy_community_link.ads_residence_relation.delete_flag"
+      ]
+    },
+    "result_sql": "SELECT \n    house_id AS 房屋_surrogate_id\nFROM \n    `sy_community_link`.`ads_house_basic_info`\nWHERE \n    house_type = 1\n    AND usage_type IN (1, 2)\n    AND is_virtual = 0\n    AND valid_status = 1\n    AND delete_flag = 0",
+    "nl2sql_result": true
+  },
+  "居住": {
+    "question": "找出实体‘人’与实体‘房屋’之间的‘居住’关系，并给出用于识别这些实体实例的相关属性：该人的主键和该房屋的主键，其中该人需满足老人定义且为独居状态。",
+    "schema_linking": {
+      "tables": [
+        "sy_community_link.ads_address_hierarchy",
+        "sy_community_link.ads_house_basic_info",
+        "sy_community_link.ads_house_relation_info",
+        "sy_community_link.ads_label_info",
+        "sy_community_link.ads_person_basic_info",
+        "sy_community_link.ads_residence_relation"
+      ],
+      "columns": [
+        "sy_community_link.ads_address_hierarchy.id",
+        "sy_community_link.ads_address_hierarchy.name",
+        "sy_community_link.ads_address_hierarchy.level",
+        "sy_community_link.ads_address_hierarchy.dept_id",
+        "sy_community_link.ads_house_basic_info.house_id",
+        "sy_community_link.ads_house_relation_info.house_id",
+        "sy_community_link.ads_house_relation_info.owner_id",
+        "sy_community_link.ads_house_relation_info.head_id",
+        "sy_community_link.ads_label_info.label_id",
+        "sy_community_link.ads_label_info.label_name",
+        "sy_community_link.ads_label_info.label_code",
+        "sy_community_link.ads_label_info.category_id",
+        "sy_community_link.ads_label_info.match_type",
+        "sy_community_link.ads_label_info.valid_status",
+        "sy_community_link.ads_person_basic_info.person_id",
+        "sy_community_link.ads_person_basic_info.birth_date",
+        "sy_community_link.ads_person_basic_info.current_birth_date",
+        "sy_community_link.ads_residence_relation.house_id",
+        "sy_community_link.ads_residence_relation.person_id"
+      ]
+    },
+    "result_sql": "SELECT \n    r.person_id AS 人员_surrogate_id,\n    r.house_id AS 房屋_surrogate_id\nFROM \n    sy_community_link.ads_residence_relation r\nINNER JOIN \n    sy_community_link.ads_person_basic_info p \n    ON r.person_id = p.person_id \n    AND p.delete_flag = 0\nINNER JOIN \n    sy_community_link.ads_house_basic_info h \n    ON r.house_id = h.house_id \n    AND h.delete_flag = 0 \n    AND h.valid_status = 1\nWHERE \n    r.delete_flag = 0 \n    AND r.valid_status = '1'\n    AND TIMESTAMPDIFF(YEAR, p.birth_date, CURDATE()) >= 60\n    AND r.house_id IN (\n        SELECT house_id\n        FROM sy_community_link.ads_residence_relation\n        WHERE delete_flag = 0 AND valid_status = '1'\n        GROUP BY house_id\n        HAVING COUNT(person_id) = 1\n    )",
+    "nl2sql_result": true
+  }
+}

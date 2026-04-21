@@ -1,0 +1,135 @@
+{
+  "人员": {
+    "unit_name": "人员",
+    "target_semantics": "居住于社区中的个体。",
+    "sql_semantics": "No SQL was produced for this unit, so there is no SQL semantics to evaluate.",
+    "precision_check": {
+      "found_precisely": false,
+      "matched_points": "",
+      "shifted_or_incorrect_points": "NL2SQL did not produce SQL."
+    },
+    "completeness_check": {
+      "found_completely": false,
+      "covered_points": "",
+      "missing_points": "NL2SQL did not produce SQL."
+    },
+    "verdict": "mismatch",
+    "reason": "NL2SQL did not produce SQL.",
+    "analysis_status": "placeholder",
+    "analysis_source": "deterministic_fallback"
+  },
+  "居住于": {
+    "unit_name": "居住于",
+    "target_semantics": "描述一个人当前居住于哪套房屋中。该关系是判断人员“独居”状态的基础。",
+    "sql_semantics": "No SQL was produced for this unit, so there is no SQL semantics to evaluate.",
+    "precision_check": {
+      "found_precisely": false,
+      "matched_points": "",
+      "shifted_or_incorrect_points": "NL2SQL did not produce SQL."
+    },
+    "completeness_check": {
+      "found_completely": false,
+      "covered_points": "",
+      "missing_points": "NL2SQL did not produce SQL."
+    },
+    "verdict": "mismatch",
+    "reason": "NL2SQL did not produce SQL.",
+    "analysis_status": "placeholder",
+    "analysis_source": "deterministic_fallback"
+  },
+  "街道": {
+    "unit_name": "街道",
+    "target_semantics": "查询‘街道’类型的实体中，名称为‘大桥街道’的记录，并返回该街道的主键和名称。",
+    "sql_semantics": "从`sys_dept`（系统部门）表中，查询部门名称为‘大桥街道’的记录，并返回其部门ID（作为主键）和部门名称。",
+    "precision_check": {
+      "found_precisely": false,
+      "matched_points": "实现了按名称‘大桥街道’进行精确筛选，并返回了ID和名称字段。",
+      "shifted_or_incorrect_points": "核心查询对象从‘街道’实体漂移到了更宽泛的‘部门/机构’实体。SQL未包含任何将结果限定为‘街道’类型的条件（如类型字段过滤）。"
+    },
+    "completeness_check": {
+      "found_completely": false,
+      "covered_points": "名称条件、ID输出、名称输出。",
+      "missing_points": "缺少标识或限定实体为‘街道’类型的关键条件（例如 `dept_type = 'street'` 或类似约束）。"
+    },
+    "verdict": "mismatch",
+    "reason": "SQL 的语义核心（查询部门）与目标语义单元的核心（查询街道）存在偏差，属于语义漂移，因此‘找准’为假。同时，即使按此路径，也缺少将结果限定为街道类型的关键条件，因此‘找全’也为假。综合判定为 mismatch。",
+    "analysis_status": "ok",
+    "analysis_source": "llm"
+  },
+  "居委": {
+    "unit_name": "居委",
+    "target_semantics": "直接查询并返回所有类型为‘居委’的实体，包含其主键和名称字段。",
+    "sql_semantics": "查询所有与有效房屋信息相关联的有效部门，返回其部门ID和部门名称。",
+    "precision_check": {
+      "found_precisely": false,
+      "matched_points": "返回了ID和名称字段，样本中的名称看起来是居委。",
+      "shifted_or_incorrect_points": "核心语义从‘找居委’漂移为‘找有房屋关联的部门’。缺少直接识别居委实体类型的条件，依赖间接业务关联进行推断，逻辑上无法保证结果全是居委。"
+    },
+    "completeness_check": {
+      "found_completely": false,
+      "covered_points": "输出了ID和名称两列。",
+      "missing_points": "缺少直接筛选‘居委’这一实体类型的关键条件（如部门类型字段过滤、特定层级过滤等）。"
+    },
+    "verdict": "mismatch",
+    "reason": "SQL未能‘找准’目标语义。其实质是通过一个间接的业务关联（与房屋表关联）来推测哪些部门是居委，而非直接基于‘居委’的模型定义进行查询。这导致了核心语义的漂移，因此判定为 mismatch。",
+    "analysis_status": "ok",
+    "analysis_source": "llm"
+  },
+  "房屋": {
+    "unit_name": "房屋",
+    "target_semantics": "返回所有符合‘一套具体房屋’（最小居住单元）定义的实体的主键列表，可能需要多表关联精确定义。",
+    "sql_semantics": "从 ads_house_basic_info 表中取出所有未被软删除的记录的 house_id。",
+    "precision_check": {
+      "found_precisely": false,
+      "matched_points": "使用了可能是房屋基础信息的表，并返回了房屋ID。",
+      "shifted_or_incorrect_points": "未确认 ads_house_basic_info 是否真的对应‘一个门牌号下的一个居住单元’，可能遗漏了关键关联表来精确定义实体，存在语义漂移风险。"
+    },
+    "completeness_check": {
+      "found_completely": false,
+      "covered_points": "选取了房屋ID列并做了软删除过滤。",
+      "missing_points": "可能缺少与地址表、房屋关系表等的关联，以精确定义‘一套具体房屋’；缺少对‘具体’的进一步限定条件。"
+    },
+    "verdict": "mismatch",
+    "reason": "SQL 只从一个表取房屋ID，未利用 schema linking 中提示的其他可能相关表来精确定义‘一套具体房屋’，因此既不能完全肯定找准（存在语义漂移风险），也肯定没有找全（缺少关键关联或限定）。",
+    "analysis_status": "ok",
+    "analysis_source": "llm"
+  },
+  "隶属": {
+    "unit_name": "隶属",
+    "target_semantics": "找出所有隶属于名称为‘大桥街道’的街道的居委，并返回这些居委和‘大桥街道’各自的唯一标识符（主键），以便能够明确识别出具体的居委实例和街道实例。",
+    "sql_semantics": "从部门表(sys_dept)中，找出父部门是名为‘大桥街道’的部门、且其部门ID在房屋基础信息表(ads_house_basic_info)中存在有效记录的部门（定义为‘居委’）。返回这些‘居委’的部门ID和其父部门（‘大桥街道’）的部门ID。",
+    "precision_check": {
+      "found_precisely": true,
+      "matched_points": "SQL准确表达了‘居委隶属于父级街道’的关系，并通过名称过滤精准定位到‘大桥街道’。",
+      "shifted_or_incorrect_points": "对‘居委’的定义依赖于房屋信息表的存在性，若无外部知识否定，可视为业务逻辑，不构成语义漂移。"
+    },
+    "completeness_check": {
+      "found_completely": false,
+      "covered_points": "核心的隶属关系逻辑、街道名称过滤条件、居委和街道的ID输出均已实现。",
+      "missing_points": "输出结果中缺少‘街道名称’（以及‘居委名称’）字段。这使得‘给出用于识别这些居委和街道实例的主键’的要求未能完全满足，因为仅凭ID无法在结果中直接、明确地识别出‘大桥街道’这一具体实例。"
+    },
+    "verdict": "partial_match",
+    "reason": "SQL的核心逻辑（找准）与目标语义单元一致，准确表达了‘居委隶属于大桥街道’的关系。但在输出结果的完整性（找全）上存在缺陷，未能返回街道（及居委）的名称，导致‘用于识别实例的主键’这一信息不完整，用户无法直接从结果集确认哪个ID对应‘大桥街道’。",
+    "analysis_status": "ok",
+    "analysis_source": "llm"
+  },
+  "归属于": {
+    "unit_name": "归属于",
+    "target_semantics": "查询所有房屋与其所属居委的对应关系，返回房屋主键和居委主键。",
+    "sql_semantics": "查询所有未被删除的房屋及其所属的未被删除的部门，返回房屋ID和部门ID。",
+    "precision_check": {
+      "found_precisely": false,
+      "matched_points": "正确关联了房屋表(ads_house_basic_info)和部门表(sys_dept)，并返回了房屋ID和部门ID作为主键。",
+      "shifted_or_incorrect_points": "SQL查询的是‘部门’，而目标语义要求的是‘居委’。SQL缺少对部门类型的过滤，导致返回结果可能包含非居委的部门（如街道、区等），核心实体‘居委’未被准确定位。"
+    },
+    "completeness_check": {
+      "found_completely": false,
+      "covered_points": "正确获取了房屋主键，并建立了房屋到某个上级实体（部门）的连接。",
+      "missing_points": "缺少将‘部门’限定为‘居委’的关键过滤条件（例如 where d.dept_type = '居委会' 或类似逻辑）。"
+    },
+    "verdict": "mismatch",
+    "reason": "SQL 实现了‘房屋-部门’关系，但目标语义要求的是‘房屋-居委’关系。由于未对部门类型进行限定，导致语义范围过宽，核心实体‘居委’未被找准，因此判定为 mismatch。",
+    "analysis_status": "ok",
+    "analysis_source": "llm"
+  }
+}

@@ -1,0 +1,108 @@
+{
+  "entities": [
+    {
+      "entity_name": "大桥街道",
+      "desc": "一个具体的行政街道区域，作为本次人口统计的空间范围。",
+      "grain": "一个街道实例，例如‘大桥街道’。",
+      "attributes": [
+        {
+          "name": "名称",
+          "semantics": "街道的名称，例如‘大桥街道’。"
+        }
+      ],
+      "primary_key": [
+        "名称"
+      ]
+    },
+    {
+      "entity_name": "房屋",
+      "desc": "一个具体的居住单元或地址单元，是连接人员与街道的中间载体。",
+      "grain": "一个可供人员居住的房屋实例。",
+      "attributes": [
+        {
+          "name": "房屋_surrogate_id",
+          "semantics": ""
+        }
+      ],
+      "primary_key": [
+        "房屋_surrogate_id"
+      ]
+    },
+    {
+      "entity_name": "人员",
+      "desc": "一个具体的个体，是本次性别统计的基本单位。",
+      "grain": "一个人员实例。",
+      "attributes": [
+        {
+          "name": "性别",
+          "semantics": "人员的性别分类，例如‘男’或‘女’。"
+        },
+        {
+          "name": "人员_surrogate_id",
+          "semantics": ""
+        }
+      ],
+      "primary_key": [
+        "人员_surrogate_id"
+      ]
+    }
+  ],
+  "relations": [
+    {
+      "relation_name": "位置归属",
+      "desc": "描述一个房屋位于（属于）哪个街道的关联关系。",
+      "grain": "一个具体的‘房屋-街道’归属事实。",
+      "participants": [
+        {
+          "role": "被归属的对象",
+          "entity": "房屋",
+          "anchor_attribute": [
+            "房屋_surrogate_id"
+          ]
+        },
+        {
+          "role": "归属的目标",
+          "entity": "大桥街道",
+          "anchor_attribute": [
+            "名称"
+          ]
+        }
+      ],
+      "link_condition": "标识一个房屋位于大桥街道的行政管辖范围内。",
+      "attributes": []
+    },
+    {
+      "relation_name": "居住",
+      "desc": "描述一个人员居住于哪个房屋的关联关系。",
+      "grain": "一个具体的‘人员-房屋’居住事实。",
+      "participants": [
+        {
+          "role": "居住者",
+          "entity": "人员",
+          "anchor_attribute": [
+            "人员_surrogate_id"
+          ]
+        },
+        {
+          "role": "居住地",
+          "entity": "房屋",
+          "anchor_attribute": [
+            "房屋_surrogate_id"
+          ]
+        }
+      ],
+      "link_condition": "标识一个人员当前居住于某个房屋。",
+      "attributes": []
+    }
+  ],
+  "conditions": [
+    {
+      "condition_name": "目标街道限定",
+      "condition_type": "single_attribute",
+      "targets": [
+        "大桥街道.名称"
+      ],
+      "description": "限定所讨论的街道实体为名称为‘大桥街道’的特定实例。"
+    }
+  ]
+}

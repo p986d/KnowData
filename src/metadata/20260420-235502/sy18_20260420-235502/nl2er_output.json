@@ -1,0 +1,121 @@
+{
+  "entities": [
+    {
+      "entity_name": "人员",
+      "desc": "一个独立的个体，是人口统计的基本单位。",
+      "grain": "一个具体的人。",
+      "attributes": [
+        {
+          "name": "人员标识",
+          "semantics": "用于唯一标识一个人员的代理标识属性。"
+        }
+      ],
+      "primary_key": [
+        "人员标识"
+      ]
+    },
+    {
+      "entity_name": "路",
+      "desc": "一条具有名称的地理道路，作为划分或关联地理范围的依据。",
+      "grain": "一条具体的道路，如“谢路”。",
+      "attributes": [
+        {
+          "name": "路名称",
+          "semantics": "道路的名称，用于识别特定的道路，如“谢路”。"
+        }
+      ],
+      "primary_key": [
+        "路名称"
+      ]
+    },
+    {
+      "entity_name": "地理位置",
+      "desc": "一个具体的、可供人员居住的地点（如房屋）。",
+      "grain": "一个具体的地点（如一套房屋）。",
+      "attributes": [
+        {
+          "name": "地理位置标识",
+          "semantics": "用于唯一标识一个地理位置的代理标识属性。"
+        },
+        {
+          "name": "地理位置名称",
+          "semantics": "该地理位置的描述性名称，如门牌号。"
+        }
+      ],
+      "primary_key": [
+        "地理位置标识"
+      ]
+    }
+  ],
+  "relations": [
+    {
+      "relation_name": "居住于",
+      "desc": "描述一个人员与一个地理位置之间的居住关系。",
+      "grain": "一个人员与一个地理位置之间的一条居住事实记录。",
+      "participants": [
+        {
+          "role": "居住者",
+          "entity": "人员",
+          "anchor_attribute": [
+            "人员标识"
+          ]
+        },
+        {
+          "role": "居住地",
+          "entity": "地理位置",
+          "anchor_attribute": [
+            "地理位置标识"
+          ]
+        }
+      ],
+      "link_condition": "",
+      "attributes": [
+        {
+          "name": "居住状态",
+          "semantics": "描述该居住关系的状态分类，如“常住”、“暂住”等。具体分类规则未定。"
+        }
+      ]
+    },
+    {
+      "relation_name": "位于",
+      "desc": "描述一个地理位置在行政或地理上隶属于某条道路。",
+      "grain": "一个地理位置与一条道路之间的一条归属记录。",
+      "participants": [
+        {
+          "role": "下属位置",
+          "entity": "地理位置",
+          "anchor_attribute": [
+            "地理位置标识"
+          ]
+        },
+        {
+          "role": "所属道路",
+          "entity": "路",
+          "anchor_attribute": [
+            "路名称"
+          ]
+        }
+      ],
+      "link_condition": "",
+      "attributes": []
+    }
+  ],
+  "conditions": [
+    {
+      "condition_name": "限定目标道路",
+      "condition_type": "single_attribute",
+      "targets": [
+        "路.路名称"
+      ],
+      "description": "道路的名称为“谢路”。"
+    },
+    {
+      "condition_name": "限定常住人口",
+      "condition_type": "single_attribute",
+      "targets": [
+        "居住于.居住状态"
+      ],
+      "description": "居住关系的状态为“常住”。具体判定规则未定。"
+    }
+  ]
+}

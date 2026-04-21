@@ -1,0 +1,64 @@
+{
+  "人员": {
+    "question": "找出所有“人员”实体实例，并给出用于识别每个实例的主键。",
+    "schema_linking": {
+      "tables": [
+        "sy_community_link.ads_house_relation_info",
+        "sy_community_link.ads_person_basic_info",
+        "sy_community_link.ads_person_label_relation",
+        "sy_community_link.ads_residence_relation"
+      ],
+      "columns": [
+        "sy_community_link.ads_house_relation_info.owner_id",
+        "sy_community_link.ads_house_relation_info.head_id",
+        "sy_community_link.ads_house_relation_info.emergency_id",
+        "sy_community_link.ads_person_basic_info.person_id",
+        "sy_community_link.ads_person_label_relation.person_id",
+        "sy_community_link.ads_residence_relation.person_id"
+      ]
+    },
+    "result_sql": "SELECT \n    `person_id` AS `person_surrogate_id`\nFROM \n    `sy_community_link`.`ads_person_basic_info`\nWHERE \n    `delete_flag` = 0",
+    "nl2sql_result": true
+  },
+  "民族": {
+    "question": "找出所有少数民族（即名称不为“汉族”的民族），并给出用于识别每个民族的主键、民族名称和民族编码。",
+    "schema_linking": {
+      "tables": [
+        "sy_community_link.ads_person_basic_info",
+        "sy_community_link.sys_dict_data"
+      ],
+      "columns": [
+        "sy_community_link.ads_person_basic_info.ethnicity",
+        "sy_community_link.sys_dict_data.dict_code",
+        "sy_community_link.sys_dict_data.dict_label",
+        "sy_community_link.sys_dict_data.dict_value",
+        "sy_community_link.sys_dict_data.dict_type"
+      ]
+    },
+    "result_sql": "SELECT\n    `dict_code` AS `ethnic_group_surrogate_id`,\n    `dict_label` AS `name`,\n    `dict_value` AS `code`\nFROM `sy_community_link`.`sys_dict_data`\nWHERE `dict_type` = 'res_ethnicity'\n    AND `dict_label` != '汉族'\n    AND `status` = '0'\n    AND `delete_flag` = '0'",
+    "nl2sql_result": true
+  },
+  "属于民族": {
+    "question": "找出所有“人员属于少数民族”的关系实例，并给出用于识别每位人员及其所属民族的主键。",
+    "schema_linking": {
+      "tables": [
+        "sy_community_link.ads_person_basic_info",
+        "sy_community_link.ads_person_label_relation",
+        "sy_community_link.sys_dict_data"
+      ],
+      "columns": [
+        "sy_community_link.ads_person_basic_info.person_id",
+        "sy_community_link.ads_person_basic_info.ethnicity",
+        "sy_community_link.ads_person_basic_info.current_ethnicity",
+        "sy_community_link.ads_person_label_relation.person_id",
+        "sy_community_link.ads_person_label_relation.label_id",
+        "sy_community_link.sys_dict_data.dict_code",
+        "sy_community_link.sys_dict_data.dict_type",
+        "sy_community_link.sys_dict_data.dict_label",
+        "sy_community_link.sys_dict_data.dict_value"
+      ]
+    },
+    "result_sql": "SELECT\n    `p`.`person_id` AS `person_surrogate_id`,\n    `d`.`dict_code` AS `ethnic_group_surrogate_id`\nFROM\n    `sy_community_link`.`ads_person_basic_info` AS `p`\n    INNER JOIN `sy_community_link`.`sys_dict_data` AS `d`\n        ON `p`.`ethnicity` = `d`.`dict_value`\n        AND `d`.`dict_type` = 'res_ethnicity'\n        AND `d`.`status` = '0'\n        AND `d`.`delete_flag` = '0'\n        AND `d`.`dict_label` != '汉族'\nWHERE\n    `p`.`delete_flag` = '0'",
+    "nl2sql_result": true
+  }
+}

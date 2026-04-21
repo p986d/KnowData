@@ -1,0 +1,137 @@
+{
+  "entities": [
+    {
+      "entity_name": "人员",
+      "desc": "社区管理或服务范围内的个体人员，是统计“独居老人”数量的基本对象。",
+      "grain": "一个具体的人。",
+      "attributes": [
+        {
+          "name": "人员标识符",
+          "semantics": "用于唯一标识一个人员。"
+        },
+        {
+          "name": "出生日期",
+          "semantics": "人员的出生日期，用于计算年龄。"
+        },
+        {
+          "name": "居住状态",
+          "semantics": "描述人员当前居住状况的属性，用于判断是否独居。具体实现可能为同住人数、居住类型等。"
+        }
+      ],
+      "primary_key": [
+        "人员标识符"
+      ]
+    },
+    {
+      "entity_name": "居委",
+      "desc": "基层社区管理与服务单元，是本次统计的分组维度。",
+      "grain": "一个具体的居民委员会。",
+      "attributes": [
+        {
+          "name": "居委标识符",
+          "semantics": "用于唯一标识一个居委。"
+        },
+        {
+          "name": "居委名称",
+          "semantics": "居委的名称。"
+        }
+      ],
+      "primary_key": [
+        "居委标识符"
+      ]
+    },
+    {
+      "entity_name": "街道",
+      "desc": "由多个居委组成的上一级行政/社区管理单元，用于限定目标居委的范围。",
+      "grain": "一个具体的街道办事处。",
+      "attributes": [
+        {
+          "name": "街道标识符",
+          "semantics": "用于唯一标识一个街道。"
+        },
+        {
+          "name": "街道名称",
+          "semantics": "街道的名称。"
+        }
+      ],
+      "primary_key": [
+        "街道标识符"
+      ]
+    }
+  ],
+  "relations": [
+    {
+      "relation_name": "隶属关系",
+      "desc": "描述一个居委在行政或管理上归属于某个街道。",
+      "grain": "一个具体的“居委-街道”归属实例。",
+      "participants": [
+        {
+          "role": "下属单元",
+          "entity": "居委",
+          "anchor_attribute": [
+            "居委标识符"
+          ]
+        },
+        {
+          "role": "上级单元",
+          "entity": "街道",
+          "anchor_attribute": [
+            "街道标识符"
+          ]
+        }
+      ],
+      "link_condition": "",
+      "attributes": []
+    },
+    {
+      "relation_name": "归属关系",
+      "desc": "描述一个人员在实际居住或社区管理关系上归属于某个居委。",
+      "grain": "一个具体的“人员-居委”归属实例。",
+      "participants": [
+        {
+          "role": "居民",
+          "entity": "人员",
+          "anchor_attribute": [
+            "人员标识符"
+          ]
+        },
+        {
+          "role": "管理单元",
+          "entity": "居委",
+          "anchor_attribute": [
+            "居委标识符"
+          ]
+        }
+      ],
+      "link_condition": "",
+      "attributes": []
+    }
+  ],
+  "conditions": [
+    {
+      "condition_name": "目标街道筛选",
+      "condition_type": "single_attribute",
+      "targets": [
+        "街道.街道名称"
+      ],
+      "description": "限定街道名称为“大桥街道”。"
+    },
+    {
+      "condition_name": "目标居委筛选",
+      "condition_type": "single_attribute",
+      "targets": [
+        "居委.居委名称"
+      ],
+      "description": "限定居委名称为“周家牌居委”、“银河苑居委”或“临青居委”。"
+    },
+    {
+      "condition_name": "独居老人身份判定",
+      "condition_type": "inter_attribute",
+      "targets": [
+        "人员.出生日期",
+        "人员.居住状态"
+      ],
+      "description": "人员需同时满足基于出生日期的“老人”条件和基于居住状态的“独居”条件。（具体判定规则未定，此为抽象语义约束）"
+    }
+  ]
+}

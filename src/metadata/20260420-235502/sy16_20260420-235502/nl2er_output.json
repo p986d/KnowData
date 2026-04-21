@@ -1,0 +1,33 @@
+{
+  "entities": [
+    {
+      "entity_name": "人员",
+      "desc": "需要进行年龄统计的个体对象。",
+      "grain": "一个独立的、可被唯一标识的个人。",
+      "attributes": [
+        {
+          "name": "出生日期",
+          "semantics": "人员的出生日期，是计算其年龄的基础属性。"
+        },
+        {
+          "name": "人员_surrogate_id",
+          "semantics": ""
+        }
+      ],
+      "primary_key": [
+        "人员_surrogate_id"
+      ]
+    }
+  ],
+  "relations": [],
+  "conditions": [
+    {
+      "condition_name": "高龄老人筛选条件",
+      "condition_type": "single_attribute",
+      "targets": [
+        "人员.出生日期"
+      ],
+      "description": "人员的出生日期所对应的年龄（基于一个形式未定的‘参考日期’计算）必须大于80岁。"
+    }
+  ]
+}

@@ -1,0 +1,83 @@
+{
+  "entities": [
+    {
+      "entity_name": "房屋",
+      "desc": "物理建筑单元，是统计套数的核心对象。",
+      "grain": "一栋独立的、可被计数的房子。",
+      "attributes": [
+        {
+          "name": "房屋标识",
+          "semantics": "用于唯一标识一栋房屋的代码或编号。"
+        },
+        {
+          "name": "建造时间",
+          "semantics": "房屋的建造日期或年份。"
+        }
+      ],
+      "primary_key": [
+        "房屋标识"
+      ]
+    },
+    {
+      "entity_name": "街道",
+      "desc": "行政区划单位，作为房屋的归属范围和查询的筛选条件。",
+      "grain": "一个具有唯一名称的街道行政区域。",
+      "attributes": [
+        {
+          "name": "街道标识",
+          "semantics": "用于唯一标识一个街道的代码或编号。"
+        },
+        {
+          "name": "街道名称",
+          "semantics": "街道的官方名称。"
+        }
+      ],
+      "primary_key": [
+        "街道标识"
+      ]
+    }
+  ],
+  "relations": [
+    {
+      "relation_name": "归属",
+      "desc": "描述一栋房屋位于某个街道的行政管辖或地理范围内。",
+      "grain": "一条记录表明一栋具体的房屋与一个具体的街道之间存在归属关系。",
+      "participants": [
+        {
+          "role": "被归属物",
+          "entity": "房屋",
+          "anchor_attribute": [
+            "房屋标识"
+          ]
+        },
+        {
+          "role": "归属地",
+          "entity": "街道",
+          "anchor_attribute": [
+            "街道标识"
+          ]
+        }
+      ],
+      "link_condition": "",
+      "attributes": []
+    }
+  ],
+  "conditions": [
+    {
+      "condition_name": "目标街道筛选",
+      "condition_type": "single_attribute",
+      "targets": [
+        "街道.街道名称"
+      ],
+      "description": "街道的名称必须为“大桥街道”。"
+    },
+    {
+      "condition_name": "建造时间筛选",
+      "condition_type": "single_attribute",
+      "targets": [
+        "房屋.建造时间"
+      ],
+      "description": "房屋的建造时间必须早于2000年。"
+    }
+  ]
+}

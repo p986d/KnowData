@@ -1,0 +1,94 @@
+{
+  "ok": true,
+  "mode": "strict",
+  "db_id": "sy_community_link",
+  "user_question": "大桥街道各居委80岁以上的老人有多少，取前10名？",
+  "available_cte_count": 5,
+  "missing_unit_count": 0,
+  "available_ctes_text": "Available CTEs:\n- 街道\n  type: entity\n  grain: 一个具体的街道实例，例如‘大桥街道’。\n  columns: 街道标识, 街道名称\n- 居委\n  type: entity\n  grain: 一个具体的居民委员会实例。\n  columns: 居委标识, 居委名称\n- 人员\n  type: entity\n  grain: 一个具体的人。\n  columns: 人员标识, 出生日期\n- 行政隶属\n  type: relationship\n  meaning: 描述一个行政单位（如居委）隶属于另一个上级行政单位（如街道）的层级管理关系。\n  columns: 居委标识, 街道标识\n- 居住\n  type: relationship\n  meaning: 描述一个‘人员’居住在一个‘居委’所管辖的区域内的事实关联。该关系用于确定人员的属地管理归属。\n  columns: 人员标识, 居委标识",
+  "available_ctes": [
+    {
+      "name": "街道",
+      "source_unit_name": "街道",
+      "type": "entity",
+      "grain": "一个具体的街道实例，例如‘大桥街道’。",
+      "columns": [
+        "街道标识",
+        "街道名称"
+      ],
+      "implement_sql": "SELECT \n    `dept_id` AS `街道标识`,\n    `dept_name` AS `街道名称`\nFROM `sy_community_link`.`sys_dept`\nWHERE `dept_name` = '大桥街道'",
+      "cte_definition": "街道 AS (\n  SELECT \n      `dept_id` AS `街道标识`,\n      `dept_name` AS `街道名称`\n  FROM `sy_community_link`.`sys_dept`\n  WHERE `dept_name` = '大桥街道'\n)"
+    },
+    {
+      "name": "居委",
+      "source_unit_name": "居委",
+      "type": "entity",
+      "grain": "一个具体的居民委员会实例。",
+      "columns": [
+        "居委标识",
+        "居委名称"
+      ],
+      "implement_sql": "SELECT \n    `dept_id` AS `居委标识`,\n    `dept_name` AS `居委名称`\nFROM `sy_community_link`.`sys_dept`\nWHERE CHAR_LENGTH(CAST(`dept_id` AS CHAR)) = 12\n    AND `delete_flag` = 0\n    AND `status` = '0'",
+      "cte_definition": "居委 AS (\n  SELECT \n      `dept_id` AS `居委标识`,\n      `dept_name` AS `居委名称`\n  FROM `sy_community_link`.`sys_dept`\n  WHERE CHAR_LENGTH(CAST(`dept_id` AS CHAR)) = 12\n      AND `delete_flag` = 0\n      AND `status` = '0'\n)"
+    },
+    {
+      "name": "人员",
+      "source_unit_name": "人员",
+      "type": "entity",
+      "grain": "一个具体的人。",
+      "columns": [
+        "人员标识",
+        "出生日期"
+      ],
+      "implement_sql": "SELECT \n    person_id AS `人员标识`,\n    birth_date AS `出生日期`\nFROM sy_community_link.ads_person_basic_info\nWHERE delete_flag = 0\n  AND DATE_ADD(birth_date, INTERVAL 80 YEAR) < CURDATE()",
+      "cte_definition": "人员 AS (\n  SELECT \n      person_id AS `人员标识`,\n      birth_date AS `出生日期`\n  FROM sy_community_link.ads_person_basic_info\n  WHERE delete_flag = 0\n    AND DATE_ADD(birth_date, INTERVAL 80 YEAR) < CURDATE()\n)"
+    },
+    {
+      "name": "行政隶属",
+      "source_unit_name": "行政隶属",
+      "type": "relationship",
+      "meaning": "描述一个行政单位（如居委）隶属于另一个上级行政单位（如街道）的层级管理关系。",
+      "columns": [
+        "居委标识",
+        "街道标识"
+      ],
+      "implement_sql": "SELECT\n    jw.`dept_id` AS `居委标识`,\n    jd.`dept_id` AS `街道标识`\nFROM `sy_community_link`.`sys_dept` jd\nJOIN `sy_community_link`.`sys_dept` jw\n    ON jw.`parent_id` = jd.`dept_id`\nWHERE jd.`dept_name` = '大桥街道'\n    AND jd.`delete_flag` = 0\n    AND jd.`status` = '0'\n    AND CHAR_LENGTH(CAST(jw.`dept_id` AS CHAR)) = 12\n    AND jw.`delete_flag` = 0\n    AND jw.`status` = '0'",
+      "cte_definition": "行政隶属 AS (\n  SELECT\n      jw.`dept_id` AS `居委标识`,\n      jd.`dept_id` AS `街道标识`\n  FROM `sy_community_link`.`sys_dept` jd\n  JOIN `sy_community_link`.`sys_dept` jw\n      ON jw.`parent_id` = jd.`dept_id`\n  WHERE jd.`dept_name` = '大桥街道'\n      AND jd.`delete_flag` = 0\n      AND jd.`status` = '0'\n      AND CHAR_LENGTH(CAST(jw.`dept_id` AS CHAR)) = 12\n      AND jw.`delete_flag` = 0\n      AND jw.`status` = '0'\n)"
+    },
+    {
+      "name": "居住",
+      "source_unit_name": "居住",
+      "type": "relationship",
+      "meaning": "描述一个‘人员’居住在一个‘居委’所管辖的区域内的事实关联。该关系用于确定人员的属地管理归属。",
+      "columns": [
+        "人员标识",
+        "居委标识"
+      ],
+      "implement_sql": "SELECT \n    p.`人员标识`,\n    d.`居委标识`\nFROM (\n    -- 年龄 > 80 的人员\n    SELECT \n        person_id AS `人员标识`,\n        birth_date AS `出生日期`\n    FROM sy_community_link.ads_person_basic_info\n    WHERE delete_flag = 0\n      AND DATE_ADD(birth_date, INTERVAL 80 YEAR) < CURDATE()\n) p\nINNER JOIN sy_community_link.ads_residence_relation r \n    ON p.`人员标识` = r.person_id \n    AND r.delete_flag = 0\nINNER JOIN (\n    -- 有效的居委\n    SELECT \n        `dept_id` AS `居委标识`,\n        `dept_name` AS `居委名称`\n    FROM `sy_community_link`.`sys_dept`\n    WHERE CHAR_LENGTH(CAST(`dept_id` AS CHAR)) = 12\n        AND `delete_flag` = 0\n        AND `status` = '0'\n) d \n    ON r.dept_id = d.`居委标识`",
+      "cte_definition": "居住 AS (\n  SELECT \n      p.`人员标识`,\n      d.`居委标识`\n  FROM (\n      -- 年龄 > 80 的人员\n      SELECT \n          person_id AS `人员标识`,\n          birth_date AS `出生日期`\n      FROM sy_community_link.ads_person_basic_info\n      WHERE delete_flag = 0\n        AND DATE_ADD(birth_date, INTERVAL 80 YEAR) < CURDATE()\n  ) p\n  INNER JOIN sy_community_link.ads_residence_relation r \n      ON p.`人员标识` = r.person_id \n      AND r.delete_flag = 0\n  INNER JOIN (\n      -- 有效的居委\n      SELECT \n          `dept_id` AS `居委标识`,\n          `dept_name` AS `居委名称`\n      FROM `sy_community_link`.`sys_dept`\n      WHERE CHAR_LENGTH(CAST(`dept_id` AS CHAR)) = 12\n          AND `delete_flag` = 0\n          AND `status` = '0'\n  ) d \n      ON r.dept_id = d.`居委标识`\n)"
+    }
+  ],
+  "missing_units": [],
+  "external_knowledge": "Database hint:\n居委、街道、区：居委、街道、区的名称存于dept_name列，id存于dept_id列。人和房屋的信息只存在于居委级别下。因此查找街道或区级别信息时，必须用house表中相应的street或district关联dept_id；\n年龄：年龄搜索需要根据当前日期与birth_date列计算。年龄排序时精确到日期，需要对birth_date列排序\n民族：民族的名称需要根据民族编码从民族字典表中获取\n人员、居民、常住人口；户籍人员：只有提到户籍人员时，必需使用户籍关系表进行连接。问题中的人员、居民、常住人口等用词，只要不提到户籍，均必须使用居住关系表进行连接。\n地址层级关系：地址层级包括路、弄、门牌、室级别关系。地址层级表中每一行的name只会存储一个级别的名称，且名称中可以看出他的级别（如x路、x弄、x号），名称中不包括它的父级或子级名称。问题中的路、弄、门牌号、室号等信息，需要用house表中的road、nong、house_number、room_number等字段参照地址层级表中的id进行连接。\n\nAvailable CTEs:\n- 街道\n  type: entity\n  grain: 一个具体的街道实例，例如‘大桥街道’。\n  columns: 街道标识, 街道名称\n- 居委\n  type: entity\n  grain: 一个具体的居民委员会实例。\n  columns: 居委标识, 居委名称\n- 人员\n  type: entity\n  grain: 一个具体的人。\n  columns: 人员标识, 出生日期\n- 行政隶属\n  type: relationship\n  meaning: 描述一个行政单位（如居委）隶属于另一个上级行政单位（如街道）的层级管理关系。\n  columns: 居委标识, 街道标识\n- 居住\n  type: relationship\n  meaning: 描述一个‘人员’居住在一个‘居委’所管辖的区域内的事实关联。该关系用于确定人员的属地管理归属。\n  columns: 人员标识, 居委标识\n\nCTE Usage Policy:\n- mode: strict\n- The system has already prepared the SQL implementations for the available CTE names above.\n- Do not repeat or redefine any available CTE.\n- Do not output a WITH clause unless you absolutely cannot avoid it.\n- Prefer to return a single query body that starts with SELECT.\n- Strict mode: use only the available CTEs above.\n- Strict mode: do not access underlying base tables or views.\n- The execution layer will prepend the prepared CTE definitions for you.",
+  "prompt_path": "D:\\Workspace\\Knowdata\\log\\er2data\\sy04_20260420-203604\\final_query_prompt.md",
+  "external_knowledge_path": "D:\\Workspace\\Knowdata\\log\\er2data\\sy04_20260420-203604\\final_query_external_knowledge.txt",
+  "response_path": "D:\\Workspace\\Knowdata\\log\\er2data\\sy04_20260420-203604\\final_query_response.md",
+  "raw_response": "```json\n{\n    \"query_body\": \"SELECT 居委.居委名称, COUNT(DISTINCT 人员.人员标识) AS 老人数量 FROM 人员 INNER JOIN 居住 ON 人员.人员标识 = 居住.人员标识 INNER JOIN 居委 ON 居住.居委标识 = 居委.居委标识 INNER JOIN 行政隶属 ON 居委.居委标识 = 行政隶属.居委标识 INNER JOIN 街道 ON 行政隶属.街道标识 = 街道.街道标识 WHERE 街道.街道名称 = '大桥街道' AND DATE_PART('year', AGE(CURRENT_DATE, 人员.出生日期)) >= 80 GROUP BY 居委.居委名称 ORDER BY 老人数量 DESC LIMIT 10\",\n    \"used_ctes\": [\"街道\", \"居委\", \"人员\", \"行政隶属\", \"居住\"],\n    \"mode\": \"strict\",\n    \"notes\": \"使用居住关系表连接人员与居委，通过行政隶属关联街道，筛选80岁以上老人，按居委分组计数取前10名。\"\n}\n```",
+  "parsed_response": {
+    "query_body": "SELECT 居委.居委名称, COUNT(DISTINCT 人员.人员标识) AS 老人数量 FROM 人员 INNER JOIN 居住 ON 人员.人员标识 = 居住.人员标识 INNER JOIN 居委 ON 居住.居委标识 = 居委.居委标识 INNER JOIN 行政隶属 ON 居委.居委标识 = 行政隶属.居委标识 INNER JOIN 街道 ON 行政隶属.街道标识 = 街道.街道标识 WHERE 街道.街道名称 = '大桥街道' AND DATE_PART('year', AGE(CURRENT_DATE, 人员.出生日期)) >= 80 GROUP BY 居委.居委名称 ORDER BY 老人数量 DESC LIMIT 10",
+    "used_ctes": [
+      "街道",
+      "居委",
+      "人员",
+      "行政隶属",
+      "居住"
+    ],
+    "mode": "strict",
+    "notes": "使用居住关系表连接人员与居委，通过行政隶属关联街道，筛选80岁以上老人，按居委分组计数取前10名。"
+  },
+  "query_body": "SELECT 居委.居委名称, COUNT(DISTINCT 人员.人员标识) AS 老人数量 FROM 人员 INNER JOIN 居住 ON 人员.人员标识 = 居住.人员标识 INNER JOIN 居委 ON 居住.居委标识 = 居委.居委标识 INNER JOIN 行政隶属 ON 居委.居委标识 = 行政隶属.居委标识 INNER JOIN 街道 ON 行政隶属.街道标识 = 街道.街道标识 WHERE 街道.街道名称 = '大桥街道' AND DATE_PART('year', AGE(CURRENT_DATE, 人员.出生日期)) >= 80 GROUP BY 居委.居委名称 ORDER BY 老人数量 DESC LIMIT 10",
+  "with_clause": "WITH\n街道 AS (\n  SELECT \n      `dept_id` AS `街道标识`,\n      `dept_name` AS `街道名称`\n  FROM `sy_community_link`.`sys_dept`\n  WHERE `dept_name` = '大桥街道'\n),\n居委 AS (\n  SELECT \n      `dept_id` AS `居委标识`,\n      `dept_name` AS `居委名称`\n  FROM `sy_community_link`.`sys_dept`\n  WHERE CHAR_LENGTH(CAST(`dept_id` AS CHAR)) = 12\n      AND `delete_flag` = 0\n      AND `status` = '0'\n),\n人员 AS (\n  SELECT \n      person_id AS `人员标识`,\n      birth_date AS `出生日期`\n  FROM sy_community_link.ads_person_basic_info\n  WHERE delete_flag = 0\n    AND DATE_ADD(birth_date, INTERVAL 80 YEAR) < CURDATE()\n),\n行政隶属 AS (\n  SELECT\n      jw.`dept_id` AS `居委标识`,\n      jd.`dept_id` AS `街道标识`\n  FROM `sy_community_link`.`sys_dept` jd\n  JOIN `sy_community_link`.`sys_dept` jw\n      ON jw.`parent_id` = jd.`dept_id`\n  WHERE jd.`dept_name` = '大桥街道'\n      AND jd.`delete_flag` = 0\n      AND jd.`status` = '0'\n      AND CHAR_LENGTH(CAST(jw.`dept_id` AS CHAR)) = 12\n      AND jw.`delete_flag` = 0\n      AND jw.`status` = '0'\n),\n居住 AS (\n  SELECT \n      p.`人员标识`,\n      d.`居委标识`\n  FROM (\n      -- 年龄 > 80 的人员\n      SELECT \n          person_id AS `人员标识`,\n          birth_date AS `出生日期`\n      FROM sy_community_link.ads_person_basic_info\n      WHERE delete_flag = 0\n        AND DATE_ADD(birth_date, INTERVAL 80 YEAR) < CURDATE()\n  ) p\n  INNER JOIN sy_community_link.ads_residence_relation r \n      ON p.`人员标识` = r.person_id \n      AND r.delete_flag = 0\n  INNER JOIN (\n      -- 有效的居委\n      SELECT \n          `dept_id` AS `居委标识`,\n          `dept_name` AS `居委名称`\n      FROM `sy_community_link`.`sys_dept`\n      WHERE CHAR_LENGTH(CAST(`dept_id` AS CHAR)) = 12\n          AND `delete_flag` = 0\n          AND `status` = '0'\n  ) d \n      ON r.dept_id = d.`居委标识`\n)",
+  "final_sql": "WITH\n街道 AS (\n  SELECT \n      `dept_id` AS `街道标识`,\n      `dept_name` AS `街道名称`\n  FROM `sy_community_link`.`sys_dept`\n  WHERE `dept_name` = '大桥街道'\n),\n居委 AS (\n  SELECT \n      `dept_id` AS `居委标识`,\n      `dept_name` AS `居委名称`\n  FROM `sy_community_link`.`sys_dept`\n  WHERE CHAR_LENGTH(CAST(`dept_id` AS CHAR)) = 12\n      AND `delete_flag` = 0\n      AND `status` = '0'\n),\n人员 AS (\n  SELECT \n      person_id AS `人员标识`,\n      birth_date AS `出生日期`\n  FROM sy_community_link.ads_person_basic_info\n  WHERE delete_flag = 0\n    AND DATE_ADD(birth_date, INTERVAL 80 YEAR) < CURDATE()\n),\n行政隶属 AS (\n  SELECT\n      jw.`dept_id` AS `居委标识`,\n      jd.`dept_id` AS `街道标识`\n  FROM `sy_community_link`.`sys_dept` jd\n  JOIN `sy_community_link`.`sys_dept` jw\n      ON jw.`parent_id` = jd.`dept_id`\n  WHERE jd.`dept_name` = '大桥街道'\n      AND jd.`delete_flag` = 0\n      AND jd.`status` = '0'\n      AND CHAR_LENGTH(CAST(jw.`dept_id` AS CHAR)) = 12\n      AND jw.`delete_flag` = 0\n      AND jw.`status` = '0'\n),\n居住 AS (\n  SELECT \n      p.`人员标识`,\n      d.`居委标识`\n  FROM (\n      -- 年龄 > 80 的人员\n      SELECT \n          person_id AS `人员标识`,\n          birth_date AS `出生日期`\n      FROM sy_community_link.ads_person_basic_info\n      WHERE delete_flag = 0\n        AND DATE_ADD(birth_date, INTERVAL 80 YEAR) < CURDATE()\n  ) p\n  INNER JOIN sy_community_link.ads_residence_relation r \n      ON p.`人员标识` = r.person_id \n      AND r.delete_flag = 0\n  INNER JOIN (\n      -- 有效的居委\n      SELECT \n          `dept_id` AS `居委标识`,\n          `dept_name` AS `居委名称`\n      FROM `sy_community_link`.`sys_dept`\n      WHERE CHAR_LENGTH(CAST(`dept_id` AS CHAR)) = 12\n          AND `delete_flag` = 0\n          AND `status` = '0'\n  ) d \n      ON r.dept_id = d.`居委标识`\n)\nSELECT 居委.居委名称, COUNT(DISTINCT 人员.人员标识) AS 老人数量 FROM 人员 INNER JOIN 居住 ON 人员.人员标识 = 居住.人员标识 INNER JOIN 居委 ON 居住.居委标识 = 居委.居委标识 INNER JOIN 行政隶属 ON 居委.居委标识 = 行政隶属.居委标识 INNER JOIN 街道 ON 行政隶属.街道标识 = 街道.街道标识 WHERE 街道.街道名称 = '大桥街道' AND DATE_PART('year', AGE(CURRENT_DATE, 人员.出生日期)) >= 80 GROUP BY 居委.居委名称 ORDER BY 老人数量 DESC LIMIT 10;",
+  "assembly_mode": "prepended_available_ctes",
+  "result_path": "D:\\Workspace\\Knowdata\\log\\er2data\\sy04_20260420-203604\\final_query_result.json"
+}

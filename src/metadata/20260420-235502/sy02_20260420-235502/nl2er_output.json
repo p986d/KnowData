@@ -1,0 +1,124 @@
+{
+  "entities": [
+    {
+      "entity_name": "街道",
+      "desc": "行政区域单位，如‘大桥街道’。用于界定人员统计的地理范围。",
+      "grain": "一个具体的街道行政区域实例。",
+      "attributes": [
+        {
+          "name": "街道名称",
+          "semantics": "街道的中文名称，如‘大桥街道’。"
+        },
+        {
+          "name": "街道标识",
+          "semantics": "用于唯一标识一个街道实体的编码或ID。"
+        }
+      ],
+      "primary_key": [
+        "街道标识"
+      ]
+    },
+    {
+      "entity_name": "人员",
+      "desc": "独立的个人，是人口统计的基本对象。",
+      "grain": "一个具体的人。",
+      "attributes": [
+        {
+          "name": "人员标识",
+          "semantics": "用于唯一标识一个人员实体的编码或ID。"
+        },
+        {
+          "name": "民族信息",
+          "semantics": "描述人员所属民族的编码或名称。用于抽象承载‘是否属于少数民族’的判定语义。"
+        }
+      ],
+      "primary_key": [
+        "人员标识"
+      ]
+    },
+    {
+      "entity_name": "居住地",
+      "desc": "物理的居住地点或地址单元。作为连接‘人员’与‘街道’的中间载体，表明人员的居住地信息。",
+      "grain": "一处具体的房屋或一个具体的地址单元。",
+      "attributes": [
+        {
+          "name": "居住地标识",
+          "semantics": "用于唯一标识一个居住地实体的编码或ID。"
+        },
+        {
+          "name": "所属街道标识",
+          "semantics": "标识此居住地在行政上所隶属的街道。该属性是建立‘位于’关系的基础。"
+        }
+      ],
+      "primary_key": [
+        "居住地标识"
+      ]
+    }
+  ],
+  "relations": [
+    {
+      "relation_name": "居住于",
+      "desc": "描述一个人员居住在某一个居住地的事实关联。",
+      "grain": "一个具体的人员与一个具体的居住地之间的一次居住关系实例。",
+      "participants": [
+        {
+          "role": "居住者",
+          "entity": "人员",
+          "anchor_attribute": [
+            "人员标识"
+          ]
+        },
+        {
+          "role": "居住地",
+          "entity": "居住地",
+          "anchor_attribute": [
+            "居住地标识"
+          ]
+        }
+      ],
+      "link_condition": "",
+      "attributes": []
+    },
+    {
+      "relation_name": "位于",
+      "desc": "描述一个居住地在行政上隶属于某一个街道的事实关联。",
+      "grain": "一个具体的居住地与一个具体的街道之间的一次行政隶属关系实例。",
+      "participants": [
+        {
+          "role": "被管辖单元",
+          "entity": "居住地",
+          "anchor_attribute": [
+            "居住地标识"
+          ]
+        },
+        {
+          "role": "管辖单位",
+          "entity": "街道",
+          "anchor_attribute": [
+            "街道标识"
+          ]
+        }
+      ],
+      "link_condition": "",
+      "attributes": []
+    }
+  ],
+  "conditions": [
+    {
+      "condition_name": "目标街道限定",
+      "condition_type": "single_attribute",
+      "targets": [
+        "街道.街道名称"
+      ],
+      "description": "街道的名称必须为‘大桥街道’。"
+    },
+    {
+      "condition_name": "少数民族人员限定",
+      "condition_type": "single_attribute",
+      "targets": [
+        "人员.民族信息"
+      ],
+      "description": "人员的民族信息需表明其属于‘少数民族’（具体判定规则未定，保持抽象语义）。"
+    }
+  ]
+}

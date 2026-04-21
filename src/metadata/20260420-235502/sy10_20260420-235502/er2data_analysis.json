@@ -1,0 +1,135 @@
+{
+  "街道": {
+    "unit_name": "街道",
+    "target_semantics": "从数据库中检索‘街道’类型的实体，其名称为‘大桥街道’，并返回该街道实体的唯一标识符（主键）和名称。",
+    "sql_semantics": "从系统部门表（sys_dept）中，检索部门名称为‘大桥街道’且未被逻辑删除的记录，返回其部门ID和部门名称。",
+    "precision_check": {
+      "found_precisely": false,
+      "matched_points": "结果中返回了名称为‘大桥街道’的实体及其ID。",
+      "shifted_or_incorrect_points": "SQL 实现的对象是‘部门’而非‘街道实体’，存在根本性的语义漂移。结果样本的‘正确性’是基于部门名称恰好与街道名称相同的巧合，而非正确实现了对街道实体的查询。"
+    },
+    "completeness_check": {
+      "found_completely": false,
+      "covered_points": "无。",
+      "missing_points": "未使用与‘街道’实体直接相关的表（如 ads_address_hierarchy），也未在查询中体现‘街道’这一实体类型。"
+    },
+    "verdict": "mismatch",
+    "reason": "SQL 查询的目标实体（部门）与语义单元要求的目标实体（街道）不符，属于语义漂移，未能‘找准’。因此判定为 mismatch。",
+    "analysis_status": "ok",
+    "analysis_source": "llm"
+  },
+  "居委": {
+    "unit_name": "居委",
+    "target_semantics": "获取系统中定义的所有居委实体，返回每个居委的主键（ID）和名称，不依赖其他业务表是否有数据关联。",
+    "sql_semantics": "通过房屋基本信息表中非空的居委ID关联到部门表，返回有房屋关联的居委的ID和名称列表。",
+    "precision_check": {
+      "found_precisely": false,
+      "matched_points": "输出的字段是居委ID和名称，样本数据看起来是居委。",
+      "shifted_or_incorrect_points": "语义从‘所有居委’漂移为‘有房屋关联的居委’，缺少直接按居委类型筛选的逻辑，依赖间接关联可能导致遗漏无房屋的居委。"
+    },
+    "completeness_check": {
+      "found_completely": false,
+      "covered_points": "使用了部门表的主键和名称字段，做了软删除过滤。",
+      "missing_points": "缺少直接按部门类型（如 dept_type）筛选居委的条件，依赖 ads_house_basic_info 表导致范围不全。"
+    },
+    "verdict": "mismatch",
+    "reason": "SQL 实际返回的是‘有房屋关联的居委’，而不是‘所有居委’，核心语义漂移，因此属于 mismatch。",
+    "analysis_status": "ok",
+    "analysis_source": "llm"
+  },
+  "人员": {
+    "unit_name": "人员",
+    "target_semantics": "查询数据库中已被预先标记或判定为‘老人’状态的人员记录，并返回这些人员的主键和出生日期。",
+    "sql_semantics": "从人员基本信息表中，动态计算当前年龄是否大于等于60岁，并筛选出计算结果为‘是’的人员，返回他们的主键、出生日期及一个固定的‘是老人’标记。",
+    "precision_check": {
+      "found_precisely": false,
+      "matched_points": "都返回了人员的主键和出生日期。",
+      "shifted_or_incorrect_points": "核心语义发生漂移。目标要求查询‘已有的判定结果’，而SQL改为‘临时的年龄计算’。这是两种不同的实现方式，后者未能准确命中‘被判定为’这一关键语义。"
+    },
+    "completeness_check": {
+      "found_completely": false,
+      "covered_points": "覆盖了输出人员主键和出生日期的需求。",
+      "missing_points": "完全缺失了对‘老人判定’这一已有状态或标签的查询。根据schema linking，可能存在如`ads_person_label_relation`这样的标签关联表，但SQL未使用任何此类结构。"
+    },
+    "verdict": "mismatch",
+    "reason": "SQL 的实现逻辑（动态年龄计算）与目标语义单元的核心要求（查询已有的‘判定’结果）不符，属于语义漂移，因此判定为 mismatch。",
+    "analysis_status": "ok",
+    "analysis_source": "llm"
+  },
+  "房屋": {
+    "unit_name": "房屋",
+    "target_semantics": "基于标签系统（如ads_label_info, ads_house_label_relation）判定为‘独居’标签的房屋，返回房屋ID及其是否独居的属性值。",
+    "sql_semantics": "从房屋基础表和居住关系表中，找出居住人数恰好为1的有效房屋，返回房屋ID并硬编码‘是’作为是否独居。",
+    "precision_check": {
+      "found_precisely": false,
+      "matched_points": "输出房屋ID；输出‘是否独居’列名；业务上‘独居’可能对应居住人数为1。",
+      "shifted_or_incorrect_points": "判定逻辑从‘标签系统’变为‘居住人数统计’；未使用标签相关表；‘是否独居’值是硬编码而非从属性取出。"
+    },
+    "completeness_check": {
+      "found_completely": false,
+      "covered_points": "输出了房屋ID；输出了‘是否独居’列。",
+      "missing_points": "缺少标签表（ads_label_info）和房屋-标签关系表（ads_house_label_relation）；缺少对‘独居’标签的过滤条件（如label_name='独居'）；‘是否独居’属性值非来自数据模型而是硬编码。"
+    },
+    "verdict": "mismatch",
+    "reason": "SQL未使用标签系统判定‘独居’，而是用居住人数=1来推导，属于语义漂移，且缺少关键表列和过滤条件，因此找准=false，判为mismatch。",
+    "analysis_status": "ok",
+    "analysis_source": "llm"
+  },
+  "行政隶属": {
+    "unit_name": "行政隶属",
+    "target_semantics": "查询街道（名称='大桥街道'）与隶属于它的居委之间的行政隶属关系，返回街道主键、居委主键、以及标识该关系的关联标识（如外键或关系ID）。",
+    "sql_semantics": "在 sys_dept 表中，通过 parent_id 自连接找出部门名为‘大桥街道’的记录及其所有有效子部门，返回父部门ID、子部门ID、子部门的父ID（作为关联标识）。未过滤部门类型，可能包含非居委的子部门。",
+    "precision_check": {
+      "found_precisely": false,
+      "matched_points": "通过父子关系表达了隶属关系；返回了双方ID和父ID作为关联标识；限定了父部门名称。",
+      "shifted_or_incorrect_points": "未确保子部门是居委类型，可能将其他类型的子部门（如科室、其他街道等）误当作居委返回，导致对象类型不匹配。"
+    },
+    "completeness_check": {
+      "found_completely": false,
+      "covered_points": "街道名称过滤、父子关系连接、双方主键输出、关联标识输出。",
+      "missing_points": "缺少对父部门类型为‘街道’、子部门类型为‘居委’的过滤条件，可能导致结果包含非目标语义的实体。"
+    },
+    "verdict": "mismatch",
+    "reason": "SQL 未过滤部门类型，可能返回非居委的子部门作为结果，因此没有找准目标语义（街道-居委关系）。同时缺少类型约束，也没有找全必需的条件。",
+    "analysis_status": "ok",
+    "analysis_source": "llm"
+  },
+  "居住于": {
+    "unit_name": "居住于",
+    "target_semantics": "查询所有居住关系，其中居住者满足年龄≥60岁（老人），且所居住的房屋在其所有有效居住关系中仅关联1个人（独居房屋）。返回老人的人员ID、独居房屋的房屋ID，以及代表此居住关系的关联标识。",
+    "sql_semantics": "从有效的居住关系记录中，筛选出居住者ID存在于‘年龄≥60岁且有效的’人员集合中，且房屋ID存在于‘仅有一个有效居住者’的房屋集合中的记录。返回这些记录的人员ID、房屋ID及两者拼接的关联标识。",
+    "precision_check": {
+      "found_precisely": true,
+      "matched_points": "准确定义了‘老人’（基于出生日期计算年龄）和‘独居房屋’（基于居住关系计数），并通过居住关系表正确关联两者。",
+      "shifted_or_incorrect_points": ""
+    },
+    "completeness_check": {
+      "found_completely": true,
+      "covered_points": "包含了老人年龄过滤、独居房屋的人数计算、各实体及关系的有效性状态过滤，并输出了要求的三个标识字段。",
+      "missing_points": ""
+    },
+    "verdict": "exact_match",
+    "reason": "SQL 准确且完整地实现了目标语义单元。它正确定义并筛选了‘老人’和‘独居房屋’，通过居住关系表将两者正确关联，并返回了所需的主键和关联标识。执行结果样本与SQL逻辑及目标语义一致。",
+    "analysis_status": "ok",
+    "analysis_source": "llm"
+  },
+  "位于": {
+    "unit_name": "位于",
+    "target_semantics": "返回被定义为‘独居’的房屋及其所属居委的对应关系。需要提供房屋的唯一标识、居委的唯一标识，以及标识这一对应关系的关联标识。",
+    "sql_semantics": "从有效的房屋表中，筛选出在有效的居住关系记录中仅关联了一个唯一人员的房屋（即‘独居’房屋）。通过连接有效的部门表确认居委信息有效。返回房屋ID作为房屋标识，房屋表中的居委字段作为居委标识，并复用房屋ID作为关系标识。",
+    "precision_check": {
+      "found_precisely": true,
+      "matched_points": "SQL准确理解了‘独居’的核心语义，并通过‘COUNT(DISTINCT person_id) = 1’进行了正确实现。准确返回了房屋和居委的标识符。",
+      "shifted_or_incorrect_points": "无。关系标识使用了房屋ID，虽非独立关系ID，但在当前上下文中能唯一标识关系对，未造成语义漂移。"
+    },
+    "completeness_check": {
+      "found_completely": true,
+      "covered_points": "1. 房屋主键 (house_id)。2. 居委主键 (neighborhood_committee，并通过dept表校验)。3. ‘独居’筛选条件 (HAVING子句)。4. 关联标识 (使用house_id充当)。",
+      "missing_points": "无关键缺失。所有目标语义要求的成分均已落实。"
+    },
+    "verdict": "exact_match",
+    "reason": "SQL 准确捕捉并实现了‘独居房屋-所属居委’关系的查询意图。它正确识别了‘独居’的含义（唯一居住人员），返回了房屋和居委的正确标识，并提供了一个可用的关联标识（房屋ID）。结果样本与SQL逻辑、目标语义三者一致。",
+    "analysis_status": "ok",
+    "analysis_source": "llm"
+  }
+}

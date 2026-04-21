@@ -1,0 +1,59 @@
+{
+  "人员": {
+    "unit_name": "人员",
+    "target_semantics": "从数据库中获取所有有效的人员记录，并返回每条记录的唯一标识符（主键）和性别属性值。",
+    "sql_semantics": "从 `ads_person_basic_info` 表中查询所有未删除（`delete_flag='0'`）记录的 `person_id`（作为主键）和 `current_gender`（作为性别代码）。",
+    "precision_check": {
+      "found_precisely": true,
+      "matched_points": "核心实体（人员）、返回属性（主键ID、性别字段）均与目标语义一致。",
+      "shifted_or_incorrect_points": ""
+    },
+    "completeness_check": {
+      "found_completely": true,
+      "covered_points": "使用了正确的核心表，选取了对应的主键列和性别列，并应用了合理的有效性过滤条件。",
+      "missing_points": ""
+    },
+    "verdict": "exact_match",
+    "reason": "SQL 准确且完整地实现了目标语义单元。它从正确的人员表中检索了所有有效人员的主键和性别代码，输出结果与目标要求完全吻合。性别以代码形式输出，在数据库实现层面是完整的；若需可视化标签，属于表示层转换，不属于本语义单元的数据库实现范畴。",
+    "analysis_status": "ok",
+    "analysis_source": "llm"
+  },
+  "房屋": {
+    "unit_name": "房屋",
+    "target_semantics": "获取符合条件的、可供居住的房屋实体列表，返回每个房屋的唯一标识（主键）及其所归属的、具有行政意义的区域编码。",
+    "sql_semantics": "从房屋基础信息表中，筛选出状态为有效、未删除、非虚拟且类型为住宅的房屋记录，返回每条记录的房屋ID（主键）和表中存储的部门ID（dept_id）。",
+    "precision_check": {
+      "found_precisely": false,
+      "matched_points": "房屋主键的获取准确。",
+      "shifted_or_incorrect_points": "输出的 `dept_id` 未经确认即为‘行政区域编码’，存在语义漂移风险。该字段可能只是关联ID，其行政区域属性需通过连接其他表（如 sys_dept）来映射或验证。"
+    },
+    "completeness_check": {
+      "found_completely": false,
+      "covered_points": "房屋主键字段、对房屋基本状态的过滤条件。",
+      "missing_points": "将 `dept_id` 关联或转换为明确‘行政区域编码’的关键步骤（例如，连接 sys_dept 表获取 area_code，或通过地址层级表确认其行政属性）。"
+    },
+    "verdict": "mismatch",
+    "reason": "SQL 未找准目标语义的核心部分。虽然返回了房屋ID和dept_id，但无法确认dept_id就是‘行政区域编码’，缺少必要的表连接和字段映射来支撑此语义。同时，实现上也未找全目标所需的成分，缺失了获取或验证行政区域编码的关键数据库操作。",
+    "analysis_status": "ok",
+    "analysis_source": "llm"
+  },
+  "居住于": {
+    "unit_name": "居住于",
+    "target_semantics": "查询人员与房屋之间的居住关联记录，并返回每条记录中用于标识对应人员实例的主键（人员ID）和对应房屋实例的主键（房屋ID）。",
+    "sql_semantics": "从 ads_residence_relation 表中查询未被逻辑删除的记录，并通过内连接确保关联的人员和房屋记录存在且有效，最终返回居住关联记录的人员ID、房屋ID、居住状态、关系变更日期、是否主要居住地、有效状态、数据源及创建/更新时间。",
+    "precision_check": {
+      "found_precisely": true,
+      "matched_points": "SQL 准确查询了核心实体“居住关联”（ads_residence_relation 表），并返回了关联双方标识符。",
+      "shifted_or_incorrect_points": ""
+    },
+    "completeness_check": {
+      "found_completely": true,
+      "covered_points": "1. 使用了存储居住关联的核心表 `ads_residence_relation`。 2. 输出了目标要求的人员主键（`person_id`）和房屋主键（`house_id`）。",
+      "missing_points": ""
+    },
+    "verdict": "exact_match",
+    "reason": "SQL 精准地定位到了“居住关联”这一目标语义（找准），并完整地返回了目标所要求的、用于识别人员和房屋实例的主键字段（找全）。执行结果样本也证实了 SQL 返回的数据正是人员与房屋的居住关联记录。三者（目标语义、SQL语义、结果样本）高度一致。",
+    "analysis_status": "ok",
+    "analysis_source": "llm"
+  }
+}

@@ -1,0 +1,121 @@
+{
+  "人员": {
+    "question": "找出所有人员，并给出用于识别每个人员的主键。",
+    "schema_linking": {
+      "tables": [
+        "sy_community_link.ads_household_registration",
+        "sy_community_link.ads_person_basic_info",
+        "sy_community_link.ads_residence_relation"
+      ],
+      "columns": [
+        "sy_community_link.ads_household_registration.person_id",
+        "sy_community_link.ads_person_basic_info.person_id",
+        "sy_community_link.ads_residence_relation.person_id"
+      ]
+    },
+    "result_sql": "SELECT \n    `person_id` AS `人员标识`\nFROM `sy_community_link`.`ads_person_basic_info`\nWHERE `delete_flag` = 0\nUNION\nSELECT \n    `person_id` AS `人员标识`\nFROM `sy_community_link`.`ads_residence_relation`\nWHERE `delete_flag` = 0\nUNION\nSELECT \n    `person_id` AS `人员标识`\nFROM `sy_community_link`.`ads_household_registration`\nWHERE `delete_flag` = 0",
+    "nl2sql_result": true
+  },
+  "路": {
+    "question": "找出名称为“谢路”的道路，并给出其路名称。",
+    "schema_linking": {
+      "tables": [
+        "sy_community_link.ads_address_hierarchy",
+        "sy_community_link.ads_house_basic_info"
+      ],
+      "columns": [
+        "sy_community_link.ads_address_hierarchy.name",
+        "sy_community_link.ads_address_hierarchy.level",
+        "sy_community_link.ads_house_basic_info.road"
+      ]
+    },
+    "result_sql": "SELECT \n    `name` AS `路名称`\nFROM `sy_community_link`.`ads_address_hierarchy`\nWHERE `level` = 4\n    AND `name` LIKE '%谢路%'\n    AND `delete_flag` = 0;",
+    "nl2sql_result": true
+  },
+  "地理位置": {
+    "question": "找出所有的地理位置实体，并给出用于识别每个位置的主键（地理位置标识）及其描述性名称（地理位置名称）。",
+    "schema_linking": {
+      "tables": [
+        "sy_community_link.ads_address_hierarchy",
+        "sy_community_link.ads_house_basic_info",
+        "sy_community_link.sys_dept"
+      ],
+      "columns": [
+        "sy_community_link.ads_address_hierarchy.id",
+        "sy_community_link.ads_address_hierarchy.name",
+        "sy_community_link.ads_house_basic_info.house_id",
+        "sy_community_link.ads_house_basic_info.province",
+        "sy_community_link.ads_house_basic_info.city",
+        "sy_community_link.ads_house_basic_info.district",
+        "sy_community_link.ads_house_basic_info.street",
+        "sy_community_link.ads_house_basic_info.neighborhood_committee",
+        "sy_community_link.ads_house_basic_info.grid",
+        "sy_community_link.ads_house_basic_info.residential_area",
+        "sy_community_link.ads_house_basic_info.detailed_address",
+        "sy_community_link.ads_house_basic_info.current_detailed_address",
+        "sy_community_link.ads_house_basic_info.road",
+        "sy_community_link.ads_house_basic_info.nong",
+        "sy_community_link.ads_house_basic_info.house_number",
+        "sy_community_link.ads_house_basic_info.room_number",
+        "sy_community_link.ads_house_basic_info.dept_id",
+        "sy_community_link.sys_dept.dept_id",
+        "sy_community_link.sys_dept.dept_name"
+      ]
+    },
+    "result_sql": "SELECT \n    `dept_id` AS `地理位置标识`,\n    `dept_name` AS `地理位置名称`\nFROM `sy_community_link`.`sys_dept`\nWHERE `delete_flag` = 0\n\nUNION ALL\n\nSELECT \n    `id` AS `地理位置标识`,\n    `name` AS `地理位置名称`\nFROM `sy_community_link`.`ads_address_hierarchy`\nWHERE `delete_flag` = 0",
+    "nl2sql_result": true
+  },
+  "居住于": {
+    "question": "找出所有状态为‘常住’的‘居住于’关系，并给出对应的居住者（人员标识）、居住地（地理位置标识）以及居住状态。",
+    "schema_linking": {
+      "tables": [
+        "sy_community_link.ads_address_hierarchy",
+        "sy_community_link.ads_house_basic_info",
+        "sy_community_link.ads_person_basic_info",
+        "sy_community_link.ads_residence_relation",
+        "sy_community_link.sys_dept"
+      ],
+      "columns": [
+        "sy_community_link.ads_address_hierarchy.id",
+        "sy_community_link.ads_house_basic_info.house_id",
+        "sy_community_link.ads_house_basic_info.dept_id",
+        "sy_community_link.ads_person_basic_info.person_id",
+        "sy_community_link.ads_residence_relation.person_id",
+        "sy_community_link.ads_residence_relation.dept_id",
+        "sy_community_link.ads_residence_relation.live_status",
+        "sy_community_link.ads_residence_relation.is_primary_residence",
+        "sy_community_link.sys_dept.dept_id"
+      ]
+    },
+    "result_sql": "SELECT \n    `person_id` AS `人员标识`,\n    `dept_id` AS `地理位置标识`,\n    `live_status` AS `居住状态`\nFROM `sy_community_link`.`ads_residence_relation`\nWHERE `is_primary_residence` = 1\n  AND `delete_flag` = 0;",
+    "nl2sql_result": true
+  },
+  "位于": {
+    "question": "找出所有位于名称为“谢路”的道路上的地理位置，并给出用于识别这些地理位置实例的“地理位置标识”以及其所属道路的“路名称”。",
+    "schema_linking": {
+      "tables": [
+        "sy_community_link.ads_address_hierarchy",
+        "sy_community_link.ads_house_basic_info",
+        "sy_community_link.sys_dept"
+      ],
+      "columns": [
+        "sy_community_link.ads_address_hierarchy.id",
+        "sy_community_link.ads_address_hierarchy.name",
+        "sy_community_link.ads_address_hierarchy.level",
+        "sy_community_link.ads_address_hierarchy.parent_id",
+        "sy_community_link.ads_address_hierarchy.ancestors",
+        "sy_community_link.ads_house_basic_info.road",
+        "sy_community_link.ads_house_basic_info.dept_id",
+        "sy_community_link.ads_house_basic_info.province",
+        "sy_community_link.ads_house_basic_info.city",
+        "sy_community_link.ads_house_basic_info.district",
+        "sy_community_link.ads_house_basic_info.street",
+        "sy_community_link.ads_house_basic_info.residential_area",
+        "sy_community_link.sys_dept.dept_id",
+        "sy_community_link.sys_dept.dept_name"
+      ]
+    },
+    "result_sql": "SELECT \n    a.`id` AS `地理位置标识`,\n    r.`name` AS `路名称`\nFROM `sy_community_link`.`ads_address_hierarchy` AS a\nJOIN (\n    SELECT `id`, `name` \n    FROM `sy_community_link`.`ads_address_hierarchy`\n    WHERE `level` = 4 \n      AND `name` LIKE '%谢路%'\n      AND `delete_flag` = 0\n) AS r\nON (CONCAT(',', a.`ancestors`, ',') LIKE CONCAT('%,', r.`id`, ',%') \n    OR a.`id` = r.`id`)\nWHERE a.`delete_flag` = 0;",
+    "nl2sql_result": true
+  }
+}

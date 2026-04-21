@@ -1,0 +1,59 @@
+{
+  "人员": {
+    "unit_name": "人员",
+    "target_semantics": "获取系统中定义的所有人员个体，并返回能够唯一标识每个人员的键（主键）。",
+    "sql_semantics": "从‘人员基础信息表’中，获取所有未被逻辑删除的人员的ID。",
+    "precision_check": {
+      "found_precisely": false,
+      "matched_points": "返回了人员标识符（ID）。",
+      "shifted_or_incorrect_points": "将‘所有人员实体实例’窄化为‘拥有基础信息且未删除的人员’，实体范围可能不准确。"
+    },
+    "completeness_check": {
+      "found_completely": false,
+      "covered_points": "输出了一个主键列。",
+      "missing_points": "可能缺失了定义‘人员实体’全集的权威主表或关键逻辑。SQL添加了未明确要求的删除状态过滤。"
+    },
+    "verdict": "mismatch",
+    "reason": "SQL实现与目标语义存在核心偏差。目标要求‘所有人员实体实例’，而SQL仅从单一业务表（ads_person_basic_info）中获取未删除记录，这很可能未能覆盖系统中定义的全部人员（例如，可能遗漏仅存在于其他关联表中的人员）。因此，既未‘找准’（语义范围窄化），也未‘找全’（缺失关键数据源）。",
+    "analysis_status": "ok",
+    "analysis_source": "llm"
+  },
+  "常住参照": {
+    "unit_name": "常住参照",
+    "target_semantics": "目标是获取业务概念‘常住参照’所对应的所有数据库实体实例，并返回每个实例自身的唯一主键标识。",
+    "sql_semantics": "从‘居住关系表’中筛选出状态为有效、主要居住、且居住状态码为1或2的记录，并将每条记录的房屋ID和人员ID拼接成一个字符串作为输出标识。",
+    "precision_check": {
+      "found_precisely": false,
+      "matched_points": "SQL 的输出结果在业务含义上可能与‘常住人员关联’相关。",
+      "shifted_or_incorrect_points": "核心语义发生漂移：1) 目标对象是‘常住参照实体’，SQL 操作对象是‘居住关系记录’；2) 目标返回‘实体主键’，SQL 返回‘外键拼接标识符’。两者在数据库实现层面代表不同的概念。"
+    },
+    "completeness_check": {
+      "found_completely": false,
+      "covered_points": "SQL 可能通过字段条件表达了‘常住’的业务规则。",
+      "missing_points": "若‘常住参照’是独立实体，则完全缺失了对应该实体的表及其主键列。"
+    },
+    "verdict": "mismatch",
+    "reason": "SQL 的实现与目标语义单元存在根本性偏差。目标要求返回某个特定实体的主键，而 SQL 返回的是另一个关系表中符合某些条件的记录组合标识。这属于语义对象和返回标识类型的双重不匹配，因此判定为 mismatch。",
+    "analysis_status": "ok",
+    "analysis_source": "llm"
+  },
+  "居住": {
+    "unit_name": "居住",
+    "target_semantics": "给定一个特定的、标记为‘常住’的居住关系（人员-房屋对），找出所有在业务逻辑上与该关系相关联的其他居住关系，并返回这些关系中的居住者ID以及该特定参照点的标识。‘相关联’的具体定义（如基于人员、房屋或其他关系）是语义核心，但未明确。",
+    "sql_semantics": "随机选取一个符合‘常住’条件（有效、主要居住地、特定居住状态、未删除）的居住关系作为参照点。找出所有与该参照点房屋ID相同、且有效未删除的其他居住关系，返回这些关系的人员ID以及参照点的拼接标识符（房屋ID_人员ID）。",
+    "precision_check": {
+      "found_precisely": false,
+      "matched_points": "SQL 输出了人员标识和参照点标识，且关联逻辑（基于房屋ID）是‘相关’的一种可能解释。",
+      "shifted_or_incorrect_points": "1. SQL 将‘相关’狭隘地定义为‘同住一个房屋’，这可能并非目标语义的全部或本意（例如，目标可能是基于人员关联而非房屋关联）。2. 参照点是随机选取的（LIMIT 1），而非‘特定’的。"
+    },
+    "completeness_check": {
+      "found_completely": false,
+      "covered_points": "使用了居住关系表，对‘常住’状态进行了筛选，实现了基于房屋ID的关联。",
+      "missing_points": "1. 未落实‘特定’参照点的输入条件（使用LIMIT 1是随机的）。2. 若目标语义的‘相关’包含基于人员ID或其他维度的关联，则此类关联逻辑完全缺失。"
+    },
+    "verdict": "mismatch",
+    "reason": "SQL 未能‘找准’目标语义：首先，它对‘相关’的定义（同房屋）可能不准确或过于狭隘，存在语义漂移风险。其次，它完全未处理‘特定’参照点这一关键输入（用随机选取代替），这直接导致核心条件缺失。因此，整体判定为不匹配（mismatch）。",
+    "analysis_status": "ok",
+    "analysis_source": "llm"
+  }
+}

@@ -1,0 +1,87 @@
+{
+  "entities": [
+    {
+      "entity_name": "人",
+      "desc": "具有独立身份的自然人个体。是人口统计的基本单位。",
+      "grain": "一个具体的、可唯一标识的个人。",
+      "attributes": [
+        {
+          "name": "出生日期",
+          "semantics": "个人的出生日期，是判断其是否为“老人”的基础信息。"
+        },
+        {
+          "name": "是否老人",
+          "semantics": "标识此人是否满足“老人”的未定年龄条件。值为布尔类型（是/否）。"
+        },
+        {
+          "name": "是否独居",
+          "semantics": "标识此人是否满足“独居”的未定居住条件。值为布尔类型（是/否）。"
+        },
+        {
+          "name": "人员_surrogate_id",
+          "semantics": ""
+        }
+      ],
+      "primary_key": [
+        "人员_surrogate_id"
+      ]
+    },
+    {
+      "entity_name": "房屋",
+      "desc": "一个物理上的居住单元，是判断人员居住情况的空间载体。",
+      "grain": "一个具体的、可唯一标识的居住场所（如一套房、一个房间）。",
+      "attributes": [
+        {
+          "name": "房屋_surrogate_id",
+          "semantics": ""
+        }
+      ],
+      "primary_key": [
+        "房屋_surrogate_id"
+      ]
+    }
+  ],
+  "relations": [
+    {
+      "relation_name": "居住",
+      "desc": "表示一个人居住在一个房屋中的事实关系。用于关联人员与其住所，是判断“是否独居”的基础。",
+      "grain": "一个具体的人与一个具体的房屋之间的一条居住记录。",
+      "participants": [
+        {
+          "role": "居住者",
+          "entity": "人",
+          "anchor_attribute": [
+            "人员_surrogate_id"
+          ]
+        },
+        {
+          "role": "居所",
+          "entity": "房屋",
+          "anchor_attribute": [
+            "房屋_surrogate_id"
+          ]
+        }
+      ],
+      "link_condition": "",
+      "attributes": []
+    }
+  ],
+  "conditions": [
+    {
+      "condition_name": "筛选老人",
+      "condition_type": "single_attribute",
+      "targets": [
+        "人.是否老人"
+      ],
+      "description": "限定统计对象为满足“老人”定义的人。"
+    },
+    {
+      "condition_name": "筛选独居者",
+      "condition_type": "single_attribute",
+      "targets": [
+        "人.是否独居"
+      ],
+      "description": "限定统计对象为满足“独居”定义的人。"
+    }
+  ]
+}

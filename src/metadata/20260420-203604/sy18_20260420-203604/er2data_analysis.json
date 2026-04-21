@@ -1,0 +1,59 @@
+{
+  "人员": {
+    "unit_name": "人员",
+    "target_semantics": "筛选出符合‘常住条件’定义的人员，并返回这些人员的唯一标识符及其对应的常住条件属性值。‘常住条件’的具体定义需从数据库业务逻辑中推断。",
+    "sql_semantics": "从人员基础表与居住关系表关联的结果中，筛选出居住关系有效(valid_status='1')、是主要居住地(is_primary_residence=1)且记录有效的记录。为每个人员（按person_id和live_status分组）返回人员ID，以及一个拼接字符串作为‘常住条件’，该字符串由固定前缀‘有效主要居住地-’加上live_status字段的映射值（1->自住，2->租住，3->寄住）构成。",
+    "precision_check": {
+      "found_precisely": true,
+      "matched_points": "SQL准确地以‘人员标识符’和‘常住条件属性’为核心输出，其筛选逻辑（有效、主要居住地）与‘常住’的常识理解一致，结果样本也直观展示了常住人员及其居住状态。",
+      "shifted_or_incorrect_points": "无。SQL的实现语义未发生漂移，紧扣目标。"
+    },
+    "completeness_check": {
+      "found_completely": true,
+      "covered_points": "在SQL所隐含的‘常住条件’定义（即‘拥有有效的主要居住地’）下，必要的筛选条件（有效性、主要性）、人员标识符输出、条件属性值生成均已落实。",
+      "missing_points": "无。Schema Linking中提示的其他表列（如房屋关系、标签关系）未被使用，但无外部知识证明它们是定义‘常住条件’所必需的。因此，在当前语境下，不视为缺失。"
+    },
+    "verdict": "exact_match",
+    "reason": "SQL的实现逻辑精准地对齐了目标语义（找出常住人员并返回标识和条件），并在其自身定义的‘常住条件’（有效主要居住地）范围内，完整地实现了所有必要的数据操作（连接、过滤、映射、输出）。执行结果样本也完全符合该SQL的逻辑输出。三者（目标语义、SQL语义、结果样本）保持一致。",
+    "analysis_status": "ok",
+    "analysis_source": "llm"
+  },
+  "地址节点": {
+    "unit_name": "地址节点",
+    "target_semantics": "查询并返回所有名为‘谢路路’的地址节点的唯一标识符、名称和层级信息。",
+    "sql_semantics": "从地址层级表（ads_address_hierarchy）中查询所有未删除的、名称为‘谢路路’的记录，返回其ID、名称和层级。",
+    "precision_check": {
+      "found_precisely": true,
+      "matched_points": "核心实体（地址节点）、核心过滤条件（名称=‘谢路路’）、核心输出字段（标识符、名称、层级）均准确对应。",
+      "shifted_or_incorrect_points": "无。"
+    },
+    "completeness_check": {
+      "found_completely": true,
+      "covered_points": "目标语义要求的所有成分（表、列、名称过滤条件）均已实现。",
+      "missing_points": "无缺失。SQL中额外的软删除过滤（delete_flag=0）是合理的数据质量约束，不影响对目标语义的完整实现。"
+    },
+    "verdict": "exact_match",
+    "reason": "SQL 准确且完整地实现了目标语义单元。它从正确的表中，使用正确的列，施加了正确的过滤条件，返回了目标要求的所有字段。执行结果样本也证实了这一点，返回了多个符合‘谢路路’名称的地址节点记录。",
+    "analysis_status": "ok",
+    "analysis_source": "llm"
+  },
+  "居住": {
+    "unit_name": "居住",
+    "target_semantics": "查询‘谢路路’地址节点下，满足常住条件的所有居住关系实例，并以（人员标识符， 地址节点标识符）的形式返回。",
+    "sql_semantics": "通过房屋表作为桥梁，连接地址节点表与居住关系表，查询名称为‘谢路路’、层级为4的地址节点下，所有具有有效、常住、未删除居住关系的人员ID和地址节点ID，并进行去重。",
+    "precision_check": {
+      "found_precisely": true,
+      "matched_points": "核心语义（通过居住关系表连接人员与地址节点）、目标实体（人员、地址节点）、关键过滤条件（地址名称、常住条件）均准确对准。",
+      "shifted_or_incorrect_points": "无。SQL附加的`level=4`及有效性、删除状态过滤属于业务数据清洗，未导致语义漂移。"
+    },
+    "completeness_check": {
+      "found_completely": true,
+      "covered_points": "居住关系表、人员标识符、地址节点标识符、地址名称过滤、常住条件均已落实。连接路径（地址->房屋->居住关系->人员）完整。",
+      "missing_points": "无缺失目标语义必需成分。"
+    },
+    "verdict": "exact_match",
+    "reason": "SQL 准确且完整地实现了目标语义单元。它正确使用了居住关系表作为核心，输出了所需的人员和地址节点标识符，并精确应用了‘谢路路’地址名称和‘常住’条件过滤。执行结果样本与SQL逻辑、目标语义三者一致。",
+    "analysis_status": "ok",
+    "analysis_source": "llm"
+  }
+}

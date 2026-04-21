@@ -1,0 +1,97 @@
+{
+  "人员": {
+    "unit_name": "人员",
+    "target_semantics": "返回所有人员的列表，每人对应一个能唯一识别该人员的标识符。",
+    "sql_semantics": "从 ads_person_basic_info 表中选取未删除（delete_flag=0）的人员的 person_id 作为人员标识符，并去重。",
+    "precision_check": {
+      "found_precisely": true,
+      "matched_points": "输出人员标识符列表，person_id 是识别人员的合理标识符。",
+      "shifted_or_incorrect_points": ""
+    },
+    "completeness_check": {
+      "found_completely": true,
+      "covered_points": "使用了人员基础信息表的主键作为标识符，去重确保每人一条。",
+      "missing_points": ""
+    },
+    "verdict": "exact_match",
+    "reason": "SQL 准确理解了需要返回人员标识符，使用 person_id 合理，且未删除条件在业务常见场景下符合‘所有人员’的隐含含义，输出结果与目标语义一致。",
+    "analysis_status": "ok",
+    "analysis_source": "llm"
+  },
+  "房屋": {
+    "unit_name": "房屋",
+    "target_semantics": "获取全部房屋实体（全集），并返回每个房屋的唯一标识符（房屋ID）。",
+    "sql_semantics": "从房屋基础信息表（ads_house_basic_info）中选取未逻辑删除（delete_flag=0）的记录的房屋ID（house_id）作为房屋标识。",
+    "precision_check": {
+      "found_precisely": true,
+      "matched_points": "SQL 确实从房屋基础信息表取房屋ID作为标识，样本结果也是房屋ID格式，没有取错实体类型。",
+      "shifted_or_incorrect_points": ""
+    },
+    "completeness_check": {
+      "found_completely": false,
+      "covered_points": "覆盖了房屋基础信息表中未删除的房屋。",
+      "missing_points": "可能遗漏了已逻辑删除的房屋实体（delete_flag=1），且未确认该表是否包含所有房屋实体（可能有些房屋只在关系表中存在）。"
+    },
+    "verdict": "partial_match",
+    "reason": "SQL 找准了房屋标识的含义和来源表，但可能因 delete_flag 条件或单一表来源未能覆盖所有房屋实体，未完全满足“所有房屋实体”的要求。",
+    "analysis_status": "ok",
+    "analysis_source": "llm"
+  },
+  "地址范围": {
+    "unit_name": "地址范围",
+    "target_semantics": "根据名称‘谢路路1弄’进行精确匹配，查询并返回该特定地址范围的唯一标识（ID）和名称。",
+    "sql_semantics": "查询地址层级表（ads_address_hierarchy）中所有层级为5且未删除的条目，返回它们的ID和名称列表。",
+    "precision_check": {
+      "found_precisely": false,
+      "matched_points": "使用了可能存储地址范围信息的正确表（ads_address_hierarchy），并选择了ID和名称作为输出字段。",
+      "shifted_or_incorrect_points": "核心语义从‘查找特定名称的地址范围’漂移为‘查找所有某一层级的地址范围’。缺少对名称‘谢路路1弄’的关键过滤条件。"
+    },
+    "completeness_check": {
+      "found_completely": false,
+      "covered_points": "使用了正确的目标表，输出了ID和名称字段。",
+      "missing_points": "缺失最核心的过滤条件：`name = ‘谢路路1弄’`。这是实现该语义单元的必要成分。"
+    },
+    "verdict": "mismatch",
+    "reason": "SQL未包含根据名称‘谢路路1弄’进行过滤的关键条件，导致其实际语义（返回所有层级5的地址范围）与目标语义（返回特定名称的地址范围）完全不符。执行结果样本也证实了这一点，返回的是多个‘X弄’的列表，而非‘谢路路1弄’本身。",
+    "analysis_status": "ok",
+    "analysis_source": "llm"
+  },
+  "居住于": {
+    "unit_name": "居住于",
+    "target_semantics": "查询所有表征‘人员居住在房屋中’这一事实的数据，并返回对应的人员ID和房屋ID。",
+    "sql_semantics": "从‘居住关系’表（ads_residence_relation）中，选取所有有效（未逻辑删除）且唯一的人员ID与房屋ID组合对。",
+    "precision_check": {
+      "found_precisely": true,
+      "matched_points": "SQL 直接从命名为‘居住关系’的表中选取人员ID和房屋ID，精准对应了‘居住于’关系及双方标识的需求。",
+      "shifted_or_incorrect_points": "无。"
+    },
+    "completeness_check": {
+      "found_completely": true,
+      "covered_points": "正确使用了存储核心关系的表、正确的标识字段，并应用了合理的业务状态过滤（delete_flag）。输出字段完全符合要求。",
+      "missing_points": "无。"
+    },
+    "verdict": "exact_match",
+    "reason": "SQL 精准地定位了存储‘居住于’关系的表，并完整地提取了目标语义所要求的人员标识和房屋标识，两者核心语义完全一致，且实现无缺失。",
+    "analysis_status": "ok",
+    "analysis_source": "llm"
+  },
+  "属于": {
+    "unit_name": "属于",
+    "target_semantics": "精确查找归属于完整地址名称‘谢路路1弄’下的所有房屋，并返回房屋和该特定地址的标识信息。",
+    "sql_semantics": "查找与任何名称包含‘1弄’且层级为5的地址相关联的房屋，返回房屋ID、地址ID及地址名称。",
+    "precision_check": {
+      "found_precisely": false,
+      "matched_points": "SQL 返回了房屋与地址的关联关系，且地址名称中包含‘1弄’。",
+      "shifted_or_incorrect_points": "核心语义发生漂移。目标要求精确匹配‘谢路路1弄’，而SQL使用了模糊匹配‘%1弄%’，导致结果集会包含属于‘张路路1弄’、‘李路路1弄’等其他地址的房屋，而不仅仅是‘谢路路1弄’。"
+    },
+    "completeness_check": {
+      "found_completely": false,
+      "covered_points": "SQL 实现了房屋与地址表的关联，并输出了房屋标识和地址标识。",
+      "missing_points": "缺少最关键的精确过滤条件：`ah.name = '谢路路1弄'`。"
+    },
+    "verdict": "mismatch",
+    "reason": "SQL 未能‘找准’目标语义。其核心逻辑是查找任何包含‘1弄’的地址下的房屋，这与查找特定地址‘谢路路1弄’下的房屋有本质区别，属于语义漂移。因此判定为 mismatch。",
+    "analysis_status": "ok",
+    "analysis_source": "llm"
+  }
+}

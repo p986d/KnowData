@@ -1,0 +1,21 @@
+{
+  "房屋": {
+    "unit_name": "房屋",
+    "target_semantics": "查询房屋实体，筛选出建造时间早于2000年的记录，并返回每条记录的主键和建造时间两个属性。",
+    "sql_semantics": "从 `ads_house_basic_info` 表中，选取 `house_id` 和 `build_year` 列，并应用过滤条件：建造年份小于2000、建造年份非空、且记录未被标记为删除（delete_flag=0）。",
+    "precision_check": {
+      "found_precisely": true,
+      "matched_points": "核心实体（房屋）、核心筛选条件（建造时间早于2000年）、输出字段（主键、建造时间）均准确匹配。",
+      "shifted_or_incorrect_points": "无。SQL中额外的 `delete_flag=0` 和 `build_year IS NOT NULL` 条件是对核心语义的合理加强和保障，未导致语义偏移。"
+    },
+    "completeness_check": {
+      "found_completely": true,
+      "covered_points": "目标语义所需的主键（house_id）、建造时间（build_year）字段以及核心过滤条件（build_year < 2000）均已包含在SQL中。",
+      "missing_points": "无缺失。"
+    },
+    "verdict": "exact_match",
+    "reason": "SQL 准确且完整地实现了目标语义单元。它正确识别了目标实体和条件，并返回了要求的字段。执行结果样本也证实了其输出符合预期。额外的非空检查和软删除过滤是合理的实现细节，不影响核心语义的匹配。",
+    "analysis_status": "ok",
+    "analysis_source": "llm"
+  }
+}

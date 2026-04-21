@@ -1,0 +1,83 @@
+{
+  "entities": [
+    {
+      "entity_name": "人员",
+      "desc": "具有独立身份的个人。",
+      "grain": "一个具体的、可标识的个人。",
+      "attributes": [
+        {
+          "name": "person_id",
+          "semantics": "用于唯一标识一个人员的标识符"
+        },
+        {
+          "name": "is_permanent_resident",
+          "semantics": "用于判断该人员是否属于常住人口的属性，具体判断逻辑未定"
+        }
+      ],
+      "primary_key": [
+        "person_id"
+      ]
+    },
+    {
+      "entity_name": "地址",
+      "desc": "一个具体的、可标识的居住位置。",
+      "grain": "一个具体的居住位置单元（如一套房屋）。",
+      "attributes": [
+        {
+          "name": "address_id",
+          "semantics": "用于唯一标识一个地址的标识符"
+        },
+        {
+          "name": "address_representation",
+          "semantics": "用于描述地址的表示信息，支持与‘谢路路1弄1号’进行匹配，具体形式未定"
+        }
+      ],
+      "primary_key": [
+        "address_id"
+      ]
+    }
+  ],
+  "relations": [
+    {
+      "relation_name": "居住于",
+      "desc": "描述一个人员居住在一个地址的事实。",
+      "grain": "一个具体的人员与一个具体的地址之间的一次居住关联实例。",
+      "participants": [
+        {
+          "role": "居住者",
+          "entity": "人员",
+          "anchor_attribute": [
+            "person_id"
+          ]
+        },
+        {
+          "role": "居住地",
+          "entity": "地址",
+          "anchor_attribute": [
+            "address_id"
+          ]
+        }
+      ],
+      "link_condition": "",
+      "attributes": []
+    }
+  ],
+  "conditions": [
+    {
+      "condition_name": "目标地址限定",
+      "condition_type": "single_attribute",
+      "targets": [
+        "地址.address_representation"
+      ],
+      "description": "地址的表示信息需与‘谢路路1弄1号’相匹配。"
+    },
+    {
+      "condition_name": "人员常住属性限定",
+      "condition_type": "single_attribute",
+      "targets": [
+        "人员.is_permanent_resident"
+      ],
+      "description": "人员必须属于常住人口。"
+    }
+  ]
+}

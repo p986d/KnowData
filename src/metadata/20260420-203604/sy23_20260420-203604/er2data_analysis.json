@@ -1,0 +1,59 @@
+{
+  "人": {
+    "unit_name": "人",
+    "target_semantics": "具有独立身份的自然人个体。是人口统计的基本单位。 Relevant conditions: 限定统计对象为满足“老人”定义的人。; 限定统计对象为满足“独居”定义的人。",
+    "sql_semantics": "No SQL was produced for this unit, so there is no SQL semantics to evaluate.",
+    "precision_check": {
+      "found_precisely": false,
+      "matched_points": "",
+      "shifted_or_incorrect_points": "NL2SQL did not produce SQL."
+    },
+    "completeness_check": {
+      "found_completely": false,
+      "covered_points": "",
+      "missing_points": "NL2SQL did not produce SQL."
+    },
+    "verdict": "mismatch",
+    "reason": "NL2SQL did not produce SQL.",
+    "analysis_status": "placeholder",
+    "analysis_source": "deterministic_fallback"
+  },
+  "房屋": {
+    "unit_name": "房屋",
+    "target_semantics": "需要找出所有与有效居住行为建立了关联的房屋（即实际被用作居住场所的房屋），并返回这些房屋的唯一标识符（主键）。",
+    "sql_semantics": "从房屋基础信息表中，筛选出房屋类型为1（如住宅）、用途类型为1或2（如自住或出租）、非虚拟、有效且未删除的房屋，并返回它们的ID。该逻辑基于房屋的静态设计属性，未涉及任何实际的居住关系或状态。",
+    "precision_check": {
+      "found_precisely": false,
+      "matched_points": "都输出了房屋ID。",
+      "shifted_or_incorrect_points": "核心语义发生漂移。目标要求的是‘实际作为居住场所’的房屋（一种关系状态），而SQL实现的是‘设计用途可能为居住’的房屋（一组静态属性）。两者代表不同的实体集合。"
+    },
+    "completeness_check": {
+      "found_completely": false,
+      "covered_points": "输出了ID字段。",
+      "missing_points": "1. 缺失关键表：未使用居住关系表（如ads_residence_relation）。2. 缺失关键连接：未将房屋表与居住关系表关联。3. 缺失关键过滤：未在居住关系表上设置任何筛选‘具体居住场所’的条件（如live_status）。"
+    },
+    "verdict": "mismatch",
+    "reason": "SQL的实现语义与目标语义存在根本性偏差。目标语义的核心在于房屋的‘居住关系状态’，而SQL仅通过房屋的‘静态设计属性’进行筛选，遗漏了定义‘具体居住场所’所必需的关系数据。因此，既未‘找准’（语义漂移），也未‘找全’（缺失核心表、连接和过滤）。",
+    "analysis_status": "ok",
+    "analysis_source": "llm"
+  },
+  "居住": {
+    "unit_name": "居住",
+    "target_semantics": "找出所有符合‘老人’（年龄≥60岁）且‘独居’条件的人员及其居住的房屋，并返回这对实体（人员和房屋）的主键（ID）。",
+    "sql_semantics": "从有效的居住关系表中，关联出有效的人员和房屋信息，筛选出年龄≥60岁、且其居住房屋在当前有效居住关系中仅关联他一人的记录，并返回人员ID和房屋ID。",
+    "precision_check": {
+      "found_precisely": true,
+      "matched_points": "核心语义（独居老人的居住关系）、核心实体（人、房屋）、核心关系（居住）、关键约束（老人基于年龄、独居基于房屋居住人数）均准确命中。",
+      "shifted_or_incorrect_points": "无。"
+    },
+    "completeness_check": {
+      "found_completely": true,
+      "covered_points": "居住关系表、人员表及主键、房屋表及主键、老人年龄条件、独居人数条件均已实现。必要的业务数据有效性过滤（delete_flag, valid_status）也已包含。",
+      "missing_points": "无。目标语义的所有要素均已落实。"
+    },
+    "verdict": "exact_match",
+    "reason": "SQL 精准且完整地实现了目标语义单元。它正确理解了‘居住’关系对应的表，准确地将‘老人’定义为年龄≥60岁，将‘独居’定义为房屋居住人数为1，并输出了所需的人员和房屋主键。执行结果样本与SQL逻辑、目标语义三者一致。",
+    "analysis_status": "ok",
+    "analysis_source": "llm"
+  }
+}

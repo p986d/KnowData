@@ -1,0 +1,112 @@
+{
+  "entities": [
+    {
+      "entity_name": "街道",
+      "desc": "一个具有独立名称和标识的行政区域，例如‘大桥街道’。在问题中作为筛选房屋统计范围的条件。",
+      "grain": "一个具体的街道实例。",
+      "attributes": [
+        {
+          "name": "街道标识",
+          "semantics": "用于唯一标识一个街道的代码或ID，是建立‘居委属于街道’关系所必需的关键属性。"
+        },
+        {
+          "name": "街道名称",
+          "semantics": "街道的中文名称，例如‘大桥街道’，用于在问题中指定筛选条件。"
+        }
+      ],
+      "primary_key": [
+        "街道标识"
+      ]
+    },
+    {
+      "entity_name": "居委",
+      "desc": "一个具有独立名称和标识的基层管理组织，隶属于某个街道。在问题中作为对房屋进行分组统计的维度。",
+      "grain": "一个具体的居委实例。",
+      "attributes": [
+        {
+          "name": "居委标识",
+          "semantics": "用于唯一标识一个居委的代码或ID，是建立‘居委属于街道’和‘房屋属于居委’关系所必需的关键属性。"
+        },
+        {
+          "name": "居委名称",
+          "semantics": "居委的中文名称，是问题要求返回的结果字段之一。"
+        }
+      ],
+      "primary_key": [
+        "居委标识"
+      ]
+    },
+    {
+      "entity_name": "房屋",
+      "desc": "一个可供统计的、独立的物理建筑单元。在问题中作为被计数统计的核心对象。",
+      "grain": "一栋/一套具体的房屋实例。",
+      "attributes": [
+        {
+          "name": "房屋标识_surrogate_id",
+          "semantics": "为了唯一标识和计数每一栋/套房屋而构建的代理标识符。"
+        }
+      ],
+      "primary_key": [
+        "房屋标识_surrogate_id"
+      ]
+    }
+  ],
+  "relations": [
+    {
+      "relation_name": "居委属于街道",
+      "desc": "表示一个居委在行政管辖上隶属于某个街道的关系。",
+      "grain": "一个具体的（居委，街道）隶属关系实例。",
+      "participants": [
+        {
+          "role": "所属街道",
+          "entity": "街道",
+          "anchor_attribute": [
+            "街道标识"
+          ]
+        },
+        {
+          "role": "下属居委",
+          "entity": "居委",
+          "anchor_attribute": [
+            "居委标识"
+          ]
+        }
+      ],
+      "link_condition": "",
+      "attributes": []
+    },
+    {
+      "relation_name": "房屋属于居委",
+      "desc": "表示一栋房屋在行政管辖上归属于某个居委管理的关系。",
+      "grain": "一个具体的（房屋，居委）归属关系实例。",
+      "participants": [
+        {
+          "role": "管辖居委",
+          "entity": "居委",
+          "anchor_attribute": [
+            "居委标识"
+          ]
+        },
+        {
+          "role": "所属房屋",
+          "entity": "房屋",
+          "anchor_attribute": [
+            "房屋标识_surrogate_id"
+          ]
+        }
+      ],
+      "link_condition": "",
+      "attributes": []
+    }
+  ],
+  "conditions": [
+    {
+      "condition_name": "目标街道筛选",
+      "condition_type": "single_attribute",
+      "targets": [
+        "街道.街道名称"
+      ],
+      "description": "限定问题所讨论的街道范围仅为名称为“大桥街道”的街道。"
+    }
+  ]
+}

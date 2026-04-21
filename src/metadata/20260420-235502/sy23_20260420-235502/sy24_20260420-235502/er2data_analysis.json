@@ -1,0 +1,59 @@
+{
+  "居住于": {
+    "unit_name": "居住于",
+    "target_semantics": "描述一个人员当前居住在某一个居委的管辖范围内。 Relevant conditions: 居委的名称必须为‘临青居委’。",
+    "sql_semantics": "No SQL was produced for this unit, so there is no SQL semantics to evaluate.",
+    "precision_check": {
+      "found_precisely": false,
+      "matched_points": "",
+      "shifted_or_incorrect_points": "NL2SQL did not produce SQL."
+    },
+    "completeness_check": {
+      "found_completely": false,
+      "covered_points": "",
+      "missing_points": "NL2SQL did not produce SQL."
+    },
+    "verdict": "mismatch",
+    "reason": "NL2SQL did not produce SQL.",
+    "analysis_status": "placeholder",
+    "analysis_source": "deterministic_fallback"
+  },
+  "居委": {
+    "unit_name": "居委",
+    "target_semantics": "核心实体是居民委员会（居委）。需要返回名为‘临青居委’的这个特定居委的官方唯一标识和其标准名称。",
+    "sql_semantics": "从通用部门表（sys_dept）中，查询部门名称（dept_name）等于‘临青居委’且未被删除（delete_flag=0）的记录，返回其部门ID（dept_id）和部门名称（dept_name）。",
+    "precision_check": {
+      "found_precisely": false,
+      "matched_points": "实现了按名称‘临青居委’进行精确筛选，并返回了标识和名称字段。",
+      "shifted_or_incorrect_points": "SQL查询的对象是‘部门’（dept），而非特指的‘居委’。缺少对部门类型（如居委）的限定条件，可能导致查询结果是一个同名但类型不同的部门实体，未能精准命中‘居委’这一目标语义。"
+    },
+    "completeness_check": {
+      "found_completely": false,
+      "covered_points": "若将‘部门’视为‘居委’，则标识和名称字段已覆盖。",
+      "missing_points": "缺失确保记录为‘居委’类型的关键过滤条件（例如基于dept_type列或与其他表的关联）。"
+    },
+    "verdict": "mismatch",
+    "reason": "SQL未能确保查询结果对应‘居委’这一特定实体类型。它只是从一个通用的部门表中通过名称匹配找记录，存在语义漂移（从‘居委’漂移到‘任何名为临青居委的部门’）的风险，因此没有‘找准’目标语义单元。",
+    "analysis_status": "ok",
+    "analysis_source": "llm"
+  },
+  "人员": {
+    "unit_name": "人员",
+    "target_semantics": "查询人员实体，返回其唯一标识、姓名、性别、出生日期和民族五个属性构成的完整列表。",
+    "sql_semantics": "从人员基础信息表中查询所有有效（未删除）记录，关联字典表将性别代码和民族代码转换为中文标签，输出人员的ID、姓名、性别、出生日期和民族。",
+    "precision_check": {
+      "found_precisely": true,
+      "matched_points": "核心实体（人员）和所有要求属性（标识、姓名、性别、出生日期、民族）均准确对应。SQL中的逻辑删除过滤是合理的业务实现，未偏离‘所有人员’的核心意图。",
+      "shifted_or_incorrect_points": ""
+    },
+    "completeness_check": {
+      "found_completely": true,
+      "covered_points": "所有五个目标属性均已通过正确的表列选择、代码映射（性别）和字典关联翻译（民族）实现。必要的业务数据有效性过滤（delete_flag）也已包含。",
+      "missing_points": ""
+    },
+    "verdict": "exact_match",
+    "reason": "SQL 准确理解了目标语义，查询了正确的实体（人员）并返回了全部要求的属性。实现上，不仅完成了字段选取，还通过关联字典表提升了‘民族’信息的可读性，且包含了合理的业务数据状态过滤。执行结果样本也证实了输出符合预期。",
+    "analysis_status": "ok",
+    "analysis_source": "llm"
+  }
+}

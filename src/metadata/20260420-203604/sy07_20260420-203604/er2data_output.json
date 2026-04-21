@@ -1,0 +1,121 @@
+{
+  "街道": {
+    "question": "找出名称为“大桥街道”的街道实体，并给出用于识别该实体的主键以及其街道名称属性。",
+    "schema_linking": {
+      "tables": [
+        "sy_community_link.ads_house_basic_info",
+        "sy_community_link.sys_dept"
+      ],
+      "columns": [
+        "sy_community_link.ads_house_basic_info.street",
+        "sy_community_link.ads_house_basic_info.dept_id",
+        "sy_community_link.ads_house_basic_info.province",
+        "sy_community_link.ads_house_basic_info.city",
+        "sy_community_link.ads_house_basic_info.district",
+        "sy_community_link.sys_dept.dept_id",
+        "sy_community_link.sys_dept.dept_name",
+        "sy_community_link.sys_dept.dept_type"
+      ]
+    },
+    "result_sql": "SELECT \n    `dept_id` AS `街道标识_surrogate_id`,\n    `dept_name` AS `街道名称`\nFROM `sy_community_link`.`sys_dept`\nWHERE `dept_name` = '大桥街道'\n  AND `dept_id` IN (\n      SELECT DISTINCT `street`\n      FROM `sy_community_link`.`ads_house_basic_info`\n  );",
+    "nl2sql_result": true
+  },
+  "居委": {
+    "question": "找出实体“居委”（即各个居委会实例），并给出用于识别这些实例的主键以及它们的名称。",
+    "schema_linking": {
+      "tables": [
+        "sy_community_link.ads_address_hierarchy",
+        "sy_community_link.ads_house_basic_info",
+        "sy_community_link.sys_dept"
+      ],
+      "columns": [
+        "sy_community_link.ads_address_hierarchy.dept_id",
+        "sy_community_link.ads_house_basic_info.neighborhood_committee",
+        "sy_community_link.ads_house_basic_info.dept_id",
+        "sy_community_link.sys_dept.dept_id",
+        "sy_community_link.sys_dept.dept_name",
+        "sy_community_link.sys_dept.dept_type"
+      ]
+    },
+    "result_sql": "SELECT DISTINCT\n    d.`dept_id` AS `居委标识_surrogate_id`,\n    d.`dept_name` AS `居委名称`\nFROM `sy_community_link`.`sys_dept` AS d\nWHERE d.`dept_id` IN (\n    SELECT h.`dept_id`\n    FROM `sy_community_link`.`ads_house_basic_info` AS h\n)\n    AND d.`delete_flag` = '0';",
+    "nl2sql_result": true
+  },
+  "房屋": {
+    "question": "找出所有房屋实例，并给出用于识别每个房屋实例的主键。",
+    "schema_linking": {
+      "tables": [
+        "sy_community_link.ads_address_hierarchy",
+        "sy_community_link.ads_house_basic_info",
+        "sy_community_link.ads_house_label_relation",
+        "sy_community_link.ads_house_relation_info"
+      ],
+      "columns": [
+        "sy_community_link.ads_address_hierarchy.id",
+        "sy_community_link.ads_address_hierarchy.name",
+        "sy_community_link.ads_address_hierarchy.level",
+        "sy_community_link.ads_house_basic_info.house_id",
+        "sy_community_link.ads_house_label_relation.house_id",
+        "sy_community_link.ads_house_relation_info.house_id"
+      ]
+    },
+    "result_sql": "SELECT \n    `house_id` AS `房屋标识_surrogate_id`\nFROM `sy_community_link`.`ads_house_basic_info`",
+    "nl2sql_result": true
+  },
+  "隶属": {
+    "question": "找出作为上级单位的‘街道’实体与作为下级单位的‘居委’实体之间的‘隶属’关系实例，并给出用于识别街道实例的主键、识别居委实例的主键，以及用于实现该关系的‘隶属关联属性’（其具体形式如指向街道标识的外键）。限定条件：仅考虑名称为‘大桥街道’的街道。",
+    "schema_linking": {
+      "tables": [
+        "sy_community_link.ads_house_basic_info",
+        "sy_community_link.sys_dept"
+      ],
+      "columns": [
+        "sy_community_link.ads_house_basic_info.street",
+        "sy_community_link.ads_house_basic_info.dept_id",
+        "sy_community_link.sys_dept.dept_id",
+        "sy_community_link.sys_dept.parent_id",
+        "sy_community_link.sys_dept.dept_name"
+      ]
+    },
+    "result_sql": "SELECT \n    street_dept.dept_id AS 街道标识_surrogate_id,\n    committee_dept.dept_id AS 居委标识_surrogate_id,\n    committee_dept.parent_id AS 隶属关联属性_街道外键\nFROM sy_community_link.sys_dept AS street_dept\nINNER JOIN sy_community_link.sys_dept AS committee_dept\n    ON committee_dept.parent_id = street_dept.dept_id\nWHERE street_dept.dept_name = '大桥街道'\n    AND street_dept.dept_id IN (\n        SELECT DISTINCT street \n        FROM sy_community_link.ads_house_basic_info\n    )\n    AND committee_dept.dept_id IN (\n        SELECT DISTINCT dept_id \n        FROM sy_community_link.ads_house_basic_info\n    )\n    AND committee_dept.delete_flag = '0'\n    AND street_dept.delete_flag = '0';",
+    "nl2sql_result": true
+  },
+  "归属": {
+    "question": "找出房屋与居委之间的归属关系实例，并给出用于识别房屋实例的主键、用于识别居委实例的主键，以及归属关联属性。",
+    "schema_linking": {
+      "tables": [
+        "sy_community_link.ads_address_hierarchy",
+        "sy_community_link.ads_house_basic_info",
+        "sy_community_link.ads_residence_relation",
+        "sy_community_link.sys_dept"
+      ],
+      "columns": [
+        "sy_community_link.ads_address_hierarchy.id",
+        "sy_community_link.ads_address_hierarchy.dept_id",
+        "sy_community_link.ads_address_hierarchy.level",
+        "sy_community_link.ads_address_hierarchy.name",
+        "sy_community_link.ads_address_hierarchy.ancestors",
+        "sy_community_link.ads_address_hierarchy.parent_id",
+        "sy_community_link.ads_house_basic_info.house_id",
+        "sy_community_link.ads_house_basic_info.dept_id",
+        "sy_community_link.ads_house_basic_info.province",
+        "sy_community_link.ads_house_basic_info.city",
+        "sy_community_link.ads_house_basic_info.district",
+        "sy_community_link.ads_house_basic_info.street",
+        "sy_community_link.ads_house_basic_info.neighborhood_committee",
+        "sy_community_link.ads_house_basic_info.residential_area",
+        "sy_community_link.ads_residence_relation.house_id",
+        "sy_community_link.ads_residence_relation.dept_id",
+        "sy_community_link.ads_residence_relation.is_primary_residence",
+        "sy_community_link.ads_residence_relation.relation_change_date",
+        "sy_community_link.ads_residence_relation.live_status",
+        "sy_community_link.ads_residence_relation.is_owner",
+        "sy_community_link.sys_dept.dept_id",
+        "sy_community_link.sys_dept.dept_name",
+        "sy_community_link.sys_dept.parent_id",
+        "sy_community_link.sys_dept.ancestors"
+      ]
+    },
+    "result_sql": "SELECT DISTINCT\n    h.`house_id` AS `房屋标识_surrogate_id`,\n    d.`dept_id` AS `居委标识_surrogate_id`,\n    d.`dept_name` AS `居委名称`\nFROM `sy_community_link`.`ads_house_basic_info` AS h\nINNER JOIN `sy_community_link`.`sys_dept` AS d\n    ON h.`dept_id` = d.`dept_id`\nWHERE h.`delete_flag` = '0'\n    AND d.`delete_flag` = '0';",
+    "nl2sql_result": true
+  }
+}

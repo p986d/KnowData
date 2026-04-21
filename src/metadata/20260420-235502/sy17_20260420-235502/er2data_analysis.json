@@ -1,0 +1,21 @@
+{
+  "居住人口": {
+    "unit_name": "居住人口",
+    "target_semantics": "返回当前或通常居住状态的人员的唯一标识符和性别",
+    "sql_semantics": "返回在居住关系表中有记录（且未删除）的人员的唯一标识符和性别，未区分居住状态或类型",
+    "precision_check": {
+      "found_precisely": true,
+      "matched_points": "通过居住关系表关联人员基本信息，输出人员ID和性别，对象方向正确",
+      "shifted_or_incorrect_points": "无明显的实体或关系错误"
+    },
+    "completeness_check": {
+      "found_completely": false,
+      "covered_points": "关联了居住关系表与人员表，输出了ID和性别，做了去重",
+      "missing_points": "缺少对‘居住’状态或类型的明确过滤（如 relation_type='居住' 或 is_current=1），可能包含非居住人口"
+    },
+    "verdict": "partial_match",
+    "reason": "SQL 抓住了‘居住相关的人员’这一核心对象，但未对‘居住人口’的状态或类型做进一步限定，可能包含非居住或历史居住记录，因此语义覆盖不完整。",
+    "analysis_status": "ok",
+    "analysis_source": "llm"
+  }
+}

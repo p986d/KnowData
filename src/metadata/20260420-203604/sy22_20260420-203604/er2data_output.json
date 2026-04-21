@@ -1,0 +1,17 @@
+{
+  "房子": {
+    "question": "找出每一栋独立的住宅房屋（房子），并给出用于识别它的主键以及它的建造年份，其中建造年份早于2000年。",
+    "schema_linking": {
+      "tables": [
+        "sy_community_link.ads_house_basic_info"
+      ],
+      "columns": [
+        "sy_community_link.ads_house_basic_info.house_id",
+        "sy_community_link.ads_house_basic_info.build_year",
+        "sy_community_link.ads_house_basic_info.house_type"
+      ]
+    },
+    "result_sql": "SELECT \n    `house_id` AS `房子标识符_surrogate_id`,\n    `build_year` AS `建造年份`\nFROM `sy_community_link`.`ads_house_basic_info`\nWHERE `house_type` = 1\n    AND `valid_status` = 1\n    AND `is_virtual` = 0\n    AND `delete_flag` = 0\n    AND `build_year` < 2000;",
+    "nl2sql_result": true
+  }
+}

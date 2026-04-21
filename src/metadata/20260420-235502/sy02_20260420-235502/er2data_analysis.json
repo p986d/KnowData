@@ -1,0 +1,97 @@
+{
+  "街道": {
+    "unit_name": "街道",
+    "target_semantics": "从‘街道’实体表中，查询名称属性为‘大桥街道’的所有记录，返回每条记录的标识属性和名称属性。",
+    "sql_semantics": "从‘部门’实体表（sys_dept）中，查询部门名称（dept_name）为‘大桥街道’的记录，返回部门ID（dept_id）和部门名称。",
+    "precision_check": {
+      "found_precisely": false,
+      "matched_points": "输出结构（标识，名称）与目标一致；过滤的值（‘大桥街道’）与目标一致。",
+      "shifted_or_incorrect_points": "核心查询的实体对象从‘街道’漂移为‘部门’。列 `dept_name` 的语义是‘部门名称’，而非‘街道名称’，尽管在当前数据中其值恰好相同。"
+    },
+    "completeness_check": {
+      "found_completely": false,
+      "covered_points": "具备了过滤条件和输出字段的结构形式。",
+      "missing_points": "缺失了正确的核心实体表（街道表）。所有字段（标识、名称）均源自错误的实体表，因此本质上全部缺失。"
+    },
+    "verdict": "mismatch",
+    "reason": "SQL 查询的对象是‘部门’（sys_dept），而非语义单元要求的‘街道’。这是一种根本性的语义漂移，尽管输出结果在样本中看起来符合要求，但这只是由于数据巧合（存在一个名为‘大桥街道’的部门）造成的伪命中。根据‘找准’原则，核心实体错误，故判定为 mismatch。",
+    "analysis_status": "ok",
+    "analysis_source": "llm"
+  },
+  "人员": {
+    "unit_name": "人员",
+    "target_semantics": "筛选出民族属性为少数民族（即非汉族）的所有人员，返回他们的ID和民族名称。",
+    "sql_semantics": "查询所有未删除的人员，通过其 current_ethnicity 字段关联到‘民族’类型且未删除、已启用的字典表，并排除字典值为 '1' 的记录，最终返回这些人员的ID和对应的民族标签。",
+    "precision_check": {
+      "found_precisely": false,
+      "matched_points": "SQL 返回了人员ID和民族名称，且样本中的民族名称均为少数民族。",
+      "shifted_or_incorrect_points": "1) SQL 将‘少数民族’等价为‘字典值不等于 1’。在缺乏外部知识确认的情况下，无法断定此等价关系是否准确（例如，‘1’是否一定是‘汉族’，是否存在其他非少数民族编码）。2) SQL 使用 current_ethnicity 列进行连接，而 schema linking 提示的是 ethnicity 列，需确认列的正确性。"
+    },
+    "completeness_check": {
+      "found_completely": false,
+      "covered_points": "若上述等价关系成立，则SQL包含了必要的表、连接、过滤（民族类型、非1值、状态）和输出字段。",
+      "missing_points": "由于核心条件（dict_value != '1'）的语义准确性无法验证，因此无法判定‘少数民族’这一核心语义是否被完整、正确地实现。"
+    },
+    "verdict": "mismatch",
+    "reason": "核心语义‘少数民族’的实现依赖于一个未经外部知识证实的假设（dict_value != '1’）。SQL 实现的是一个‘非特定编码（1）人员查询’，这与‘少数民族人员查询’的目标语义可能存在偏差，因此未能‘找准’。",
+    "analysis_status": "ok",
+    "analysis_source": "llm"
+  },
+  "居住地": {
+    "unit_name": "居住地",
+    "target_semantics": "获取系统中所有‘居住地’实体的列表，并返回每个居住地的唯一标识及其所属街道的唯一标识。",
+    "sql_semantics": "获取所有有效房屋的ID，并尝试将其`street`字段值与部门表`sys_dept`的`dept_id`进行匹配以得到街道部门ID，若匹配不到有效部门则回退到`street`字段原值。输出房屋ID和此混合值作为结果。",
+    "precision_check": {
+      "found_precisely": false,
+      "matched_points": "将‘居住地’映射为‘房屋’(`ads_house_basic_info`)，并将‘居住地标识’映射为`house_id`是合理的。",
+      "shifted_or_incorrect_points": "‘所属街道标识’的获取逻辑存疑。通过`h.street = d.dept_id`连接可能无法正确建立房屋与街道实体的关系，导致输出的‘街道标识’可能是未经验证的原始值而非真正的街道实体标识，造成语义漂移。"
+    },
+    "completeness_check": {
+      "found_completely": false,
+      "covered_points": "输出了两个要求的字段，并对源表进行了有效状态过滤。",
+      "missing_points": "缺失正确建立‘居住地’与‘街道’实体关联的关键逻辑。当前连接条件可能错误，未能确保‘所属街道标识’确实指向一个目标语义所要求的街道实体。"
+    },
+    "verdict": "mismatch",
+    "reason": "SQL未能‘找准’目标语义。核心问题在于实现‘所属街道标识’的方式：连接条件`h.street = d.dept_id`的假设可能不成立，导致无法可靠地将居住地关联到其所属的街道实体。因此，输出的‘所属街道标识’可能并非真正的街道实体标识，与目标语义要求不符。",
+    "analysis_status": "ok",
+    "analysis_source": "llm"
+  },
+  "居住于": {
+    "unit_name": "居住于",
+    "target_semantics": "返回所有被标记为‘少数民族’的人员与其对应居住房屋的标识符配对列表，核心是‘少数民族’人员与‘居住地’的关系实例。",
+    "sql_semantics": "返回所有在字典表`res_ethnicity`类型下，`dict_value`不等于'1'的人员，关联其当前有效且未删除的居住房屋ID。",
+    "precision_check": {
+      "found_precisely": false,
+      "matched_points": "SQL正确关联了人员与居住地，并返回了所需的标识属性（person_id, house_id）。",
+      "shifted_or_incorrect_points": "核心过滤条件依赖`dict_value != '1'`来定义‘少数民族’，此映射关系未经外部知识或数据验证，存在语义漂移风险。目标语义‘少数民族’可能未被准确表达。"
+    },
+    "completeness_check": {
+      "found_completely": true,
+      "covered_points": "若假设`dict_value != '1'`正确，则SQL已包含所有必需的表、连接、过滤和输出字段。",
+      "missing_points": "无（在假设成立的前提下）。"
+    },
+    "verdict": "mismatch",
+    "reason": "判定为`mismatch`。虽然SQL在结构上看似完整，但最关键的语义条件——‘少数民族’——的实现（`dict_value != '1'`）缺乏证据支持其准确性。因此，SQL未能‘找准’目标语义，核心语义存在不确定性，故整体不匹配。",
+    "analysis_status": "ok",
+    "analysis_source": "llm"
+  },
+  "位于": {
+    "unit_name": "位于",
+    "target_semantics": "根据‘管辖’关系，筛选出所有被命名为‘大桥街道’的行政单位所管辖的居住地，并返回居住地的唯一标识和该街道的唯一标识。",
+    "sql_semantics": "通过将房屋表的street字段与部门表的dept_id字段关联，找出部门名称为‘大桥街道’且状态有效的部门，以及与之关联的状态有效的房屋，返回房屋ID作为居住地标识，部门ID作为街道标识。",
+    "precision_check": {
+      "found_precisely": true,
+      "matched_points": "SQL准确关联了居住地与街道（通过street=dept_id），并正确筛选了街道名称。输出字段语义与目标一致。",
+      "shifted_or_incorrect_points": ""
+    },
+    "completeness_check": {
+      "found_completely": true,
+      "covered_points": "包含了居住地表、街道表、街道名称过滤、两表关联关系、以及要求的两个输出字段。还包含了必要的状态过滤。",
+      "missing_points": ""
+    },
+    "verdict": "exact_match",
+    "reason": "SQL准确理解了‘管辖’关系（通过street字段关联dept_id），并完整实现了目标语义的所有要素：筛选特定街道、关联对应居住地、返回双方标识。执行结果样本也支持这一判断。",
+    "analysis_status": "ok",
+    "analysis_source": "llm"
+  }
+}

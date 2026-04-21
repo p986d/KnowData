@@ -1,0 +1,59 @@
+{
+  "人员": {
+    "unit_name": "人员",
+    "target_semantics": "从数据库中查询或推导出人员的‘常住状态’属性值，筛选出状态为‘常住’的人员，并返回这些人员的ID及其对应的常住状态值。",
+    "sql_semantics": "从 ads_residence_relation 表中，筛选出 live_status 为 (‘1’, ‘2’, ‘3’)、valid_status 为 ‘1’、delete_flag 为 ‘0’ 的所有不重复人员ID，并静态地为每个人赋予 is_permanent_resident = 1 的标签。",
+    "precision_check": {
+      "found_precisely": false,
+      "matched_points": "返回了人员ID(person_id)。",
+      "shifted_or_incorrect_points": "核心语义发生漂移。目标需要‘查询’人员的常住状态属性，而SQL是‘定义’满足某条件的人员为常住人口，并硬编码其属性值。is_permanent_resident 在SQL中是一个被赋予的常量标签，而非从数据中查询出的属性。"
+    },
+    "completeness_check": {
+      "found_completely": false,
+      "covered_points": "输出了 person_id 列。",
+      "missing_points": "完全缺失了对‘常住状态属性(is_permanent_resident)’的数据来源映射或逻辑推导。该列输出与任何表字段或衍生逻辑无关，是硬编码的。"
+    },
+    "verdict": "mismatch",
+    "reason": "SQL未能找准目标语义。它没有去查找人员固有的‘常住状态’属性，而是重新定义了一套筛选规则（基于live_status等），并将筛选结果直接标记为常住人口。这导致了核心语义的漂移。同时，输出列 is_permanent_resident 的值是硬编码的，与数据库中的任何真实属性无关，因此也完全未找全所需的属性映射。",
+    "analysis_status": "ok",
+    "analysis_source": "llm"
+  },
+  "地址": {
+    "unit_name": "地址",
+    "target_semantics": "根据完整地址字符串‘谢路路1弄1号’定位对应的地址实体记录，并返回该实体的唯一标识符（address_id）和地址表示信息（address_representation）。",
+    "sql_semantics": "通过将地址字符串拆解为‘路、弄、号’三级，在地址层级表中进行自连接和精确匹配，定位到对应的路径节点，返回最底层（门牌号）节点的ID作为地址ID，并将三级节点名称拼接作为地址表示。",
+    "precision_check": {
+      "found_precisely": true,
+      "matched_points": "SQL准确找到了‘谢路路1弄1号’对应的地址实体，并返回了其ID和表示信息。",
+      "shifted_or_incorrect_points": "无。实现方法（路径拆解匹配）与直接字符串匹配不同，但定位的目标实体完全正确。"
+    },
+    "completeness_check": {
+      "found_completely": true,
+      "covered_points": "使用了正确的表，通过连接和过滤实现了实体定位，输出了要求的两个字段。",
+      "missing_points": "无缺失。"
+    },
+    "verdict": "exact_match",
+    "reason": "SQL 通过拆解地址并匹配层级路径的方式，精准定位了目标地址实体，并完整返回了所需的标识符和表示信息。执行结果证据也证实了这一点。目标语义、SQL实现语义和结果样本三者完全一致。",
+    "analysis_status": "ok",
+    "analysis_source": "llm"
+  },
+  "居住于": {
+    "unit_name": "居住于",
+    "target_semantics": "找出所有被定义为‘常住人口’的人员与‘谢路路1弄1号’这个地址之间的居住关系，并返回对应的人员ID和地址ID。",
+    "sql_semantics": "查询居住在‘谢路路1弄1号’这个地址所关联的房屋内，且居住状态（live_status）为'1','2','3'之一、状态有效（valid_status='1'）的人员ID，并返回该地址的ID。",
+    "precision_check": {
+      "found_precisely": false,
+      "matched_points": "正确关联了地址‘谢路路1弄1号’，并找到了居住在该地址关联房屋内的人员。",
+      "shifted_or_incorrect_points": "人员筛选条件 `live_status IN ('1','2','3')` 可能不等同于‘常住人口’。该条件可能包含了暂住等其他居住状态，导致结果集可能比目标语义要求的‘常住人口’更宽泛，存在语义漂移。"
+    },
+    "completeness_check": {
+      "found_completely": false,
+      "covered_points": "地址定位、房屋关联、人员关系连接、输出字段的结构均已实现。",
+      "missing_points": "由于核心筛选条件（常住人口）可能未被准确实现，从语义完整性的角度看，该关键条件未被‘找全’。"
+    },
+    "verdict": "mismatch",
+    "reason": "SQL 的实现与目标语义存在核心偏差。目标要求筛选‘常住人口’，但 SQL 使用了 `live_status IN ('1','2','3')` 这一可能更宽泛的条件。在没有外部知识确认这些状态码精确对应‘常住’的情况下，无法判定 SQL 找准或找全了目标语义。因此，判定为 mismatch。",
+    "analysis_status": "ok",
+    "analysis_source": "llm"
+  }
+}

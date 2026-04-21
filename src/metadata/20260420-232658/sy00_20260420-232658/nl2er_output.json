@@ -1,0 +1,133 @@
+{
+  "entities": [
+    {
+      "entity_name": "行政区域",
+      "desc": "具有层级结构的行政区划单元，如街道、区、居委等。",
+      "grain": "一个具有唯一名称和边界的行政区划。",
+      "attributes": [
+        {
+          "name": "区域名称",
+          "semantics": "行政区域的名称，例如“大桥街道”。"
+        },
+        {
+          "name": "区域类型",
+          "semantics": "行政区域的层级，例如“街道”、“区”、“居委”。"
+        },
+        {
+          "name": "区域标识",
+          "semantics": ""
+        }
+      ],
+      "primary_key": [
+        "区域标识"
+      ]
+    },
+    {
+      "entity_name": "人员",
+      "desc": "具有独立身份标识的个体，是人口统计的基本单位。",
+      "grain": "一个具体的人。",
+      "attributes": [
+        {
+          "name": "人员标识",
+          "semantics": ""
+        }
+      ],
+      "primary_key": [
+        "人员标识"
+      ]
+    },
+    {
+      "entity_name": "房屋地址",
+      "desc": "一个具体的居住地点或房屋单元，是连接人员与行政区域的空间载体。",
+      "grain": "一个可供人员居住的物理位置或房屋标识。",
+      "attributes": [
+        {
+          "name": "房屋地址标识",
+          "semantics": ""
+        }
+      ],
+      "primary_key": [
+        "房屋地址标识"
+      ]
+    }
+  ],
+  "relations": [
+    {
+      "relation_name": "居住于",
+      "desc": "描述一个人员在某一个房屋地址居住的事实。",
+      "grain": "一条记录表明一个特定人员在某个特定时间点或时间段内居住于一个特定的房屋地址。",
+      "participants": [
+        {
+          "role": "居住者",
+          "entity": "人员",
+          "anchor_attribute": [
+            "人员标识"
+          ]
+        },
+        {
+          "role": "居住地",
+          "entity": "房屋地址",
+          "anchor_attribute": [
+            "房屋地址标识"
+          ]
+        }
+      ],
+      "link_condition": "",
+      "attributes": [
+        {
+          "name": "是否常住",
+          "semantics": "标识此居住关系是否表示常住状态。"
+        }
+      ]
+    },
+    {
+      "relation_name": "属于",
+      "desc": "描述一个房屋地址在行政上隶属于某个行政区域。",
+      "grain": "一条记录表明一个特定的房屋地址位于一个特定的行政区域内。",
+      "participants": [
+        {
+          "role": "下级单元",
+          "entity": "房屋地址",
+          "anchor_attribute": [
+            "房屋地址标识"
+          ]
+        },
+        {
+          "role": "上级单元",
+          "entity": "行政区域",
+          "anchor_attribute": [
+            "区域标识"
+          ]
+        }
+      ],
+      "link_condition": "",
+      "attributes": []
+    }
+  ],
+  "conditions": [
+    {
+      "condition_name": "目标街道名称",
+      "condition_type": "single_attribute",
+      "targets": [
+        "行政区域.区域名称"
+      ],
+      "description": "限定所查询的行政区域的名称为‘大桥街道’。"
+    },
+    {
+      "condition_name": "目标街道类型",
+      "condition_type": "single_attribute",
+      "targets": [
+        "行政区域.区域类型"
+      ],
+      "description": "限定所查询的行政区域的类型为‘街道’。"
+    },
+    {
+      "condition_name": "常住状态限定",
+      "condition_type": "single_attribute",
+      "targets": [
+        "居住于.是否常住"
+      ],
+      "description": "限定所考虑的居住关系为表示‘常住’状态的记录。"
+    }
+  ]
+}

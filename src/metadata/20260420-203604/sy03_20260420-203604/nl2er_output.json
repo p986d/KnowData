@@ -1,0 +1,112 @@
+{
+  "entities": [
+    {
+      "entity_name": "行政区域",
+      "desc": "具有层级结构（如区、街道、居委）的行政管理划分单位。每个实例代表一个具体的区域，如“大桥街道”。",
+      "grain": "一个具体的、具有唯一标识的行政管理区域。",
+      "attributes": [
+        {
+          "name": "区域名称",
+          "semantics": "行政区域的名称，如‘大桥街道’。"
+        },
+        {
+          "name": "区域标识",
+          "semantics": ""
+        }
+      ],
+      "primary_key": [
+        "区域标识"
+      ]
+    },
+    {
+      "entity_name": "房屋",
+      "desc": "可供人员居住的物理空间单元。是连接人员与行政区域的地理中介。",
+      "grain": "一套具体的、可供居住的房屋。",
+      "attributes": [
+        {
+          "name": "房屋标识",
+          "semantics": ""
+        }
+      ],
+      "primary_key": [
+        "房屋标识"
+      ]
+    },
+    {
+      "entity_name": "人员",
+      "desc": "被统计的个体，是人数统计的基本单元。",
+      "grain": "一个具体的人。",
+      "attributes": [
+        {
+          "name": "性别",
+          "semantics": "人员的性别分类（男/女）。"
+        },
+        {
+          "name": "人员标识",
+          "semantics": ""
+        }
+      ],
+      "primary_key": [
+        "人员标识"
+      ]
+    }
+  ],
+  "relations": [
+    {
+      "relation_name": "归属",
+      "desc": "描述一个房屋位于哪个行政区域内。建立了房屋与行政区域之间的地理从属关系。",
+      "grain": "一个具体的房屋实例与一个具体的行政区域实例之间的从属关系实例。",
+      "participants": [
+        {
+          "role": "被归属的房屋",
+          "entity": "房屋",
+          "anchor_attribute": [
+            "房屋标识"
+          ]
+        },
+        {
+          "role": "归属的行政区域",
+          "entity": "行政区域",
+          "anchor_attribute": [
+            "区域标识"
+          ]
+        }
+      ],
+      "link_condition": "",
+      "attributes": []
+    },
+    {
+      "relation_name": "居住",
+      "desc": "描述一个人员居住在哪个房屋中。建立了人员与房屋之间的居住关系。",
+      "grain": "一个具体的人员实例与一个具体的房屋实例之间的居住关系实例。",
+      "participants": [
+        {
+          "role": "居住者",
+          "entity": "人员",
+          "anchor_attribute": [
+            "人员标识"
+          ]
+        },
+        {
+          "role": "居住地",
+          "entity": "房屋",
+          "anchor_attribute": [
+            "房屋标识"
+          ]
+        }
+      ],
+      "link_condition": "",
+      "attributes": []
+    }
+  ],
+  "conditions": [
+    {
+      "condition_name": "目标区域限定",
+      "condition_type": "single_attribute",
+      "targets": [
+        "行政区域.区域名称"
+      ],
+      "description": "将人员统计范围限定在名称为“大桥街道”的行政区域内。"
+    }
+  ]
+}

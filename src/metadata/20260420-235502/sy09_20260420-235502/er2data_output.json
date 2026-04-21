@@ -1,0 +1,98 @@
+{
+  "房子": {
+    "question": "找出所有建造年份在2000年之前的房子，并给出它们的主键和建造年份。",
+    "schema_linking": {
+      "tables": [
+        "sy_community_link.ads_house_basic_info"
+      ],
+      "columns": [
+        "sy_community_link.ads_house_basic_info.house_id",
+        "sy_community_link.ads_house_basic_info.build_year"
+      ]
+    },
+    "result_sql": "SELECT \n    `house_id` AS `房子标识_surrogate_id`,\n    `build_year` AS `建造年份`\nFROM `sy_community_link`.`ads_house_basic_info`\nWHERE `build_year` < 2000",
+    "nl2sql_result": true
+  },
+  "地址层级": {
+    "question": "找出所有地址层级（即具有唯一标识的地址节点，如某条路、某个弄、某个门牌号），并给出每个地址层级的主键。",
+    "schema_linking": {
+      "tables": [
+        "sy_community_link.ads_address_hierarchy",
+        "sy_community_link.ads_house_basic_info"
+      ],
+      "columns": [
+        "sy_community_link.ads_address_hierarchy.id",
+        "sy_community_link.ads_address_hierarchy.name",
+        "sy_community_link.ads_address_hierarchy.level",
+        "sy_community_link.ads_house_basic_info.road",
+        "sy_community_link.ads_house_basic_info.nong",
+        "sy_community_link.ads_house_basic_info.house_number",
+        "sy_community_link.ads_house_basic_info.room_number"
+      ]
+    },
+    "result_sql": "SELECT \n    `id` AS `地址层级标识_surrogate_id`\nFROM `sy_community_link`.`ads_address_hierarchy`\nWHERE `delete_flag` = 0",
+    "nl2sql_result": true
+  },
+  "街道": {
+    "question": "找出名称为‘大桥街道’的街道，并给出该实体的主键和名称。",
+    "schema_linking": {
+      "tables": [
+        "sy_community_link.ads_address_hierarchy",
+        "sy_community_link.ads_house_basic_info",
+        "sy_community_link.sys_dept"
+      ],
+      "columns": [
+        "sy_community_link.ads_address_hierarchy.id",
+        "sy_community_link.ads_address_hierarchy.name",
+        "sy_community_link.ads_house_basic_info.street",
+        "sy_community_link.ads_house_basic_info.district",
+        "sy_community_link.ads_house_basic_info.province",
+        "sy_community_link.ads_house_basic_info.city",
+        "sy_community_link.sys_dept.dept_id",
+        "sy_community_link.sys_dept.dept_name"
+      ]
+    },
+    "result_sql": "SELECT \n    `dept_id` AS `街道标识_surrogate_id`,\n    `dept_name` AS `名称`\nFROM `sy_community_link`.`sys_dept`\nWHERE `dept_name` = '大桥街道'\n    AND `delete_flag` = 0\n    AND `status` = '0'",
+    "nl2sql_result": true
+  },
+  "属于": {
+    "question": "找出建造年份早于2000年的房子与其所属地址层级之间的归属关系，并给出用于识别这些房子和地址层级实例的主键。",
+    "schema_linking": {
+      "tables": [],
+      "columns": []
+    },
+    "result_sql": "",
+    "nl2sql_result": false
+  },
+  "隶属于": {
+    "question": "找出所有隶属于名称为“大桥街道”的上级街道的地址层级，并给出用于识别这些地址层级和街道的主键。",
+    "schema_linking": {
+      "tables": [
+        "sy_community_link.ads_address_hierarchy",
+        "sy_community_link.ads_house_basic_info",
+        "sy_community_link.sys_dept"
+      ],
+      "columns": [
+        "sy_community_link.ads_address_hierarchy.id",
+        "sy_community_link.ads_address_hierarchy.dept_id",
+        "sy_community_link.ads_address_hierarchy.name",
+        "sy_community_link.ads_address_hierarchy.level",
+        "sy_community_link.ads_address_hierarchy.ancestors",
+        "sy_community_link.ads_house_basic_info.street",
+        "sy_community_link.ads_house_basic_info.road",
+        "sy_community_link.ads_house_basic_info.nong",
+        "sy_community_link.ads_house_basic_info.house_number",
+        "sy_community_link.ads_house_basic_info.room_number",
+        "sy_community_link.ads_house_basic_info.district",
+        "sy_community_link.sys_dept.dept_id",
+        "sy_community_link.sys_dept.dept_name",
+        "sy_community_link.sys_dept.parent_id",
+        "sy_community_link.sys_dept.ancestors",
+        "sy_community_link.sys_dept.status",
+        "sy_community_link.sys_dept.delete_flag"
+      ]
+    },
+    "result_sql": "SELECT \n    a.`id` AS `地址层级标识_surrogate_id`,\n    street.`dept_id` AS `街道标识_surrogate_id`\nFROM `sy_community_link`.`sys_dept` street\nJOIN `sy_community_link`.`sys_dept` committee \n    ON committee.`parent_id` = street.`dept_id` \n    AND committee.`delete_flag` = 0 \n    AND committee.`status` = '0'\nJOIN `sy_community_link`.`ads_address_hierarchy` a \n    ON a.`dept_id` = committee.`dept_id` \n    AND a.`delete_flag` = 0\nWHERE street.`dept_name` = '大桥街道' \n    AND street.`delete_flag` = 0 \n    AND street.`status` = '0'",
+    "nl2sql_result": true
+  }
+}

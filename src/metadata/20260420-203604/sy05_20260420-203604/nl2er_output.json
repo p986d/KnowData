@@ -1,0 +1,71 @@
+{
+  "entities": [
+    {
+      "entity_name": "街道",
+      "desc": "代表一个具体的行政区域街道，是人员户籍的归属地之一。",
+      "grain": "一个实例代表一个具体的街道，例如“大桥街道”。",
+      "attributes": [
+        {
+          "name": "街道名称",
+          "semantics": "街道的名称，用于描述和筛选。"
+        },
+        {
+          "name": "街道标识",
+          "semantics": "用于唯一标识一个街道。"
+        }
+      ],
+      "primary_key": [
+        "街道标识"
+      ]
+    },
+    {
+      "entity_name": "人员",
+      "desc": "代表一个个体人员。",
+      "grain": "一个实例代表一个人。",
+      "attributes": [
+        {
+          "name": "人员标识",
+          "semantics": "用于唯一标识一个人员。"
+        }
+      ],
+      "primary_key": [
+        "人员标识"
+      ]
+    }
+  ],
+  "relations": [
+    {
+      "relation_name": "户籍关系",
+      "desc": "表示一个人员的户籍登记在某个街道。这是连接人员与街道的核心业务关系。",
+      "grain": "一个实例代表一个人在某街道拥有户籍这一事实。",
+      "participants": [
+        {
+          "role": "户籍持有人",
+          "entity": "人员",
+          "anchor_attribute": [
+            "人员标识"
+          ]
+        },
+        {
+          "role": "户籍所在地",
+          "entity": "街道",
+          "anchor_attribute": [
+            "街道标识"
+          ]
+        }
+      ],
+      "link_condition": "",
+      "attributes": []
+    }
+  ],
+  "conditions": [
+    {
+      "condition_name": "目标街道筛选",
+      "condition_type": "single_attribute",
+      "targets": [
+        "街道.街道名称"
+      ],
+      "description": "街道的名称必须为“大桥街道”。"
+    }
+  ]
+}

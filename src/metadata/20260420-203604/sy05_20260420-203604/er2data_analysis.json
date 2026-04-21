@@ -1,0 +1,59 @@
+{
+  "街道": {
+    "unit_name": "街道",
+    "target_semantics": "核心实体是‘街道实体’。需要返回该实体的唯一标识符和名称‘大桥街道’。",
+    "sql_semantics": "从部门表（sys_dept）中，查询部门名称（dept_name）为‘大桥街道’的记录，并返回其部门ID（dept_id）和部门名称。未对部门类型（dept_type）进行任何限定。",
+    "precision_check": {
+      "found_precisely": false,
+      "matched_points": "返回了名称为‘大桥街道’的实体及其标识符。",
+      "shifted_or_incorrect_points": "SQL 查询的对象是‘部门’（dept），而非明确限定的‘街道实体’。存在语义漂移风险，即返回的记录可能是一个同名但类型非街道的部门。"
+    },
+    "completeness_check": {
+      "found_completely": false,
+      "covered_points": "输出了标识符和名称字段。",
+      "missing_points": "缺少关键的类型过滤条件（例如 dept_type = ‘街道’），以确保返回的实体确实是目标所要求的‘街道’类型，而非仅仅是名称匹配的部门。"
+    },
+    "verdict": "mismatch",
+    "reason": "SQL 的实现未能‘找准’目标语义单元。它查询的是广义的‘部门’表，并通过名称匹配找到了记录，但未在数据模型层面加入任何条件来确认该部门就是‘街道’类型的实体。这导致了核心实体类型的语义漂移。因此，即使结果样本看起来正确，其实现逻辑存在根本性偏差，不能判定为匹配。",
+    "analysis_status": "ok",
+    "analysis_source": "llm"
+  },
+  "人员": {
+    "unit_name": "人员",
+    "target_semantics": "获取系统中记录的所有人员实体，并返回能唯一识别每个人员的标识符列表。",
+    "sql_semantics": "从多个业务表（人员基本信息、居住关系、户籍登记、联系信息、标签关系、房屋关系中的业主/户主/紧急联系人）中，提取未被逻辑删除的人员ID，合并去重后排序返回。其结果是“在任一指定业务表中出现过的人员”的ID集合。",
+    "precision_check": {
+      "found_precisely": true,
+      "matched_points": "SQL的核心目标是返回人员ID列表，与目标语义要求的人员标识符一致。通过合并多个核心人员相关表来构建人员集合，是逼近“所有人员”的合理逻辑。",
+      "shifted_or_incorrect_points": "无明显语义漂移或错误。"
+    },
+    "completeness_check": {
+      "found_completely": false,
+      "covered_points": "输出了人员标识符（person_id）；使用了schema linking中提示的所有相关表列进行查询；应用了统一的逻辑删除过滤。",
+      "missing_points": "实现依赖于‘人员信息分散于多个业务表’的假设。SQL未使用（或上下文中未提供）一个明确的、权威的‘人员主表’来确保100%覆盖所有人员。因此，无法从理论上完全排除遗漏未在任何这7个表中出现的人员记录的可能性。"
+    },
+    "verdict": "partial_match",
+    "reason": "SQL准确地理解了需要返回人员唯一标识，并通过合并多个关键业务表来最大范围地获取人员ID，逻辑上与目标语义一致。但是，其实现方式基于一个可能不完整的覆盖假设，无法严格保证‘所有人员’无一遗漏，因此在‘找全’上存在不足。",
+    "analysis_status": "ok",
+    "analysis_source": "llm"
+  },
+  "户籍关系": {
+    "unit_name": "户籍关系",
+    "target_semantics": "目标是找出所有户籍关系事实，其中关系的街道一方是名为“大桥街道”的实例，并返回构成这些关系的人员实例和街道实例的标识符（人员标识和街道标识）。",
+    "sql_semantics": "该SQL通过连接户籍表、房屋表和部门表，查找户籍所在地的房屋所属街道名称（部门名称）为“大桥街道”的所有人员，返回这些人员的ID以及该街道对应的部门ID。",
+    "precision_check": {
+      "found_precisely": true,
+      "matched_points": "1) 核心关系为“户籍关系”；2) 关系一端为“人员”，通过person_id标识；3) 关系另一端为特定名称的“街道”，通过dept_name='大桥街道'过滤；4) 输出字段为人员标识(person_id)和街道标识(dept_id)，与目标完全对应。",
+      "shifted_or_incorrect_points": ""
+    },
+    "completeness_check": {
+      "found_completely": true,
+      "covered_points": "1) 使用ads_household_registration表承载“户籍关系”；2) 通过person_id关联到“人员”；3) 通过house_id->street->dept_id链条关联到“街道”，并使用dept_name进行名称过滤；4) 正确输出了双方标识；5) 包含了必要的有效性过滤(delete_flag)。",
+      "missing_points": ""
+    },
+    "verdict": "exact_match",
+    "reason": "SQL实现准确捕捉了目标语义单元的核心：即基于“大桥街道”这一名称约束，查询人员-街道间的户籍关系。其查询逻辑（户籍->房屋->街道）合理构建了该关系，过滤条件和输出字段均与目标要求一致，且执行结果样本也印证了该逻辑的正确性。因此，该SQL既找准了语义，也找全了所有必要的实现成分。",
+    "analysis_status": "ok",
+    "analysis_source": "llm"
+  }
+}

@@ -1,0 +1,84 @@
+{
+  "人员": {
+    "question": "找出所有独立的、可标识的个人（人员），并给出用于识别每个人员的主键及其性别。",
+    "schema_linking": {
+      "tables": [
+        "sy_community_link.ads_person_basic_info",
+        "sy_community_link.ads_residence_relation",
+        "sy_community_link.sys_dict_data"
+      ],
+      "columns": [
+        "sy_community_link.ads_person_basic_info.person_id",
+        "sy_community_link.ads_person_basic_info.gender",
+        "sy_community_link.ads_person_basic_info.current_gender",
+        "sy_community_link.ads_residence_relation.person_id",
+        "sy_community_link.sys_dict_data.dict_type",
+        "sy_community_link.sys_dict_data.dict_value",
+        "sy_community_link.sys_dict_data.dict_label"
+      ]
+    },
+    "result_sql": "SELECT \n    `person_id` AS `person_surrogate_id`,\n    `current_gender` AS `gender`\nFROM `sy_community_link`.`ads_person_basic_info`\nWHERE `delete_flag` = '0'",
+    "nl2sql_result": true
+  },
+  "房屋": {
+    "question": "找出所有“一处可供人员居住的房屋单元”实体，并给出用于识别每个房屋实例的主键，以及房屋所属的行政区域编码。",
+    "schema_linking": {
+      "tables": [
+        "sy_community_link.ads_address_hierarchy",
+        "sy_community_link.ads_house_basic_info",
+        "sy_community_link.ads_residence_relation",
+        "sy_community_link.sys_dept"
+      ],
+      "columns": [
+        "sy_community_link.ads_address_hierarchy.id",
+        "sy_community_link.ads_address_hierarchy.dept_id",
+        "sy_community_link.ads_address_hierarchy.name",
+        "sy_community_link.ads_address_hierarchy.level",
+        "sy_community_link.ads_house_basic_info.house_id",
+        "sy_community_link.ads_house_basic_info.district",
+        "sy_community_link.ads_house_basic_info.house_type",
+        "sy_community_link.ads_house_basic_info.usage_type",
+        "sy_community_link.ads_house_basic_info.province",
+        "sy_community_link.ads_house_basic_info.city",
+        "sy_community_link.ads_house_basic_info.street",
+        "sy_community_link.ads_house_basic_info.neighborhood_committee",
+        "sy_community_link.ads_house_basic_info.residential_area",
+        "sy_community_link.ads_residence_relation.house_id",
+        "sy_community_link.ads_residence_relation.dept_id",
+        "sy_community_link.sys_dept.dept_id",
+        "sy_community_link.sys_dept.area_code",
+        "sy_community_link.sys_dept.dept_code"
+      ]
+    },
+    "result_sql": "SELECT \n    `house_id` AS `house_surrogate_id`,\n    `dept_id` AS `dept_id`\nFROM `sy_community_link`.`ads_house_basic_info`\nWHERE `house_type` = 1\n    AND `is_virtual` = 0\n    AND `valid_status` = 1\n    AND `delete_flag` = 0;",
+    "nl2sql_result": true
+  },
+  "居住于": {
+    "question": "找出人员与房屋之间的居住关联（即一个人员与一个房屋在某段时间内的居住关联），并给出用于识别这些人员实例和房屋实例的相关属性：人员的主键和房屋的主键。",
+    "schema_linking": {
+      "tables": [
+        "sy_community_link.ads_house_basic_info",
+        "sy_community_link.ads_house_relation_info",
+        "sy_community_link.ads_person_basic_info",
+        "sy_community_link.ads_residence_relation"
+      ],
+      "columns": [
+        "sy_community_link.ads_house_basic_info.house_id",
+        "sy_community_link.ads_house_relation_info.house_id",
+        "sy_community_link.ads_house_relation_info.owner_id",
+        "sy_community_link.ads_house_relation_info.head_id",
+        "sy_community_link.ads_house_relation_info.emergency_id",
+        "sy_community_link.ads_person_basic_info.person_id",
+        "sy_community_link.ads_residence_relation.house_id",
+        "sy_community_link.ads_residence_relation.person_id",
+        "sy_community_link.ads_residence_relation.live_status",
+        "sy_community_link.ads_residence_relation.is_primary_residence",
+        "sy_community_link.ads_residence_relation.relation_change_date",
+        "sy_community_link.ads_residence_relation.valid_status",
+        "sy_community_link.ads_residence_relation.dept_id"
+      ]
+    },
+    "result_sql": "SELECT \n    rr.`person_id` AS `person_surrogate_id`,\n    rr.`house_id` AS `house_surrogate_id`,\n    rr.`live_status` AS `live_status`,\n    rr.`relation_change_date` AS `relation_change_date`,\n    rr.`is_primary_residence` AS `is_primary_residence`,\n    rr.`valid_status` AS `valid_status`,\n    rr.`data_source` AS `data_source`,\n    rr.`create_time` AS `create_time`,\n    rr.`update_time` AS `update_time`\nFROM `sy_community_link`.`ads_residence_relation` rr\nINNER JOIN `sy_community_link`.`ads_person_basic_info` p \n    ON rr.`person_id` = p.`person_id` AND p.`delete_flag` = '0'\nINNER JOIN `sy_community_link`.`ads_house_basic_info` h \n    ON rr.`house_id` = h.`house_id` \n    AND h.`house_type` = 1 \n    AND h.`is_virtual` = 0 \n    AND h.`valid_status` = 1 \n    AND h.`delete_flag` = 0\nWHERE rr.`delete_flag` = '0'",
+    "nl2sql_result": true
+  }
+}

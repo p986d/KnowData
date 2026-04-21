@@ -1,0 +1,21 @@
+{
+  "人员": {
+    "unit_name": "人员",
+    "target_semantics": "从个人数据中，筛选出年龄大于80岁的记录，返回每条记录的唯一主键标识和对应的出生日期。",
+    "sql_semantics": "从`ads_person_basic_info`表中，筛选出未删除且出生日期早于（当前日期-80年）的记录，返回`person_id`和经过COALESCE处理的出生日期。",
+    "precision_check": {
+      "found_precisely": true,
+      "matched_points": "核心实体（个人）、核心筛选条件（年龄>80）、返回字段（主键、出生日期）均与目标语义一致。",
+      "shifted_or_incorrect_points": ""
+    },
+    "completeness_check": {
+      "found_completely": true,
+      "covered_points": "主键列、出生日期列、年龄过滤条件均已正确使用并体现在SQL中。",
+      "missing_points": ""
+    },
+    "verdict": "exact_match",
+    "reason": "SQL准确理解了查询意图，正确实现了年龄计算和筛选逻辑，并返回了所需的主键和出生日期字段。执行结果样本也符合预期。目标语义、SQL实际语义与结果证据三者一致。",
+    "analysis_status": "ok",
+    "analysis_source": "llm"
+  }
+}

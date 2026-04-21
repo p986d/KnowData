@@ -1,0 +1,184 @@
+{
+  "街道": {
+    "question": "找出名称为“大桥街道”的街道实体，并给出它的主键和名称。",
+    "schema_linking": {
+      "tables": [
+        "sy_community_link.ads_address_hierarchy",
+        "sy_community_link.ads_house_basic_info",
+        "sy_community_link.sys_dept"
+      ],
+      "columns": [
+        "sy_community_link.ads_address_hierarchy.id",
+        "sy_community_link.ads_address_hierarchy.name",
+        "sy_community_link.ads_house_basic_info.street",
+        "sy_community_link.sys_dept.dept_id",
+        "sy_community_link.sys_dept.dept_name"
+      ]
+    },
+    "result_sql": "SELECT \n    dept_id AS 街道_surrogate_id,\n    dept_name AS 名称\nFROM `sy_community_link`.`sys_dept`\nWHERE dept_name = '大桥街道'\n    AND delete_flag = 0",
+    "nl2sql_result": true
+  },
+  "居委": {
+    "question": "找出所有居委实例，并给出每个居委的主键和名称。",
+    "schema_linking": {
+      "tables": [
+        "sy_community_link.ads_house_basic_info",
+        "sy_community_link.sys_dept"
+      ],
+      "columns": [
+        "sy_community_link.ads_house_basic_info.dept_id",
+        "sy_community_link.ads_house_basic_info.neighborhood_committee",
+        "sy_community_link.sys_dept.dept_id",
+        "sy_community_link.sys_dept.dept_name",
+        "sy_community_link.sys_dept.dept_type"
+      ]
+    },
+    "result_sql": "SELECT DISTINCT \n    d.`dept_id` AS `居委_surrogate_id`,\n    d.`dept_name` AS `名称`\nFROM `sy_community_link`.`ads_house_basic_info` h\nINNER JOIN `sy_community_link`.`sys_dept` d \n    ON h.`neighborhood_committee` = d.`dept_id`\nWHERE h.`delete_flag` = 0\n    AND d.`delete_flag` = 0\n    AND h.`neighborhood_committee` IS NOT NULL\n    AND h.`neighborhood_committee` != ''\nORDER BY d.`dept_id`;",
+    "nl2sql_result": true
+  },
+  "人员": {
+    "question": "找出所有被判定为“老人”的人员，并给出他们的出生日期以及该实体的主键。",
+    "schema_linking": {
+      "tables": [
+        "sy_community_link.ads_person_basic_info",
+        "sy_community_link.ads_person_label_relation",
+        "sy_community_link.ads_residence_relation"
+      ],
+      "columns": [
+        "sy_community_link.ads_person_basic_info.person_id",
+        "sy_community_link.ads_person_basic_info.birth_date",
+        "sy_community_link.ads_person_basic_info.current_birth_date",
+        "sy_community_link.ads_person_basic_info.name",
+        "sy_community_link.ads_person_basic_info.current_name",
+        "sy_community_link.ads_person_label_relation.person_id",
+        "sy_community_link.ads_person_label_relation.label_id",
+        "sy_community_link.ads_person_label_relation.effectivetime",
+        "sy_community_link.ads_person_label_relation.delete_flag",
+        "sy_community_link.ads_residence_relation.person_id"
+      ]
+    },
+    "result_sql": "SELECT\n    `person_id` AS `人员_surrogate_id`,\n    `birth_date` AS `出生日期`,\n    IF(TIMESTAMPDIFF(YEAR, `birth_date`, CURDATE()) >= 60, 1, 0) AS `是否老人`\nFROM `sy_community_link`.`ads_person_basic_info`\nWHERE IF(TIMESTAMPDIFF(YEAR, `birth_date`, CURDATE()) >= 60, 1, 0) = 1",
+    "nl2sql_result": true
+  },
+  "房屋": {
+    "question": "找出所有被判定为‘独居’的房屋，并给出该实体的主键以及‘是否独居’属性。",
+    "schema_linking": {
+      "tables": [
+        "sy_community_link.ads_house_basic_info",
+        "sy_community_link.ads_house_label_relation",
+        "sy_community_link.ads_household_registration",
+        "sy_community_link.ads_label_info",
+        "sy_community_link.ads_person_relation",
+        "sy_community_link.ads_residence_relation"
+      ],
+      "columns": [
+        "sy_community_link.ads_house_basic_info.house_id",
+        "sy_community_link.ads_house_label_relation.house_id",
+        "sy_community_link.ads_house_label_relation.label_id",
+        "sy_community_link.ads_household_registration.house_id",
+        "sy_community_link.ads_household_registration.person_id",
+        "sy_community_link.ads_household_registration.delete_flag",
+        "sy_community_link.ads_label_info.label_id",
+        "sy_community_link.ads_label_info.label_name",
+        "sy_community_link.ads_label_info.label_code",
+        "sy_community_link.ads_label_info.category_id",
+        "sy_community_link.ads_label_info.match_type",
+        "sy_community_link.ads_label_info.rule_condition",
+        "sy_community_link.ads_label_info.valid_status",
+        "sy_community_link.ads_person_relation.person_id",
+        "sy_community_link.ads_person_relation.relative_id",
+        "sy_community_link.ads_person_relation.relation_type",
+        "sy_community_link.ads_residence_relation.house_id",
+        "sy_community_link.ads_residence_relation.person_id",
+        "sy_community_link.ads_residence_relation.live_status",
+        "sy_community_link.ads_residence_relation.valid_status",
+        "sy_community_link.ads_residence_relation.delete_flag"
+      ]
+    },
+    "result_sql": "SELECT \n    h.`house_id` AS `房屋_surrogate_id`,\n    '是' AS `是否独居`\nFROM `sy_community_link`.`ads_house_basic_info` h\nINNER JOIN `sy_community_link`.`ads_residence_relation` rr \n    ON h.`house_id` = rr.`house_id` \n    AND rr.`delete_flag` = 0\n    AND rr.`valid_status` = '1'\nWHERE h.`delete_flag` = 0\n    AND h.`valid_status` = 1\nGROUP BY h.`house_id`\nHAVING COUNT(DISTINCT rr.`person_id`) = 1",
+    "nl2sql_result": true
+  },
+  "行政隶属": {
+    "question": "找出名称为“大桥街道”的街道与各居委之间的行政隶属关系，并给出用于识别街道和居委的主键，以及该关系的关联标识。",
+    "schema_linking": {
+      "tables": [
+        "sy_community_link.ads_house_basic_info",
+        "sy_community_link.sys_dept"
+      ],
+      "columns": [
+        "sy_community_link.ads_house_basic_info.street",
+        "sy_community_link.ads_house_basic_info.neighborhood_committee",
+        "sy_community_link.ads_house_basic_info.district",
+        "sy_community_link.sys_dept.dept_id",
+        "sy_community_link.sys_dept.parent_id",
+        "sy_community_link.sys_dept.dept_name",
+        "sy_community_link.sys_dept.ancestors"
+      ]
+    },
+    "result_sql": "SELECT \n    street.dept_id AS 街道_surrogate_id,\n    committee.dept_id AS 居委_surrogate_id,\n    committee.parent_id AS 关联标识\nFROM `sy_community_link`.`sys_dept` AS street\nINNER JOIN `sy_community_link`.`sys_dept` AS committee \n    ON street.dept_id = committee.parent_id\nWHERE street.dept_name = '大桥街道'\n    AND street.delete_flag = 0\n    AND street.status = '0'\n    AND committee.delete_flag = 0\n    AND committee.status = '0'\nORDER BY committee.dept_id;",
+    "nl2sql_result": true
+  },
+  "居住于": {
+    "question": "找出所有老人与独居房屋之间的居住关系，并给出用于识别居住者（人员）和居住地（房屋）的主键，以及该居住关系的关联标识。",
+    "schema_linking": {
+      "tables": [
+        "sy_community_link.ads_house_basic_info",
+        "sy_community_link.ads_house_relation_info",
+        "sy_community_link.ads_person_basic_info",
+        "sy_community_link.ads_residence_relation"
+      ],
+      "columns": [
+        "sy_community_link.ads_house_basic_info.house_id",
+        "sy_community_link.ads_house_basic_info.valid_status",
+        "sy_community_link.ads_house_basic_info.delete_flag",
+        "sy_community_link.ads_house_basic_info.usage_type",
+        "sy_community_link.ads_house_relation_info.house_id",
+        "sy_community_link.ads_house_relation_info.owner_id",
+        "sy_community_link.ads_house_relation_info.head_id",
+        "sy_community_link.ads_house_relation_info.emergency_id",
+        "sy_community_link.ads_house_relation_info.data_source",
+        "sy_community_link.ads_person_basic_info.person_id",
+        "sy_community_link.ads_person_basic_info.birth_date",
+        "sy_community_link.ads_residence_relation.house_id",
+        "sy_community_link.ads_residence_relation.person_id",
+        "sy_community_link.ads_residence_relation.live_status",
+        "sy_community_link.ads_residence_relation.is_primary_residence",
+        "sy_community_link.ads_residence_relation.valid_status",
+        "sy_community_link.ads_residence_relation.delete_flag"
+      ]
+    },
+    "result_sql": "-- 老人集合\nWITH 老人 AS (\n    SELECT \n        `person_id` AS `人员_surrogate_id`,\n        `birth_date` AS `出生日期`\n    FROM `sy_community_link`.`ads_person_basic_info`\n    WHERE `delete_flag` = 0\n      AND TIMESTAMPDIFF(YEAR, `birth_date`, CURDATE()) >= 60\n),\n-- 独居房屋集合\n独居房屋 AS (\n    SELECT \n        h.`house_id` AS `房屋_surrogate_id`\n    FROM `sy_community_link`.`ads_house_basic_info` h\n    INNER JOIN `sy_community_link`.`ads_residence_relation` rr \n        ON h.`house_id` = rr.`house_id` \n        AND rr.`delete_flag` = 0\n        AND rr.`valid_status` = '1'\n    WHERE h.`delete_flag` = 0\n        AND h.`valid_status` = 1\n    GROUP BY h.`house_id`\n    HAVING COUNT(DISTINCT rr.`person_id`) = 1\n)\n-- 居住关系连接\nSELECT \n    rr.`person_id` AS `人员_surrogate_id`,\n    rr.`house_id` AS `房屋_surrogate_id`,\n    CONCAT(rr.`house_id`, '|', rr.`person_id`) AS `居住关系_关联标识`\nFROM `sy_community_link`.`ads_residence_relation` rr\nINNER JOIN 老人 p ON rr.`person_id` = p.`人员_surrogate_id`\nINNER JOIN 独居房屋 h ON rr.`house_id` = h.`房屋_surrogate_id`\nWHERE rr.`delete_flag` = 0\n  AND rr.`valid_status` = '1';",
+    "nl2sql_result": true
+  },
+  "位于": {
+    "question": "找出所有独居房屋与其所属居委之间的“位于”关系，并给出用于识别房屋和居委实例的主键，以及该关系的关联标识。",
+    "schema_linking": {
+      "tables": [
+        "sy_community_link.ads_address_hierarchy",
+        "sy_community_link.ads_house_basic_info",
+        "sy_community_link.ads_residence_relation",
+        "sy_community_link.sys_dept"
+      ],
+      "columns": [
+        "sy_community_link.ads_address_hierarchy.dept_id",
+        "sy_community_link.ads_address_hierarchy.level",
+        "sy_community_link.ads_address_hierarchy.id",
+        "sy_community_link.ads_address_hierarchy.parent_id",
+        "sy_community_link.ads_address_hierarchy.ancestors",
+        "sy_community_link.ads_address_hierarchy.name",
+        "sy_community_link.ads_house_basic_info.house_id",
+        "sy_community_link.ads_house_basic_info.neighborhood_committee",
+        "sy_community_link.ads_residence_relation.house_id",
+        "sy_community_link.ads_residence_relation.dept_id",
+        "sy_community_link.ads_residence_relation.is_primary_residence",
+        "sy_community_link.ads_residence_relation.live_status",
+        "sy_community_link.ads_residence_relation.valid_status",
+        "sy_community_link.ads_residence_relation.delete_flag",
+        "sy_community_link.sys_dept.dept_id",
+        "sy_community_link.sys_dept.dept_name"
+      ]
+    },
+    "result_sql": "SELECT DISTINCT\n    h.`house_id` AS `房屋_surrogate_id`,\n    h.`neighborhood_committee` AS `居委_surrogate_id`,\n    h.`house_id` AS `位于_关系_id`\nFROM `sy_community_link`.`ads_house_basic_info` h\nINNER JOIN `sy_community_link`.`ads_residence_relation` rr \n    ON h.`house_id` = rr.`house_id` \n    AND rr.`delete_flag` = 0\n    AND rr.`valid_status` = '1'\nINNER JOIN `sy_community_link`.`sys_dept` d \n    ON h.`neighborhood_committee` = d.`dept_id`\n    AND d.`delete_flag` = 0\nWHERE h.`delete_flag` = 0\n    AND h.`valid_status` = 1\n    AND h.`neighborhood_committee` IS NOT NULL\n    AND h.`neighborhood_committee` != ''\nGROUP BY h.`house_id`, h.`neighborhood_committee`\nHAVING COUNT(DISTINCT rr.`person_id`) = 1",
+    "nl2sql_result": true
+  }
+}

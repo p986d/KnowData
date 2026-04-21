@@ -1,0 +1,33 @@
+{
+  "entities": [
+    {
+      "entity_name": "人员",
+      "desc": "被统计的个体对象。在本问题中，指代需要进行民族属性识别和计数的人。",
+      "grain": "一个独立的、可被唯一标识的个人。",
+      "attributes": [
+        {
+          "name": "人员标识",
+          "semantics": "用于唯一标识一个人员实例的标识符。"
+        },
+        {
+          "name": "民族",
+          "semantics": "描述人员所属的民族。该属性的具体取值用于判断人员是否属于“少数民族”。"
+        }
+      ],
+      "primary_key": [
+        "人员标识"
+      ]
+    }
+  ],
+  "relations": [],
+  "conditions": [
+    {
+      "condition_name": "人员民族为少数民族",
+      "condition_type": "single_attribute",
+      "targets": [
+        "人员.民族"
+      ],
+      "description": "限定人员的民族属性取值需满足“少数民族”的定义。该定义的具体规则（如特定民族列表或非汉族）未在问题中明确，是抽象的语义约束。"
+    }
+  ]
+}

@@ -1,0 +1,75 @@
+{
+  "entities": [
+    {
+      "entity_name": "人员",
+      "desc": "社区内的居民或常住人口个体。",
+      "grain": "一个具体的人。",
+      "attributes": [
+        {
+          "name": "person_surrogate_id",
+          "semantics": ""
+        }
+      ],
+      "primary_key": [
+        "person_surrogate_id"
+      ]
+    },
+    {
+      "entity_name": "民族",
+      "desc": "用于标识人员所属民族类别的独立对象，如汉族、回族等。",
+      "grain": "一个具体的民族类别。",
+      "attributes": [
+        {
+          "name": "name",
+          "semantics": "民族类别的名称，如‘汉族’、‘回族’。"
+        },
+        {
+          "name": "code",
+          "semantics": "民族类别的编码，用于关联人员信息。"
+        },
+        {
+          "name": "ethnic_group_surrogate_id",
+          "semantics": ""
+        }
+      ],
+      "primary_key": [
+        "ethnic_group_surrogate_id"
+      ]
+    }
+  ],
+  "relations": [
+    {
+      "relation_name": "属于民族",
+      "desc": "描述一个具体人员归属于某个特定民族类别的关系。",
+      "grain": "一次人员与民族类别之间的归属认定。",
+      "participants": [
+        {
+          "role": "被归类者",
+          "entity": "人员",
+          "anchor_attribute": [
+            "person_surrogate_id"
+          ]
+        },
+        {
+          "role": "类别",
+          "entity": "民族",
+          "anchor_attribute": [
+            "ethnic_group_surrogate_id"
+          ]
+        }
+      ],
+      "link_condition": "",
+      "attributes": []
+    }
+  ],
+  "conditions": [
+    {
+      "condition_name": "限定为少数民族",
+      "condition_type": "single_attribute",
+      "targets": [
+        "民族.name"
+      ],
+      "description": "民族名称不为“汉族”。"
+    }
+  ]
+}

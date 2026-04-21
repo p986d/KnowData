@@ -1,0 +1,81 @@
+{
+  "entities": [
+    {
+      "entity_name": "房屋",
+      "desc": "可供人员居住的物理空间单元，具有唯一的地址标识。",
+      "grain": "一个具体的、具有唯一地址标识的居住单元（如一套房、一个房间）。",
+      "attributes": [
+        {
+          "name": "房屋标识符",
+          "semantics": "用于唯一标识一个房屋实例。"
+        },
+        {
+          "name": "路名",
+          "semantics": "房屋所在道路的名称。"
+        },
+        {
+          "name": "弄名",
+          "semantics": "房屋所在弄堂的名称。"
+        },
+        {
+          "name": "门牌号",
+          "semantics": "房屋的门牌号码。"
+        }
+      ],
+      "primary_key": [
+        "房屋标识符"
+      ]
+    },
+    {
+      "entity_name": "人员",
+      "desc": "独立的个体。",
+      "grain": "一个具体的人。",
+      "attributes": [
+        {
+          "name": "人员标识符",
+          "semantics": "用于唯一标识一个人员实例。"
+        }
+      ],
+      "primary_key": [
+        "人员标识符"
+      ]
+    }
+  ],
+  "relations": [
+    {
+      "relation_name": "居住关系",
+      "desc": "表示一个人员居住于某个房屋的事实。根据数据库提示，这是查询‘常住人口’的基础。",
+      "grain": "一个特定人员在特定房屋的居住状态（一个事实实例）。",
+      "participants": [
+        {
+          "role": "居住者",
+          "entity": "人员",
+          "anchor_attribute": [
+            "人员标识符"
+          ]
+        },
+        {
+          "role": "居住地",
+          "entity": "房屋",
+          "anchor_attribute": [
+            "房屋标识符"
+          ]
+        }
+      ],
+      "link_condition": "",
+      "attributes": []
+    }
+  ],
+  "conditions": [
+    {
+      "condition_name": "目标地址限定",
+      "condition_type": "inter_attribute",
+      "targets": [
+        "房屋.路名",
+        "房屋.弄名",
+        "房屋.门牌号"
+      ],
+      "description": "房屋的地址必须同时满足路名为‘谢路路’、弄名为‘1弄’、门牌号为‘1号’。"
+    }
+  ]
+}

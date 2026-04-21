@@ -1,0 +1,59 @@
+{
+  "人员": {
+    "unit_name": "人员",
+    "target_semantics": "查询目标是获取系统中所有被任意‘退役军人’相关身份标签所标记的人员，并返回每个人的唯一ID、其所对应的具体退役军人身份标签ID，以及其居住的区域ID。",
+    "sql_semantics": "该SQL首先通过模糊匹配在标签表中找到一个‘退役军人’相关标签（使用LIMIT 1），然后找出所有被此特定标签标记的人员，关联他们的主要居住区域ID，并返回人员ID、该固定标签ID和居住区域ID。",
+    "precision_check": {
+      "found_precisely": false,
+      "matched_points": "结果样本的格式（人员ID、标签ID、区域ID）与目标一致。SQL确实在查找具有某种退役军人身份标签的人员。",
+      "shifted_or_incorrect_points": "核心语义发生漂移。SQL将‘所有退役军人身份’偷换概念为‘某一个退役军人标签’。使用了`LIMIT 1`，导致结果只代表某一类退役军人，而非全部。"
+    },
+    "completeness_check": {
+      "found_completely": false,
+      "covered_points": "实现了通过人员-标签关系表关联人员，并通过居住关系表获取区域ID的基本框架。",
+      "missing_points": "1. 关键缺陷：子查询使用`LIMIT 1`，导致无法覆盖所有可能的‘退役军人’身份标签，严重缺失数据。2. 标签识别逻辑可能不完整：仅依赖名称和编码的模糊匹配，未考虑可能存在的分类ID(`category_id`)过滤，可能导致标签识别不准或遗漏。"
+    },
+    "verdict": "mismatch",
+    "reason": "SQL未能‘找准’目标语义。其核心逻辑（使用`LIMIT 1`选取单个标签）与‘找出所有具有退役军人身份的人员’中的‘所有’要求直接冲突，造成了根本性的语义偏差。因此，即使结果样本格式正确，该SQL也无法正确实现给定的语义单元。",
+    "analysis_status": "ok",
+    "analysis_source": "llm"
+  },
+  "行政区域": {
+    "unit_name": "行政区域",
+    "target_semantics": "查询行政区域实体，要求同时满足名称('大桥街道')和层级('街道')两个条件，并返回其标识、名称和层级属性。",
+    "sql_semantics": "查询 sys_dept 表中名称为‘大桥街道’且业务状态正常的记录，返回其ID和名称，并硬编码‘区域层级’字段为‘街道’。该SQL未将‘层级’作为查询条件或从数据中获取。",
+    "precision_check": {
+      "found_precisely": false,
+      "matched_points": "正确使用了 dept_name 进行名称过滤，并正确输出了 dept_id 和 dept_name。",
+      "shifted_or_incorrect_points": "核心语义发生偏移。目标要求‘层级’作为查询条件，但SQL将其处理为一个固定的输出值，未从数据中验证或过滤。这意味着可能返回层级非‘街道’但名称相同的记录，并错误标记。"
+    },
+    "completeness_check": {
+      "found_completely": false,
+      "covered_points": "覆盖了名称过滤和标识、名称的输出。",
+      "missing_points": "完全缺失对‘层级’属性（对应 dept_type 列）的使用：1) WHERE 子句中缺少 `dept_type = '街道'` 过滤条件；2) SELECT 子句中未输出 `dept_type` 列的值，而是用硬编码替代。"
+    },
+    "verdict": "mismatch",
+    "reason": "SQL 的实现逻辑未准确表达目标语义单元的核心要求。目标语义要求‘层级’作为必须满足的查询条件之一，而 SQL 仅将其作为一个硬编码的输出值，未对数据中的层级属性进行任何验证或过滤，导致语义发生根本性偏移。同时，实现也缺少对层级属性列 (dept_type) 的必要使用。",
+    "analysis_status": "ok",
+    "analysis_source": "llm"
+  },
+  "居住于": {
+    "unit_name": "居住于",
+    "target_semantics": "返回满足以下条件的关系实例：1) 人员实体具有‘退役军人’身份；2) 行政区域实体名称为‘大桥街道’且层级为‘街道’；3) 两者之间存在‘居住于’关系。输出属性为人员ID和行政区域ID。",
+    "sql_semantics": "找出标签为‘退役军人’的人员，其主居住地所属的上级街道部门名为‘大桥街道’，返回人员ID和该街道的部门ID。SQL未对行政区域的‘层级’属性进行过滤。",
+    "precision_check": {
+      "found_precisely": false,
+      "matched_points": "准确识别了‘退役军人’人员；通过居住关系表和部门层级关联，逻辑上表达了人员与街道的居住关系；准确筛选了部门名称为‘大桥街道’。",
+      "shifted_or_incorrect_points": "对‘行政区域’实体的识别缺失了‘层级必须为街道’这一关键约束。若存在同名非街道部门，会导致结果包含错误实体，造成语义漂移。"
+    },
+    "completeness_check": {
+      "found_completely": false,
+      "covered_points": "人员身份过滤、居住关系关联、行政区域名称过滤、双方ID输出均已实现。",
+      "missing_points": "行政区域实体的‘层级’过滤条件 (`dept_type`) 未在SQL中落实。"
+    },
+    "verdict": "mismatch",
+    "reason": "SQL 实现未包含目标语义中明确要求的行政区域‘层级必须为‘街道’’这一约束条件，导致对‘行政区域’实体的识别可能不准确（找准=false）。因此，即使其他部分正确，整体判定为 mismatch。",
+    "analysis_status": "ok",
+    "analysis_source": "llm"
+  }
+}

@@ -1,0 +1,59 @@
+{
+  "居住关系": {
+    "unit_name": "居住关系",
+    "target_semantics": "描述一个人员居住在一个房屋中的事实关联。该关系本身可能包含用于判断“常住”状态的信息。 Relevant conditions: 用于统计的居住关系必须被判定为“常住”。该条件定义了本问题中有效的“居住关系”集合，并进而定义了有效的“人员”集合。",
+    "sql_semantics": "No SQL was produced for this unit, so there is no SQL semantics to evaluate.",
+    "precision_check": {
+      "found_precisely": false,
+      "matched_points": "",
+      "shifted_or_incorrect_points": "NL2SQL did not produce SQL."
+    },
+    "completeness_check": {
+      "found_completely": false,
+      "covered_points": "",
+      "missing_points": "NL2SQL did not produce SQL."
+    },
+    "verdict": "mismatch",
+    "reason": "NL2SQL did not produce SQL.",
+    "analysis_status": "placeholder",
+    "analysis_source": "deterministic_fallback"
+  },
+  "人员": {
+    "unit_name": "人员",
+    "target_semantics": "从人员主数据实体表中，获取所有未被删除的人员实例的唯一标识符（person_id）。",
+    "sql_semantics": "从多个业务关联表（人员基础信息、联系方式、标签关系、居住关系、房屋关系）中，获取所有未被逻辑删除的记录里，与人员相关的ID字段（person_id, owner_id, head_id, emergency_id）的并集。",
+    "precision_check": {
+      "found_precisely": false,
+      "matched_points": "结果列名为‘人员_id’，且值为ID格式，表面上与目标输出一致。",
+      "shifted_or_incorrect_points": "1. 核心语义发生漂移：从‘获取所有人员ID’变为‘获取多个业务表中出现的人员相关ID’。2. 实现方式错误：未从人员主实体出发，而是从关联表反推，可能导致遗漏（未出现在这些关联表中的人员）和污染（关联表中的ID未经验证，可能无效或非人员）。"
+    },
+    "completeness_check": {
+      "found_completely": false,
+      "covered_points": "查询了包含人员ID的多个相关表，并进行了去重。",
+      "missing_points": "1. 缺少关键连接：未将房屋关系表中的 owner_id, head_id, emergency_id 与人员主表进行 JOIN 验证，无法保证这些ID对应有效的人员实例。2. 缺少基准表驱动：逻辑不是‘先找所有人，再关联其他信息’，而是‘从各处收集ID’，这本身是错误的方法，导致覆盖性定义错误。"
+    },
+    "verdict": "mismatch",
+    "reason": "SQL 实现的语义与目标语义存在根本性偏差。目标要求查询‘人员’这一核心实体的所有实例，而SQL是查询多个业务关联表中出现的‘人员相关ID’。这导致方法错误（可能遗漏人员、可能引入无效ID），且SQL中缺少关键的外键关联验证（JOIN）。因此，既未找准，也未找全。",
+    "analysis_status": "ok",
+    "analysis_source": "llm"
+  },
+  "房屋": {
+    "unit_name": "房屋",
+    "target_semantics": "目标是获取同时满足‘可供居住’和‘独立房屋单元’两个条件的房屋的唯一标识符列表。",
+    "sql_semantics": "从房屋基础信息表中，筛选出类型为1、有效、非虚拟且未删除的房屋ID。",
+    "precision_check": {
+      "found_precisely": false,
+      "matched_points": "返回了房屋ID列表。",
+      "shifted_or_incorrect_points": "用‘house_type=1’、‘valid_status=1’、‘is_virtual=0’等基础状态过滤，替代了目标语义中的‘可供居住’和‘独立房屋单元’这两个核心条件，存在明显的语义漂移。"
+    },
+    "completeness_check": {
+      "found_completely": false,
+      "covered_points": "输出了房屋ID。",
+      "missing_points": "完全缺失对‘可供居住’这一关键属性的判断逻辑（如居住状态、使用类型等）。对于‘独立房屋单元’的定义也仅依赖‘house_type=1’，其准确性存疑。"
+    },
+    "verdict": "mismatch",
+    "reason": "SQL未能找准目标语义单元。它返回的房屋列表是基于一套与‘可供居住’不完全相关的通用状态规则（有效、非虚拟）和一种未经验证的房屋类型筛选出来的，而非真正基于‘可供居住’和‘独立房屋单元’这两个目标条件。",
+    "analysis_status": "ok",
+    "analysis_source": "llm"
+  }
+}

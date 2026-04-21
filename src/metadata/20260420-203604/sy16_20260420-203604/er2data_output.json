@@ -1,0 +1,17 @@
+{
+  "人员": {
+    "question": "找出所有年龄大于80岁的个人，并给出用于识别每个人的主键及其出生日期。",
+    "schema_linking": {
+      "tables": [
+        "sy_community_link.ads_person_basic_info"
+      ],
+      "columns": [
+        "sy_community_link.ads_person_basic_info.person_id",
+        "sy_community_link.ads_person_basic_info.birth_date",
+        "sy_community_link.ads_person_basic_info.current_birth_date"
+      ]
+    },
+    "result_sql": "SELECT \n    `person_id` AS `人员_surrogate_id`,\n    COALESCE(`current_birth_date`, `birth_date`) AS `出生日期`\nFROM `sy_community_link`.`ads_person_basic_info`\nWHERE \n    COALESCE(`current_birth_date`, `birth_date`) < DATE_SUB(CURDATE(), INTERVAL 80 YEAR)\n    AND `delete_flag` = 0",
+    "nl2sql_result": true
+  }
+}

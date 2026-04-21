@@ -1,0 +1,8 @@
+{
+  "question_id": "sy11",
+  "user_intent": "大桥街道周家牌居委、银河苑居委、临青居委的独居老人数量分别是多少？",
+  "db_id": "sy_community_link",
+  "db_hint": "居委、街道、区：居委、街道、区的名称存于dept_name列，id存于dept_id列。人和房屋的信息只存在于居委级别下。因此查找街道或区级别信息时，必须用house表中相应的street或district关联dept_id；\n年龄：年龄搜索需要根据当前日期与birth_date列计算。年龄排序时精确到日期，需要对birth_date列排序\n民族：民族的名称需要根据民族编码从民族字典表中获取\n人员、居民、常住人口；户籍人员：只有提到户籍人员时，必需使用户籍关系表进行连接。问题中的人员、居民、常住人口等用词，只要不提到户籍，均必须使用居住关系表进行连接。\n地址层级关系：地址层级包括路、弄、门牌、室级别关系。地址层级表中每一行的name只会存储一个级别的名称，且名称中可以看出他的级别（如x路、x弄、x号），名称中不包括它的父级或子级名称。问题中的路、弄、门牌号、室号等信息，需要用house表中的road、nong、house_number、room_number等字段参照地址层级表中的id进行连接。",
+  "external_knowledge": "",
+  "input_path": "D:\\Workspace\\Knowdata\\data\\sy_input_with_hint.json"
+}

@@ -1,0 +1,112 @@
+{
+  "entities": [
+    {
+      "entity_name": "街道",
+      "desc": "一个行政区域单位，如‘大桥街道’。是地址的上级归属单位。",
+      "grain": "一个具体的街道实例。",
+      "attributes": [
+        {
+          "name": "街道标识",
+          "semantics": "用于唯一标识一个街道实例。"
+        },
+        {
+          "name": "街道名称",
+          "semantics": "街道的名称，如‘大桥街道’。"
+        }
+      ],
+      "primary_key": [
+        "街道标识"
+      ]
+    },
+    {
+      "entity_name": "地址",
+      "desc": "一个具体的物理位置，如房屋。是人员居住的场所，并归属于某个街道。",
+      "grain": "一个具体的地址实例（如一套房屋）。",
+      "attributes": [
+        {
+          "name": "地址标识",
+          "semantics": "用于唯一标识一个地址实例（如房屋）。"
+        }
+      ],
+      "primary_key": [
+        "地址标识"
+      ]
+    },
+    {
+      "entity_name": "居住人员",
+      "desc": "一个居住在某地址上的人员。根据问题上下文和数据库提示，特指通过居住关系关联的人员，而非户籍人员。",
+      "grain": "一个具体的人员个体。",
+      "attributes": [
+        {
+          "name": "人员标识",
+          "semantics": "用于唯一标识一个居住人员实例。"
+        },
+        {
+          "name": "性别",
+          "semantics": "人员的性别，用于按‘男’、‘女’分组。"
+        }
+      ],
+      "primary_key": [
+        "人员标识"
+      ]
+    }
+  ],
+  "relations": [
+    {
+      "relation_name": "地址属于街道",
+      "desc": "描述一个地址在行政上归属于哪个街道。",
+      "grain": "一个地址实例与一个街道实例之间的归属关系实例。",
+      "participants": [
+        {
+          "role": "被归属的地址",
+          "entity": "地址",
+          "anchor_attribute": [
+            "地址标识"
+          ]
+        },
+        {
+          "role": "归属的上级街道",
+          "entity": "街道",
+          "anchor_attribute": [
+            "街道标识"
+          ]
+        }
+      ],
+      "link_condition": "",
+      "attributes": []
+    },
+    {
+      "relation_name": "人员居住于地址",
+      "desc": "描述一个人员居住在哪个地址。根据数据库提示，此为‘居住关系’。",
+      "grain": "一个人员实例与一个地址实例之间的居住关系实例。",
+      "participants": [
+        {
+          "role": "居住者",
+          "entity": "居住人员",
+          "anchor_attribute": [
+            "人员标识"
+          ]
+        },
+        {
+          "role": "居住地",
+          "entity": "地址",
+          "anchor_attribute": [
+            "地址标识"
+          ]
+        }
+      ],
+      "link_condition": "",
+      "attributes": []
+    }
+  ],
+  "conditions": [
+    {
+      "condition_name": "限定目标街道",
+      "condition_type": "single_attribute",
+      "targets": [
+        "街道.街道名称"
+      ],
+      "description": "将问题讨论的街道范围限定为名称为“大桥街道”的街道。"
+    }
+  ]
+}

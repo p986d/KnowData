@@ -1,0 +1,59 @@
+{
+  "房屋": {
+    "unit_name": "房屋",
+    "target_semantics": "根据给定的路名、弄名、门牌号三个地址条件，查询符合条件的房屋，返回每个房屋的唯一标识符以及这三个地址属性。",
+    "sql_semantics": "从未删除的房屋表中，通过外键关联地址层级表，分别匹配 level=4 且 name='谢路路' 的路、level=5 且 name='1弄' 的弄、level=6 且 name='1号' 的门牌号，返回房屋ID及这三个地址名称。",
+    "precision_check": {
+      "found_precisely": true,
+      "matched_points": "语义完全对准：按三个地址条件查询房屋，返回房屋ID和地址属性。",
+      "shifted_or_incorrect_points": ""
+    },
+    "completeness_check": {
+      "found_completely": true,
+      "covered_points": "所有必需的表、连接、过滤条件、输出字段均已实现。",
+      "missing_points": ""
+    },
+    "verdict": "exact_match",
+    "reason": "SQL 准确表达了目标语义，并且完整实现了所需的表、连接、过滤和输出字段，结果样本与语义一致。",
+    "analysis_status": "ok",
+    "analysis_source": "llm"
+  },
+  "人员": {
+    "unit_name": "人员",
+    "target_semantics": "获取系统中所有（有效）人员对应的唯一标识符列表。",
+    "sql_semantics": "从`ads_person_basic_info`表中选取所有`delete_flag=0`（未删除）记录的`person_id`，并去重后作为人员标识符返回。",
+    "precision_check": {
+      "found_precisely": true,
+      "matched_points": "SQL准确理解了‘人员标识符’即`person_id`，并通过基础信息表定位‘人员’实体，使用去重确保实例唯一性，过滤无效记录符合业务常识。",
+      "shifted_or_incorrect_points": "无。语义核心一致，未发生漂移。"
+    },
+    "completeness_check": {
+      "found_completely": true,
+      "covered_points": "关键表（ads_person_basic_info）、关键列（person_id）、关键过滤（delete_flag=0）、关键去重（DISTINCT）均已落实。",
+      "missing_points": "无。在当前语义单元和外部知识未定义更复杂‘人员’范围（如必须关联其他表）的前提下，实现是完整的。"
+    },
+    "verdict": "exact_match",
+    "reason": "SQL 准确理解了目标语义，并完整实现了从正确数据源中获取唯一、有效人员标识符的所有必要步骤。执行结果样本与 SQL 逻辑、目标语义三者一致。",
+    "analysis_status": "ok",
+    "analysis_source": "llm"
+  },
+  "居住关系": {
+    "unit_name": "居住关系",
+    "target_semantics": "根据完整的地址字符串‘谢路路1弄1号’定位到唯一的（或极少数）房屋实体，并返回居住在该房屋内的所有有效人员的标识符及该房屋的标识符。",
+    "sql_semantics": "通过分别匹配房屋地址的‘路’、‘弄’、‘号’三个编码字段对应的名称（‘谢路路’、‘1弄’、‘1号’），找出所有符合此组合的房屋，再关联这些房屋的有效居住关系及对应人员，返回人员ID和房屋ID。",
+    "precision_check": {
+      "found_precisely": false,
+      "matched_points": "SQL意图是查找特定地址的房屋及其居住者，输出字段符合要求。",
+      "shifted_or_incorrect_points": "1. 实现方式基于地址分字段匹配，与‘完整地址’的语义存在逻辑转换风险。2. 关键矛盾：执行结果返回了多个不同的房屋ID，这与‘谢路路1弄1号’代表唯一地址的常识预期严重不符，表明SQL可能定位到了错误的或超出预期的房屋集合，未能精准命中目标。"
+    },
+    "completeness_check": {
+      "found_completely": false,
+      "covered_points": "输出了人员与房屋标识符，连接了房屋-居住-人员链路，并考虑了各实体的有效状态。",
+      "missing_points": "地址匹配逻辑可能存在缺陷，未能确保‘路、弄、号’的组合唯一指向目标地址（例如缺少对地址层级上下文的完整约束），导致结果范围过宽，可视为缺少关键的范围约束。"
+    },
+    "verdict": "mismatch",
+    "reason": "SQL执行结果返回了多个房屋标识符，与目标语义中基于完整地址‘谢路路1弄1号’定位唯一房屋的核心预期直接矛盾。这表明SQL未能‘找准’目标房屋实体，其地址匹配逻辑可能引入了无关结果。因此，判定为 mismatch。",
+    "analysis_status": "ok",
+    "analysis_source": "llm"
+  }
+}

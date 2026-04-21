@@ -1,0 +1,97 @@
+{
+  "人员": {
+    "unit_name": "人员",
+    "target_semantics": "目标是筛选出年龄≥60岁且独自居住（无同住人）的人员，返回其ID、出生日期和居住状态信息。",
+    "sql_semantics": "该SQL找出了年龄≥60岁、在有效主要居住地记录中居住状态为‘自住’的人员，返回其ID、出生日期和‘自住’状态。它未对‘独居’（无同住人）这一条件进行判断。",
+    "precision_check": {
+      "found_precisely": false,
+      "matched_points": "找到了‘老人’（年龄≥60）。",
+      "shifted_or_incorrect_points": "核心筛选条件从‘独居’错误地替换为‘自住’。‘自住’是居住产权或使用状态，不能等同于‘独居’的生活状态。"
+    },
+    "completeness_check": {
+      "found_completely": false,
+      "covered_points": "人员标识符、出生日期、居住状态（作为输出字段）、老人年龄条件。",
+      "missing_points": "缺失判断‘独居’的关键逻辑（例如，缺少对家庭人数、同住人关系的查询或过滤）。这是实现目标语义的必要且缺失部分。"
+    },
+    "verdict": "mismatch",
+    "reason": "SQL未能找准目标语义。它将‘独居老人’错误地实现为‘自住老人’，遗漏了‘独居’这一核心筛选条件。尽管结果样本中的年龄符合老人标准，但居住状态‘1’仅代表自住，无法证明独居。因此属于语义不匹配。",
+    "analysis_status": "ok",
+    "analysis_source": "llm"
+  },
+  "居委": {
+    "unit_name": "居委",
+    "target_semantics": "获取三个具有特定名称（'周家牌居委'、'银河苑居委'、'临青居委'）的'居民委员会'实体的标识符和名称。",
+    "sql_semantics": "从 sys_dept（部门）表中，查询部门名称（dept_name）为指定三个值之一的有效记录（delete_flag=0, status='0'），并返回其部门ID（dept_id）和部门名称。",
+    "precision_check": {
+      "found_precisely": true,
+      "matched_points": "SQL 通过 dept_name 字段精确过滤出了三个目标名称的记录，并将 dept_id 和 dept_name 映射为居委标识符和名称。执行结果与目标名称完全一致，强烈表明 sys_dept 表在此上下文中就是存储居委会数据的正确位置。",
+      "shifted_or_incorrect_points": "无。虽然表名称为'sys_dept'（系统部门），但数据内容（结果样本）证明它存储了居委会信息，因此语义没有漂移。"
+    },
+    "completeness_check": {
+      "found_completely": true,
+      "covered_points": "1) 居委会实体来源（sys_dept表）；2) 标识符输出（dept_id）；3) 名称输出与过滤（dept_name）；4) 完整的名称枚举过滤条件；5) 合理的有效性状态过滤。",
+      "missing_points": "无。"
+    },
+    "verdict": "exact_match",
+    "reason": "SQL 准确找到了存储居委会数据的表（sys_dept），并完整地实现了对三个特定名称居委会的查询，返回了其标识符和名称。执行结果、SQL语义与目标语义三者完全一致。",
+    "analysis_status": "ok",
+    "analysis_source": "llm"
+  },
+  "街道": {
+    "unit_name": "街道",
+    "target_semantics": "目标是定位一个类型为‘街道办事处’且名称为‘大桥街道’的行政单位，并返回其唯一标识符（街道标识符）和名称（街道名称）。",
+    "sql_semantics": "该 SQL 从部门表（sys_dept）中，选取了部门ID（dept_id）和部门名称（dept_name），并过滤出名称为‘大桥街道’的记录。它没有对部门类型（dept_type）进行任何限定。",
+    "precision_check": {
+      "found_precisely": false,
+      "matched_points": "名称匹配（‘大桥街道’），输出字段映射正确（ID -> 街道标识符，名称 -> 街道名称）。",
+      "shifted_or_incorrect_points": "核心实体语义漂移。SQL 查找的是‘名为大桥街道的部门’，而非目标明确的‘名为大桥街道的街道办事处’。缺少对实体类型的关键约束，可能导致结果不精确（例如，同名但类型为‘区’或‘社区’的部门被错误返回）。"
+    },
+    "completeness_check": {
+      "found_completely": false,
+      "covered_points": "覆盖了名称过滤条件和所需的输出字段。",
+      "missing_points": "缺失对‘街道办事处’这一实体类型的关键过滤条件（例如 WHERE dept_type = ‘街道’ 或类似值）。该条件对于完整、准确地实现目标语义是必需的。"
+    },
+    "verdict": "mismatch",
+    "reason": "SQL 未能‘找准’目标语义。虽然结果样本看起来正确，但 SQL 的实现逻辑存在根本缺陷：它没有对‘街道办事处’这一核心实体类型进行过滤。这导致其语义是‘查找名为大桥街道的部门’，而非‘查找名为大桥街道的街道办事处’。因此，即使当前结果碰巧正确，该实现也不可靠，属于语义不匹配。",
+    "analysis_status": "ok",
+    "analysis_source": "llm"
+  },
+  "隶属关系": {
+    "unit_name": "隶属关系",
+    "target_semantics": "查找街道名称为‘大桥街道’，且居委名称为‘周家牌居委’、‘银河苑居委’或‘临青居委’的居委-街道隶属关系对，并返回居委与街道的标识符和名称。",
+    "sql_semantics": "通过 sys_dept 表的自连接，基于 parent_id 建立父子部门关系，筛选出部门名为‘大桥街道’的父部门及部门名在指定列表中的子部门，返回两者的ID和名称，并附加有效性过滤。",
+    "precision_check": {
+      "found_precisely": true,
+      "matched_points": "核心‘隶属关系’通过 parent_id 关联准确实现；‘街道’、‘居委’实体通过别名和名称过滤准确对应；输出字段与目标要求完全一致。",
+      "shifted_or_incorrect_points": "无。"
+    },
+    "completeness_check": {
+      "found_completely": true,
+      "covered_points": "目标语义所需的所有实体识别条件、关系建立逻辑、输出字段均已落实在SQL中。",
+      "missing_points": "无。"
+    },
+    "verdict": "exact_match",
+    "reason": "SQL 准确实现了目标语义单元所要求的查找特定居委与特定街道之间隶属关系的查询。所有必要的过滤条件、连接关系、输出字段均已正确且完整地体现在 SQL 语句中，执行结果样本也验证了查询的正确性。",
+    "analysis_status": "ok",
+    "analysis_source": "llm"
+  },
+  "归属关系": {
+    "unit_name": "归属关系",
+    "target_semantics": "查询特定三个名称的居委下，同时满足‘老人’（年龄>=60）和‘独居’（居住状态为独居）条件的人员，返回这些人员及其所属居委的标识符。",
+    "sql_semantics": "查询在三个指定名称且状态有效的居委下，具有有效、主居住、且‘live_status’字段值为1的居住关系，并关联到未删除且年龄>=60岁的人员，返回人员ID和居委ID。",
+    "precision_check": {
+      "found_precisely": false,
+      "matched_points": "找准了‘人员-居委归属关系’、‘特定居委名称过滤’、‘老人（年龄>=60）’条件。",
+      "shifted_or_incorrect_points": "对于‘独居’条件，SQL仅使用了字段`live_status = 1`，缺乏证据表明该值在业务上对应‘独居’语义。这可能导致结果包含非独居人员或排除独居人员，属于语义漂移或实现错误。"
+    },
+    "completeness_check": {
+      "found_completely": false,
+      "covered_points": "若假设`live_status=1`正确，则SQL结构完整，包含了必要的表连接、所有过滤条件和输出字段。",
+      "missing_points": "由于‘找准’失败，‘独居’条件的业务语义实现缺失或错误，因此从业务需求角度看，实现并不完整。"
+    },
+    "verdict": "mismatch",
+    "reason": "SQL未能准确实现‘独居’这一关键业务条件。它机械地使用了`live_status=1`这个过滤，但未提供任何证据（如外部知识、数据字典注释）证明该值对应‘独居’状态。这导致返回的结果集可能不符合‘独居人员’的目标语义，因此属于未找准核心语义的失配（mismatch）。",
+    "analysis_status": "ok",
+    "analysis_source": "llm"
+  }
+}

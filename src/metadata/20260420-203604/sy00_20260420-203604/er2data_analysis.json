@@ -1,0 +1,97 @@
+{
+  "人口": {
+    "unit_name": "人口",
+    "target_semantics": "目标是获取那些居住地点在‘大桥街道’且居住状态为‘常住’的人员的唯一身份标识符（person_id）。",
+    "sql_semantics": "该SQL通过关联部门、房屋、居住关系、人员表，筛选出部门名称包含‘大桥街道’、居住关系有效（valid_status='1'）且所有相关记录逻辑未删除的人员ID。",
+    "precision_check": {
+      "found_precisely": true,
+      "matched_points": "1) 通过dept_name定位‘大桥街道’。 2) 通过房屋和居住关系表将街道与人员关联，实现‘居住’关系。 3) 通过valid_status='1'筛选有效/常住居住状态。 4) 输出person_id作为‘人口标识符’。",
+      "shifted_or_incorrect_points": "未发现明显语义漂移。valid_status='1'是对‘常住’的业务化实现，在给定上下文中合理。"
+    },
+    "completeness_check": {
+      "found_completely": true,
+      "covered_points": "街道定位、人员关联、常住状态筛选、标识符输出等核心要素均已实现。必要的表连接和过滤条件完整。",
+      "missing_points": "无。所有目标语义的关键点都在SQL中有对应的实现。"
+    },
+    "verdict": "exact_match",
+    "reason": "SQL准确理解了‘居住在大桥街道的常住人口’的语义，并通过完整的表连接链（sys_dept -> ads_house_basic_info -> ads_residence_relation -> ads_person_basic_info）和精确的过滤条件（dept_name LIKE '%大桥街道%', valid_status='1'）将其实现。输出的‘人口标识符’（person_id）完全符合要求。执行结果样本也与此逻辑一致，返回了符合条件的人员ID列表。",
+    "analysis_status": "ok",
+    "analysis_source": "llm"
+  },
+  "居住地址": {
+    "unit_name": "居住地址",
+    "target_semantics": "获取系统中定义的、所有可供人居住的具体地址点位（如某户）的唯一标识符列表。",
+    "sql_semantics": "找出所有房屋类型为住宅（house_type=1）且房间号非空的房屋记录，关联出这些房间号在地址层级表中对应的、层级为7（level=7）且未删除的地址节点的ID，并将其作为‘居住地址标识符’输出。",
+    "precision_check": {
+      "found_precisely": false,
+      "matched_points": "SQL 意图通过关联住宅房屋和特定层级的地址节点来定位‘居住地址’。",
+      "shifted_or_incorrect_points": "核心假设‘level=7的地址节点等于居住地址’未经证实，存在语义漂移风险。SQL 实际返回的是‘与住宅关联的某级地址ID’，不一定是‘居住地址标识符’。"
+    },
+    "completeness_check": {
+      "found_completely": false,
+      "covered_points": "SQL 包含了关联住宅房屋、筛选特定地址层级、去除非空无效值的逻辑。",
+      "missing_points": "由于核心实体（level=7的地址）可能并非目标语义所指的‘居住地址’，因此本质上缺失了对‘居住地址’这一实体的准确定义和识别。"
+    },
+    "verdict": "mismatch",
+    "reason": "SQL 的实现基于一个关键假设（ads_address_hierarchy表中level=7的记录代表‘居住地址’），但该假设在当前提供的输入（自然语言查询、外部知识、执行结果）中均未得到验证或支持。因此，SQL 实际表达的语义与目标语义单元可能存在根本性偏差，属于未‘找准’。结果样本只是一组ID，无法佐证或反驳这一偏差。故判定为 mismatch。",
+    "analysis_status": "ok",
+    "analysis_source": "llm"
+  },
+  "行政区域": {
+    "unit_name": "行政区域",
+    "target_semantics": "查询名为‘大桥街道’的行政区域实体，返回其行政区域标识符、区域名称和区域级别。",
+    "sql_semantics": "从部门表(sys_dept)中查询部门名称为‘大桥街道’、状态有效且未删除的部门记录，返回其部门ID、部门名称和部门类型。",
+    "precision_check": {
+      "found_precisely": false,
+      "matched_points": "输出结构（标识符、名称、级别）与目标相似；名称过滤条件与目标一致。",
+      "shifted_or_incorrect_points": "核心实体从‘行政区域’漂移为‘部门’；‘部门ID’、‘部门类型’被用作‘行政区域标识符’和‘区域级别’，属于概念误用。"
+    },
+    "completeness_check": {
+      "found_completely": false,
+      "covered_points": "在‘部门’实体范围内，实现了名称过滤和字段映射。",
+      "missing_points": "缺失了代表‘行政区域’实体的正确表与列（如专门的行政区划表及对应的代码、名称、级别字段）。"
+    },
+    "verdict": "mismatch",
+    "reason": "SQL 的实现对象（部门）与目标语义单元的核心对象（行政区域）不匹配，属于语义漂移。尽管输出样本在表面上符合用户查询的格式，但其底层数据语义是错误的。因此判定为 mismatch。",
+    "analysis_status": "ok",
+    "analysis_source": "llm"
+  },
+  "居住于": {
+    "unit_name": "居住于",
+    "target_semantics": "查询‘人口’与‘居住地址’之间状态为‘常住’的‘居住于’关系，并返回对应的人员ID、地址ID和‘常住’状态。",
+    "sql_semantics": "查询‘大桥街道’内有效的‘人口’与‘房间级地址’之间的所有‘居住于’关系（涵盖自住、租住、寄住等多种状态），并返回人员ID、地址ID和对应的居住状态。",
+    "precision_check": {
+      "found_precisely": true,
+      "matched_points": "正确关联了人员、居住关系、房屋及地址层级表，核心关系‘居住于’和返回的标识符字段语义准确。",
+      "shifted_or_incorrect_points": ""
+    },
+    "completeness_check": {
+      "found_completely": false,
+      "covered_points": "关联了正确的核心关系表和实体表，输出了所需的标识符和状态字段。",
+      "missing_points": "缺失对关系属性‘居住状态’的关键过滤条件，未将结果限定为‘常住’。SQL返回了所有居住状态的数据，未能满足语义单元中的限定要求。"
+    },
+    "verdict": "partial_match",
+    "reason": "SQL实现了正确的核心关系查找和字段映射，但遗漏了语义单元中明确要求的‘居住状态限定为常住’这一关键过滤条件，导致返回结果范围过宽，未能完全实现目标语义。",
+    "analysis_status": "ok",
+    "analysis_source": "llm"
+  },
+  "位于": {
+    "unit_name": "位于",
+    "target_semantics": "返回所有位于‘大桥街道’行政区域内的居住地址实例，并返回这些居住地址的标识符和‘大桥街道’区域的标识符。",
+    "sql_semantics": "通过查找部门名称为‘大桥街道’的部门ID，获取其所有下属有效部门ID；关联房屋基础信息表（限定为住宅类型）与地址层级表（限定层级为7），并确保房屋的管理部门ID属于上述下属部门之一；最终输出地址ID作为居住地址标识符，以及街道部门ID作为行政区域标识符。",
+    "precision_check": {
+      "found_precisely": false,
+      "matched_points": "实现了按区域名称（大桥街道）筛选，并输出了地址标识符和区域标识符，意图是建立地址与区域的归属关系。",
+      "shifted_or_incorrect_points": "1. 核心实体‘居住地址’被实现为‘房屋’+‘地址’的组合，而非可能更直接的‘居住关系’实体。2. ‘位于’关系通过‘房屋管理归属’这一间接路径实现，而非更明确的居住地址与行政区域的直接关系。"
+    },
+    "completeness_check": {
+      "found_completely": false,
+      "covered_points": "区域名称过滤、标识符输出、通过部门层级限定范围。",
+      "missing_points": "1. 未使用可能更准确表示‘居住地址’实体或‘居住地址-行政区域’关系的核心表（如ads_residence_relation）。2. 缺少对‘居住地址’与‘行政区域’之间直接关系的明确定义和连接。3. 当前实现依赖的业务逻辑（房屋dept_id表示行政归属）是否与目标语义完全一致存在不确定性。"
+    },
+    "verdict": "mismatch",
+    "reason": "SQL 实现的语义与目标语义存在核心偏差。目标要求基于‘居住地址’和‘行政区域’两个实体及其‘位于’关系进行查询，但 SQL 使用了‘房屋’和‘地址’实体，并通过房屋的管理部门层级来间接推导关系，未能精准对应目标语义中的核心实体和关系定义。因此，尽管输出结果在样本上看似合理，但实现逻辑并未‘找准’目标语义单元。",
+    "analysis_status": "ok",
+    "analysis_source": "llm"
+  }
+}

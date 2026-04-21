@@ -1,0 +1,103 @@
+{
+  "街道": {
+    "question": "找出所有名称为“大桥街道”的街道，并给出它们的街道标识和街道名称。",
+    "schema_linking": {
+      "tables": [
+        "sy_community_link.ads_address_hierarchy",
+        "sy_community_link.ads_house_basic_info",
+        "sy_community_link.sys_dept"
+      ],
+      "columns": [
+        "sy_community_link.ads_address_hierarchy.id",
+        "sy_community_link.ads_address_hierarchy.name",
+        "sy_community_link.ads_house_basic_info.street",
+        "sy_community_link.ads_house_basic_info.district",
+        "sy_community_link.sys_dept.dept_id",
+        "sy_community_link.sys_dept.dept_name"
+      ]
+    },
+    "result_sql": "SELECT \n    `dept_id` AS `街道标识`,\n    `dept_name` AS `街道名称`\nFROM `sy_community_link`.`sys_dept`\nWHERE `dept_name` = '大桥街道'\n    AND `delete_flag` = 0",
+    "nl2sql_result": true
+  },
+  "居委": {
+    "question": "找出居委实体，并给出用于识别每个居委的居委标识及其居委名称。",
+    "schema_linking": {
+      "tables": [
+        "sy_community_link.ads_address_hierarchy",
+        "sy_community_link.ads_house_basic_info",
+        "sy_community_link.sys_dept"
+      ],
+      "columns": [
+        "sy_community_link.ads_address_hierarchy.dept_id",
+        "sy_community_link.ads_address_hierarchy.name",
+        "sy_community_link.ads_house_basic_info.neighborhood_committee",
+        "sy_community_link.ads_house_basic_info.dept_id",
+        "sy_community_link.sys_dept.dept_id",
+        "sy_community_link.sys_dept.dept_name",
+        "sy_community_link.sys_dept.dept_type"
+      ]
+    },
+    "result_sql": "SELECT DISTINCT\n    d.dept_id AS 居委标识,\n    d.dept_name AS 居委名称\nFROM `sy_community_link`.`sys_dept` d\nINNER JOIN `sy_community_link`.`ads_house_basic_info` h ON d.dept_id = h.neighborhood_committee\nWHERE d.delete_flag = 0 AND d.status = '0'",
+    "nl2sql_result": true
+  },
+  "房屋": {
+    "question": "找出所有房屋实例，并给出用于唯一标识每个实例的主键。",
+    "schema_linking": {
+      "tables": [
+        "sy_community_link.ads_address_hierarchy",
+        "sy_community_link.ads_house_basic_info",
+        "sy_community_link.ads_house_relation_info"
+      ],
+      "columns": [
+        "sy_community_link.ads_address_hierarchy.id",
+        "sy_community_link.ads_address_hierarchy.level",
+        "sy_community_link.ads_house_basic_info.house_id",
+        "sy_community_link.ads_house_relation_info.house_id"
+      ]
+    },
+    "result_sql": "SELECT \n    `house_id` AS `房屋标识_surrogate_id`\nFROM `sy_community_link`.`ads_house_basic_info`\nWHERE `delete_flag` = 0",
+    "nl2sql_result": true
+  },
+  "居委属于街道": {
+    "question": "找出所有属于名称为“大桥街道”的街道的下属居委，并给出用于识别这些街道和居委的标识。",
+    "schema_linking": {
+      "tables": [
+        "sy_community_link.ads_house_basic_info",
+        "sy_community_link.ads_residence_relation",
+        "sy_community_link.sys_dept"
+      ],
+      "columns": [
+        "sy_community_link.ads_house_basic_info.street",
+        "sy_community_link.ads_house_basic_info.neighborhood_committee",
+        "sy_community_link.ads_residence_relation.dept_id",
+        "sy_community_link.sys_dept.dept_id",
+        "sy_community_link.sys_dept.dept_name",
+        "sy_community_link.sys_dept.parent_id",
+        "sy_community_link.sys_dept.ancestors",
+        "sy_community_link.sys_dept.status",
+        "sy_community_link.sys_dept.delete_flag"
+      ]
+    },
+    "result_sql": "SELECT \n    street_dept.`dept_id` AS `街道标识`,\n    neighborhood_dept.`dept_id` AS `居委标识`\nFROM `sy_community_link`.`sys_dept` AS street_dept\nINNER JOIN `sy_community_link`.`sys_dept` AS neighborhood_dept \n    ON street_dept.`dept_id` = neighborhood_dept.`parent_id`\nINNER JOIN `sy_community_link`.`ads_house_basic_info` AS house \n    ON neighborhood_dept.`dept_id` = house.`neighborhood_committee`\nWHERE street_dept.`dept_name` = '大桥街道'\n    AND street_dept.`delete_flag` = 0\n    AND neighborhood_dept.`delete_flag` = 0\n    AND house.`delete_flag` = 0\nGROUP BY street_dept.`dept_id`, neighborhood_dept.`dept_id`",
+    "nl2sql_result": true
+  },
+  "房屋属于居委": {
+    "question": "找出所有“房屋属于居委”的关系实例，并给出用于识别每个所属房屋实例的主键以及每个管辖居委实例的居委标识。",
+    "schema_linking": {
+      "tables": [
+        "sy_community_link.ads_house_basic_info",
+        "sy_community_link.ads_residence_relation",
+        "sy_community_link.sys_dept"
+      ],
+      "columns": [
+        "sy_community_link.ads_house_basic_info.house_id",
+        "sy_community_link.ads_house_basic_info.neighborhood_committee",
+        "sy_community_link.ads_residence_relation.house_id",
+        "sy_community_link.ads_residence_relation.dept_id",
+        "sy_community_link.sys_dept.dept_id"
+      ]
+    },
+    "result_sql": "SELECT \n    h.house_id AS `房屋标识_surrogate_id`,\n    d.dept_id AS `居委标识`\nFROM `sy_community_link`.`ads_house_basic_info` h\nINNER JOIN `sy_community_link`.`sys_dept` d ON h.neighborhood_committee = d.dept_id\nWHERE h.delete_flag = 0 \n  AND d.delete_flag = 0 \n  AND d.status = '0'",
+    "nl2sql_result": true
+  }
+}

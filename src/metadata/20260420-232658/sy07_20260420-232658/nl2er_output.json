@@ -1,0 +1,130 @@
+{
+  "entities": [
+    {
+      "entity_name": "街道",
+      "desc": "一个行政或社区管理意义上的街道区域，例如‘大桥街道’。具有唯一的标识和名称。",
+      "grain": "一个街道实例，代表一个具体的街道区域。",
+      "attributes": [
+        {
+          "name": "street_id",
+          "semantics": "用于唯一标识一个街道的标识符。"
+        },
+        {
+          "name": "street_name",
+          "semantics": "街道的名称。"
+        }
+      ],
+      "primary_key": [
+        "street_id"
+      ]
+    },
+    {
+      "entity_name": "居委",
+      "desc": "居民委员会的简称，是街道下属的基层管理单元。具有唯一的标识和名称。",
+      "grain": "一个居委实例，代表一个具体的居民委员会。",
+      "attributes": [
+        {
+          "name": "committee_id",
+          "semantics": "用于唯一标识一个居委的标识符。"
+        },
+        {
+          "name": "committee_name",
+          "semantics": "居委的名称。"
+        }
+      ],
+      "primary_key": [
+        "committee_id"
+      ]
+    },
+    {
+      "entity_name": "房屋",
+      "desc": "物理上的居住建筑单元或登记在册的房屋单位。是统计计数的基本对象。",
+      "grain": "一个房屋实例，代表一处具体的房屋。",
+      "attributes": [
+        {
+          "name": "house_id",
+          "semantics": "用于唯一标识一处房屋的标识符。"
+        }
+      ],
+      "primary_key": [
+        "house_id"
+      ]
+    }
+  ],
+  "relations": [
+    {
+      "relation_name": "归属",
+      "desc": "描述一个居委隶属于哪个街道的行政隶属关系。",
+      "grain": "一个关系实例，表示某个特定的居委实例隶属于某个特定的街道实例。",
+      "participants": [
+        {
+          "role": "下属单元",
+          "entity": "居委",
+          "anchor_attribute": [
+            "committee_id"
+          ]
+        },
+        {
+          "role": "上级单元",
+          "entity": "街道",
+          "anchor_attribute": [
+            "street_id"
+          ]
+        }
+      ],
+      "link_condition": "",
+      "attributes": [
+        {
+          "name": "street_id",
+          "semantics": "该关系实例所指向的街道实体的标识符。"
+        },
+        {
+          "name": "committee_id",
+          "semantics": "该关系实例所指向的居委实体的标识符。"
+        }
+      ]
+    },
+    {
+      "relation_name": "坐落",
+      "desc": "描述一处房屋坐落在哪个居委的管辖范围内。",
+      "grain": "一个关系实例，表示某个特定的房屋实例坐落在某个特定的居委实例的管辖范围内。",
+      "participants": [
+        {
+          "role": "被管辖对象",
+          "entity": "房屋",
+          "anchor_attribute": [
+            "house_id"
+          ]
+        },
+        {
+          "role": "管辖单元",
+          "entity": "居委",
+          "anchor_attribute": [
+            "committee_id"
+          ]
+        }
+      ],
+      "link_condition": "",
+      "attributes": [
+        {
+          "name": "committee_id",
+          "semantics": "该关系实例所指向的居委实体的标识符。"
+        },
+        {
+          "name": "house_id",
+          "semantics": "该关系实例所指向的房屋实体的标识符。"
+        }
+      ]
+    }
+  ],
+  "conditions": [
+    {
+      "condition_name": "限定目标街道",
+      "condition_type": "single_attribute",
+      "targets": [
+        "街道.street_name"
+      ],
+      "description": "筛选出名称为“大桥街道”的街道，作为整个查询分析的起始范围。"
+    }
+  ]
+}

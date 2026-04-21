@@ -1,0 +1,97 @@
+{
+  "街道": {
+    "unit_name": "街道",
+    "target_semantics": "目标是查询地理实体‘街道’中，所有名称为‘大桥街道’的记录，并返回其标识和名称。",
+    "sql_semantics": "SQL 从部门表（sys_dept）中查询部门名称（dept_name）为‘大桥街道’且未删除的部门记录，返回其部门ID（dept_id）和部门名称（dept_name），并分别别名为‘街道标识’和‘街道名称’。",
+    "precision_check": {
+      "found_precisely": false,
+      "matched_points": "输出字段别名与目标属性名称一致，且筛选出的名称值符合要求。",
+      "shifted_or_incorrect_points": "核心实体发生语义漂移。SQL 操作的对象是‘部门’（组织机构），而非目标语义中的‘街道’（地理实体）。dept_id 和 dept_name 是部门属性，不代表街道的标识和名称。"
+    },
+    "completeness_check": {
+      "found_completely": false,
+      "covered_points": "实现了按名称筛选和字段映射输出。",
+      "missing_points": "1. 核心实体表缺失（未使用真正的街道表）。2. 即使将部门表视为街道表，也缺少关键的类型或层级约束（如 dept_type）来确保结果实体是街道，而非其他同名部门。"
+    },
+    "verdict": "mismatch",
+    "reason": "SQL 的核心语义（查找部门）与目标语义单元（查找地理街道）存在根本性偏差，属于实体层面的语义漂移，因此判定为 mismatch。结果样本的‘正确性’是基于错误的实体理解产生的。",
+    "analysis_status": "ok",
+    "analysis_source": "llm"
+  },
+  "居委": {
+    "unit_name": "居委",
+    "target_semantics": "获取系统中定义的所有‘居委会’类型部门的标识(ID)和名称列表。这是一个基于部门类型（如dept_type）的直接查询。",
+    "sql_semantics": "获取在房屋基础信息表或住户关系表中被引用过的、且在部门表中未删除的部门的ID和名称列表。其逻辑依赖于业务关联关系间接推断居委会，而非直接按类型筛选。",
+    "precision_check": {
+      "found_precisely": false,
+      "matched_points": "输出格式（ID，名称）符合要求；结果样本中的名称包含‘居委会’字样，表面看起来相关。",
+      "shifted_or_incorrect_points": "核心语义从‘查找居委会类型’漂移为‘查找被引用的有效部门’。实现逻辑的依据错误，可能导致结果集包含非居委部门或遗漏未被引用的居委。"
+    },
+    "completeness_check": {
+      "found_completely": false,
+      "covered_points": "连接了部门表（sys_dept）以获取ID和名称，并考虑了软删除标记（delete_flag）。",
+      "missing_points": "缺失最关键的过滤条件：未使用部门类型字段（如dept_type）来限定查询结果为‘居委会’。这是实现目标语义的必要成分。"
+    },
+    "verdict": "mismatch",
+    "reason": "SQL 的实现逻辑与目标语义单元存在根本性偏差。目标是根据‘类型’查找所有居委，而 SQL 是根据‘业务引用关系’来查找部门。这会导致结果集不准确（可能多也可能少）。虽然结果样本看起来像居委列表，但这是数据巧合或业务现状导致的，并非 SQL 逻辑的必然正确性。因此判定为 mismatch。",
+    "analysis_status": "ok",
+    "analysis_source": "llm"
+  },
+  "人员": {
+    "unit_name": "人员",
+    "target_semantics": "查询目标是获取所有年龄大于80岁的人员的唯一标识（person_id）和他们的出生日期（birth_date）。",
+    "sql_semantics": "从人员基本信息表 (ads_person_basic_info) 中，筛选出未删除 (delete_flag=0) 且年龄大于80岁（通过 DATE_ADD(birth_date, INTERVAL 80 YEAR) < CURDATE() 判断）的记录，返回人员ID (person_id) 和出生日期 (birth_date)。",
+    "precision_check": {
+      "found_precisely": true,
+      "matched_points": "核心实体（人员）、核心条件（年龄>80岁）、返回字段（ID、出生日期）均准确对应。SQL的年龄计算逻辑正确实现了目标语义。",
+      "shifted_or_incorrect_points": ""
+    },
+    "completeness_check": {
+      "found_completely": true,
+      "covered_points": "必需的表、列、年龄过滤条件均已包含在SQL中。补充的删除标记过滤是合理的业务逻辑，不影响核心语义的完整性。",
+      "missing_points": ""
+    },
+    "verdict": "exact_match",
+    "reason": "SQL准确理解了“年龄超过80岁”的语义，并通过日期计算正确实现。查询结果样本与SQL逻辑、目标语义三者完全一致，且SQL包含了所有必要的实现成分。",
+    "analysis_status": "ok",
+    "analysis_source": "llm"
+  },
+  "隶属于": {
+    "unit_name": "隶属于",
+    "target_semantics": "获取行政层级中，直接隶属于‘大桥街道’的所有‘居委’（而非其他类型部门）的标识、名称及其所属街道的标识和名称。",
+    "sql_semantics": "从部门层级表(sys_dept)中，查询所有未被删除的、直接父部门为名为‘大桥街道’的部门的、未被删除的子部门，返回父子部门的ID和名称。",
+    "precision_check": {
+      "found_precisely": false,
+      "matched_points": "正确关联了名为‘大桥街道’的父部门与其直接子部门；正确返回了双方的ID和名称。",
+      "shifted_or_incorrect_points": "SQL返回的对象是‘下级部门’，而非特指的‘居委’。它依赖数据巧合（当前所有下级部门恰好都是居委）而非逻辑保证来满足目标语义，存在语义漂移风险。"
+    },
+    "completeness_check": {
+      "found_completely": false,
+      "covered_points": "实现了父子关系连接、名称过滤、软删除过滤、标识与名称输出。",
+      "missing_points": "缺失对子部门类型（如dept_type）为‘居委’的关键过滤条件，这是目标语义的核心组成部分。"
+    },
+    "verdict": "mismatch",
+    "reason": "SQL未找准目标语义实体。其逻辑是查找‘大桥街道’的所有直接下级部门，而目标语义是查找其下属的‘居委’。SQL缺少对子部门类型的关键限定，虽然当前样本数据恰好都是居委，但实现逻辑不完整、不精确，无法保证在所有数据情况下都能准确命中目标。因此判定为 mismatch。",
+    "analysis_status": "ok",
+    "analysis_source": "llm"
+  },
+  "居住于": {
+    "unit_name": "居住于",
+    "target_semantics": "返回年龄大于80岁的人员及其实际居住的居委标识，表示‘居住于’关系。人员标识来自人员表，居委标识应准确对应居委部门。",
+    "sql_semantics": "从未删除的人员表中筛选出生日期加80年小于当前日期的人员，关联其有效的、主要的、未删除的居住关系表，返回人员ID和居住关系中的部门ID。",
+    "precision_check": {
+      "found_precisely": false,
+      "matched_points": "人员年龄过滤（80岁以上）、人员标识、居住关系有效性过滤（主要居住地）。",
+      "shifted_or_incorrect_points": "居委标识直接使用居住关系中的部门ID（r.dept_id），未验证该部门ID是否确实代表居委（可能为其他部门类型），存在语义漂移风险。"
+    },
+    "completeness_check": {
+      "found_completely": false,
+      "covered_points": "人员表、居住关系表、年龄过滤、居住关系有效性过滤、输出字段。",
+      "missing_points": "缺少对居委标识的验证（例如，连接sys_dept表并确认部门类型为居委）。"
+    },
+    "verdict": "mismatch",
+    "reason": "SQL未验证返回的部门ID是否确实对应居委，导致居委标识可能不准确，因此未找准目标语义；同时缺少关键验证成分，未找全。",
+    "analysis_status": "ok",
+    "analysis_source": "llm"
+  }
+}

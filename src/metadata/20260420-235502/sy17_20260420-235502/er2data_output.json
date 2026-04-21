@@ -1,0 +1,25 @@
+{
+  "居住人口": {
+    "question": "找出所有居住人口，并给出用于识别每个人员的标识符及其性别。",
+    "schema_linking": {
+      "tables": [
+        "sy_community_link.ads_house_relation_info",
+        "sy_community_link.ads_person_basic_info",
+        "sy_community_link.ads_residence_relation"
+      ],
+      "columns": [
+        "sy_community_link.ads_house_relation_info.owner_id",
+        "sy_community_link.ads_house_relation_info.head_id",
+        "sy_community_link.ads_house_relation_info.emergency_id",
+        "sy_community_link.ads_person_basic_info.person_id",
+        "sy_community_link.ads_person_basic_info.name",
+        "sy_community_link.ads_person_basic_info.gender",
+        "sy_community_link.ads_person_basic_info.current_gender",
+        "sy_community_link.ads_person_basic_info.live_address",
+        "sy_community_link.ads_residence_relation.person_id"
+      ]
+    },
+    "result_sql": "SELECT DISTINCT \n    p.person_id AS 人员_标识符,\n    p.gender AS 性别\nFROM sy_community_link.ads_residence_relation r\nINNER JOIN sy_community_link.ads_person_basic_info p \n    ON r.person_id = p.person_id\nWHERE r.delete_flag = 0 \n    AND p.delete_flag = 0",
+    "nl2sql_result": true
+  }
+}

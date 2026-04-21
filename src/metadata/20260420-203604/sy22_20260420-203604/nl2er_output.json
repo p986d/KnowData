@@ -1,0 +1,33 @@
+{
+  "entities": [
+    {
+      "entity_name": "房子",
+      "desc": "具有独立物理地址和产权的住宅单元。是本次查询统计和筛选的核心对象。",
+      "grain": "每一栋独立的住宅房屋。",
+      "attributes": [
+        {
+          "name": "建造年份",
+          "semantics": "房子建成的年份。"
+        },
+        {
+          "name": "房子标识符_surrogate_id",
+          "semantics": "用于唯一标识一栋房子的标识符。"
+        }
+      ],
+      "primary_key": [
+        "房子标识符_surrogate_id"
+      ]
+    }
+  ],
+  "relations": [],
+  "conditions": [
+    {
+      "condition_name": "建造年份早于2000年",
+      "condition_type": "single_attribute",
+      "targets": [
+        "房子.建造年份"
+      ],
+      "description": "筛选出建造年份早于2000年的房子。具体“早于”的判定规则（例如是否包含2000年）未在问题中明确。"
+    }
+  ]
+}

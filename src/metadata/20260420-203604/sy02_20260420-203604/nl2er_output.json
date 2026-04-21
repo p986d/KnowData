@@ -1,0 +1,157 @@
+{
+  "entities": [
+    {
+      "entity_name": "人员",
+      "desc": "具有独立身份的个人，是人口统计的基本单位。",
+      "grain": "一个独立的个人。",
+      "attributes": [
+        {
+          "name": "person_id",
+          "semantics": ""
+        }
+      ],
+      "primary_key": [
+        "person_id"
+      ]
+    },
+    {
+      "entity_name": "房屋",
+      "desc": "物理上的居住场所，是连接个人与更高级别行政区划的地理单元。",
+      "grain": "一处独立的居住地址（如一个门牌号下的一户）。",
+      "attributes": [
+        {
+          "name": "house_id",
+          "semantics": ""
+        }
+      ],
+      "primary_key": [
+        "house_id"
+      ]
+    },
+    {
+      "entity_name": "街道",
+      "desc": "一级行政区划，具有明确的名称和地理管辖范围。",
+      "grain": "一个独立的街道行政区域。",
+      "attributes": [
+        {
+          "name": "street_name",
+          "semantics": "街道的名称，用于筛选特定街道（如“大桥街道”）。"
+        },
+        {
+          "name": "street_id",
+          "semantics": ""
+        }
+      ],
+      "primary_key": [
+        "street_id"
+      ]
+    },
+    {
+      "entity_name": "民族",
+      "desc": "标识人员族裔归属的分类，具有编码和名称。",
+      "grain": "一个独立的民族类别（如汉族、蒙古族等）。",
+      "attributes": [
+        {
+          "name": "ethnicity_name",
+          "semantics": "民族的名称。用于支持对“少数民族”的筛选（例如，通过约束 ethnicity_name 不等于‘汉族’来实现）。"
+        },
+        {
+          "name": "ethnicity_id",
+          "semantics": ""
+        }
+      ],
+      "primary_key": [
+        "ethnicity_id"
+      ]
+    }
+  ],
+  "relations": [
+    {
+      "relation_name": "居住于",
+      "desc": "描述一个人员当前居住于某一房屋的事实。",
+      "grain": "一个特定人员与一个特定房屋之间的一次居住关联。",
+      "participants": [
+        {
+          "role": "居民",
+          "entity": "人员",
+          "anchor_attribute": [
+            "person_id"
+          ]
+        },
+        {
+          "role": "居住地",
+          "entity": "房屋",
+          "anchor_attribute": [
+            "house_id"
+          ]
+        }
+      ],
+      "link_condition": "",
+      "attributes": []
+    },
+    {
+      "relation_name": "属于",
+      "desc": "描述一个房屋在行政管辖上从属于某个街道的事实。",
+      "grain": "一个特定房屋与一个特定街道之间的一次行政管辖关联。",
+      "participants": [
+        {
+          "role": "被管辖单元",
+          "entity": "房屋",
+          "anchor_attribute": [
+            "house_id"
+          ]
+        },
+        {
+          "role": "管辖者",
+          "entity": "街道",
+          "anchor_attribute": [
+            "street_id"
+          ]
+        }
+      ],
+      "link_condition": "",
+      "attributes": []
+    },
+    {
+      "relation_name": "具有民族",
+      "desc": "描述一个人员其民族归属为某一特定民族类别的事实。",
+      "grain": "一个特定人员与一个特定民族类别之间的一次身份关联。",
+      "participants": [
+        {
+          "role": "个体",
+          "entity": "人员",
+          "anchor_attribute": [
+            "person_id"
+          ]
+        },
+        {
+          "role": "民族类别",
+          "entity": "民族",
+          "anchor_attribute": [
+            "ethnicity_id"
+          ]
+        }
+      ],
+      "link_condition": "",
+      "attributes": []
+    }
+  ],
+  "conditions": [
+    {
+      "condition_name": "街道范围限定",
+      "condition_type": "single_attribute",
+      "targets": [
+        "街道.street_name"
+      ],
+      "description": "街道的名称必须为“大桥街道”。"
+    },
+    {
+      "condition_name": "民族类别限定",
+      "condition_type": "single_attribute",
+      "targets": [
+        "民族.ethnicity_name"
+      ],
+      "description": "民族的名称必须属于“少数民族”类别（具体判定规则未定，例如不等于“汉族”）。"
+    }
+  ]
+}

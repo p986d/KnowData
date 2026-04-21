@@ -1,0 +1,130 @@
+{
+  "entities": [
+    {
+      "entity_name": "街道",
+      "desc": "行政区域单位，是居委的上级管理单位。",
+      "grain": "一个具体的街道，例如‘大桥街道’。",
+      "attributes": [
+        {
+          "name": "街道_surrogate_id",
+          "semantics": "用于唯一标识一个街道的逻辑标识符。"
+        },
+        {
+          "name": "街道名称",
+          "semantics": "街道的名称，用于描述和筛选，如‘大桥街道’。"
+        }
+      ],
+      "primary_key": [
+        "街道_surrogate_id"
+      ]
+    },
+    {
+      "entity_name": "居委",
+      "desc": "基层行政区域/管理单位，是人口统计的聚合单元。",
+      "grain": "一个具体的居民委员会。",
+      "attributes": [
+        {
+          "name": "居委_surrogate_id",
+          "semantics": "用于唯一标识一个居委的逻辑标识符。"
+        },
+        {
+          "name": "居委标识",
+          "semantics": "用于唯一标识一个居委的业务标识符（如部门ID）。"
+        },
+        {
+          "name": "居委名称",
+          "semantics": "居委的名称。"
+        }
+      ],
+      "primary_key": [
+        "居委_surrogate_id"
+      ]
+    },
+    {
+      "entity_name": "常住人口",
+      "desc": "长期居住在某地的人员。",
+      "grain": "一个具体的人。",
+      "attributes": [
+        {
+          "name": "常住人口_surrogate_id",
+          "semantics": "用于唯一标识一个常住人口的逻辑标识符。"
+        },
+        {
+          "name": "人员标识",
+          "semantics": "用于唯一标识一个人员的业务标识符。"
+        }
+      ],
+      "primary_key": [
+        "常住人口_surrogate_id"
+      ]
+    }
+  ],
+  "relations": [
+    {
+      "relation_name": "行政隶属",
+      "desc": "描述一个居委隶属于某个街道的层级管理关系。",
+      "grain": "一个具体的居委与一个具体的街道之间的隶属关系实例。",
+      "participants": [
+        {
+          "role": "下级单位",
+          "entity": "居委",
+          "anchor_attribute": [
+            "居委_surrogate_id"
+          ]
+        },
+        {
+          "role": "上级单位",
+          "entity": "街道",
+          "anchor_attribute": [
+            "街道_surrogate_id"
+          ]
+        }
+      ],
+      "link_condition": "",
+      "attributes": [
+        {
+          "name": "关联标识",
+          "semantics": "用于建立居委与街道之间关联的属性（例如，居委所属的街道ID）。"
+        }
+      ]
+    },
+    {
+      "relation_name": "居住于",
+      "desc": "描述一个常住人口居住在某一个居委的管辖范围内。",
+      "grain": "一个具体的人与一个具体的居委之间的居住关系实例。",
+      "participants": [
+        {
+          "role": "居住者",
+          "entity": "常住人口",
+          "anchor_attribute": [
+            "常住人口_surrogate_id"
+          ]
+        },
+        {
+          "role": "居住地",
+          "entity": "居委",
+          "anchor_attribute": [
+            "居委_surrogate_id"
+          ]
+        }
+      ],
+      "link_condition": "",
+      "attributes": [
+        {
+          "name": "关联标识",
+          "semantics": "用于建立常住人口与居委之间关联的属性（例如，人员居住的居委ID）。"
+        }
+      ]
+    }
+  ],
+  "conditions": [
+    {
+      "condition_name": "目标街道限定",
+      "condition_type": "single_attribute",
+      "targets": [
+        "街道.街道名称"
+      ],
+      "description": "限定问题所讨论的街道范围为名称等于“大桥街道”的街道。"
+    }
+  ]
+}

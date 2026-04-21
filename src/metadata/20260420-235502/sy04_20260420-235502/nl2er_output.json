@@ -1,0 +1,124 @@
+{
+  "entities": [
+    {
+      "entity_name": "人",
+      "desc": "社区内的个体人员，是年龄统计和筛选的对象。",
+      "grain": "一个具体的人。",
+      "attributes": [
+        {
+          "name": "人员标识",
+          "semantics": "唯一标识一个人的属性。"
+        },
+        {
+          "name": "出生日期",
+          "semantics": "用于计算年龄的出生日期。"
+        }
+      ],
+      "primary_key": [
+        "人员标识"
+      ]
+    },
+    {
+      "entity_name": "居委",
+      "desc": "社区居民委员会，是人口统计的分组单元。",
+      "grain": "一个具体的居民委员会。",
+      "attributes": [
+        {
+          "name": "居委标识",
+          "semantics": "唯一标识一个居委的属性。"
+        },
+        {
+          "name": "居委名称",
+          "semantics": "居委的名称。"
+        }
+      ],
+      "primary_key": [
+        "居委标识"
+      ]
+    },
+    {
+      "entity_name": "街道",
+      "desc": "居委的上一级行政或管理单元，用于限定分析范围。",
+      "grain": "一个具体的街道。",
+      "attributes": [
+        {
+          "name": "街道标识",
+          "semantics": "唯一标识一个街道的属性。"
+        },
+        {
+          "name": "街道名称",
+          "semantics": "街道的名称，用于筛选（例如‘大桥’）。"
+        }
+      ],
+      "primary_key": [
+        "街道标识"
+      ]
+    }
+  ],
+  "relations": [
+    {
+      "relation_name": "隶属",
+      "desc": "描述一个居委行政上隶属于一个街道。",
+      "grain": "一个具体的居委与一个具体的街道之间的隶属实例。",
+      "participants": [
+        {
+          "role": "下级单元",
+          "entity": "居委",
+          "anchor_attribute": [
+            "居委标识"
+          ]
+        },
+        {
+          "role": "上级单元",
+          "entity": "街道",
+          "anchor_attribute": [
+            "街道标识"
+          ]
+        }
+      ],
+      "link_condition": "",
+      "attributes": []
+    },
+    {
+      "relation_name": "居住",
+      "desc": "描述一个人居住在某居委的管辖范围内。",
+      "grain": "一个具体的人与一个具体的居委之间的居住关联实例。",
+      "participants": [
+        {
+          "role": "居住者",
+          "entity": "人",
+          "anchor_attribute": [
+            "人员标识"
+          ]
+        },
+        {
+          "role": "居住地所属管理单元",
+          "entity": "居委",
+          "anchor_attribute": [
+            "居委标识"
+          ]
+        }
+      ],
+      "link_condition": "",
+      "attributes": []
+    }
+  ],
+  "conditions": [
+    {
+      "condition_name": "街道范围限定",
+      "condition_type": "single_attribute",
+      "targets": [
+        "街道.街道名称"
+      ],
+      "description": "限定分析范围为名称为“大桥”的街道。"
+    },
+    {
+      "condition_name": "年龄筛选",
+      "condition_type": "single_attribute",
+      "targets": [
+        "人.出生日期"
+      ],
+      "description": "限定人员的年龄需大于80岁。此条件基于“出生日期”属性计算得出。"
+    }
+  ]
+}

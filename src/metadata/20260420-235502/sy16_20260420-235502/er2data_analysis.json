@@ -1,0 +1,21 @@
+{
+  "人员": {
+    "unit_name": "人员",
+    "target_semantics": "从人员表中，筛选出年龄大于80岁的记录，返回每条记录的主键字段和出生日期字段。",
+    "sql_semantics": "从`ads_person_basic_info`表中，筛选出出生日期不晚于80年前今天（即年龄至少80周岁）的记录，返回`person_id`和`birth_date`字段。",
+    "precision_check": {
+      "found_precisely": true,
+      "matched_points": "核心实体（人员）、核心条件（年龄>80的等价计算）、返回字段（主键、出生日期）均准确对应。",
+      "shifted_or_incorrect_points": "无。"
+    },
+    "completeness_check": {
+      "found_completely": true,
+      "covered_points": "所需表、列、过滤条件、输出字段均已完整包含在SQL中。",
+      "missing_points": "无。"
+    },
+    "verdict": "exact_match",
+    "reason": "SQL准确理解了查询意图，使用`birth_date <= DATE_SUB(CURDATE(), INTERVAL 80 YEAR)`正确实现了‘年龄大于80岁’的筛选逻辑，并返回了要求的主键和出生日期字段。执行结果样本与SQL语义及目标语义一致。",
+    "analysis_status": "ok",
+    "analysis_source": "llm"
+  }
+}

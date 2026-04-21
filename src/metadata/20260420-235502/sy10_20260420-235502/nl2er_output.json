@@ -1,0 +1,192 @@
+{
+  "entities": [
+    {
+      "entity_name": "街道",
+      "desc": "具有行政区域划分意义的基层管理单位。在本问题中特指“大桥街道”作为查询的范围限定条件。",
+      "grain": "一个具体的街道实例。",
+      "attributes": [
+        {
+          "name": "名称",
+          "semantics": "街道的名称，用于筛选和识别，例如“大桥街道”。"
+        },
+        {
+          "name": "街道_surrogate_id",
+          "semantics": ""
+        }
+      ],
+      "primary_key": [
+        "街道_surrogate_id"
+      ]
+    },
+    {
+      "entity_name": "居委",
+      "desc": "街道下辖的居民委员会，是社区管理的基本单元。在本问题中是分组统计的维度和结果展示的对象。",
+      "grain": "一个具体的居委实例。",
+      "attributes": [
+        {
+          "name": "名称",
+          "semantics": "居委的名称，用于结果输出。"
+        },
+        {
+          "name": "居委_surrogate_id",
+          "semantics": ""
+        }
+      ],
+      "primary_key": [
+        "居委_surrogate_id"
+      ]
+    },
+    {
+      "entity_name": "人员",
+      "desc": "居住或生活在社区中的个体。是本问题核心分析对象“独居老人”的载体。",
+      "grain": "一个具体的人员实例。",
+      "attributes": [
+        {
+          "name": "出生日期",
+          "semantics": "人员的出生日期，是判断其是否为“老人”最基础、最小化的属性。"
+        },
+        {
+          "name": "是否老人",
+          "semantics": "标识该人员是否满足‘老人’的未定判定标准（如达到某个年龄阈值）。这是一个抽象承载属性，具体判定规则未定。"
+        },
+        {
+          "name": "人员_surrogate_id",
+          "semantics": ""
+        }
+      ],
+      "primary_key": [
+        "人员_surrogate_id"
+      ]
+    },
+    {
+      "entity_name": "房屋",
+      "desc": "供人员居住的物理空间单元。在本问题中作为连接“人员”与“居委”的桥梁，也是判定“独居”的场所。",
+      "grain": "一套具体的住房实例。",
+      "attributes": [
+        {
+          "name": "是否独居",
+          "semantics": "标识该房屋是否满足‘独居’的未定判定标准（如仅有一名居住者）。这是一个抽象承载属性，具体判定规则未定。"
+        },
+        {
+          "name": "房屋_surrogate_id",
+          "semantics": ""
+        }
+      ],
+      "primary_key": [
+        "房屋_surrogate_id"
+      ]
+    }
+  ],
+  "relations": [
+    {
+      "relation_name": "行政隶属",
+      "desc": "描述居委与街道之间的层级管理关系。",
+      "grain": "一个具体的“某个居委隶属于某个街道”的事实。",
+      "participants": [
+        {
+          "role": "上级单位",
+          "entity": "街道",
+          "anchor_attribute": [
+            "街道_surrogate_id"
+          ]
+        },
+        {
+          "role": "下级单位",
+          "entity": "居委",
+          "anchor_attribute": [
+            "居委_surrogate_id"
+          ]
+        }
+      ],
+      "link_condition": "",
+      "attributes": [
+        {
+          "name": "关联标识",
+          "semantics": "用于记录街道与居委之间行政隶属关系的关联标识。"
+        }
+      ]
+    },
+    {
+      "relation_name": "居住于",
+      "desc": "描述人员与房屋之间的居住事实。",
+      "grain": "一个具体的“某个人居住于某套房屋”的事实。",
+      "participants": [
+        {
+          "role": "居住者",
+          "entity": "人员",
+          "anchor_attribute": [
+            "人员_surrogate_id"
+          ]
+        },
+        {
+          "role": "居住地",
+          "entity": "房屋",
+          "anchor_attribute": [
+            "房屋_surrogate_id"
+          ]
+        }
+      ],
+      "link_condition": "",
+      "attributes": [
+        {
+          "name": "关联标识",
+          "semantics": "用于记录人员与房屋之间居住关系的关联标识。"
+        }
+      ]
+    },
+    {
+      "relation_name": "位于",
+      "desc": "描述房屋与居委之间的地理位置归属关系。",
+      "grain": "一个具体的“某套房屋位于某个居委管辖范围内”的事实。",
+      "participants": [
+        {
+          "role": "被管辖的资产",
+          "entity": "房屋",
+          "anchor_attribute": [
+            "房屋_surrogate_id"
+          ]
+        },
+        {
+          "role": "管辖单位",
+          "entity": "居委",
+          "anchor_attribute": [
+            "居委_surrogate_id"
+          ]
+        }
+      ],
+      "link_condition": "",
+      "attributes": [
+        {
+          "name": "关联标识",
+          "semantics": "用于记录房屋与居委之间归属关系的关联标识。"
+        }
+      ]
+    }
+  ],
+  "conditions": [
+    {
+      "condition_name": "街道范围限定",
+      "condition_type": "single_attribute",
+      "targets": [
+        "街道.名称"
+      ],
+      "description": "街道的名称必须为“大桥街道”。此条件定义了本问题中有效的街道全集。"
+    },
+    {
+      "condition_name": "人员年龄限定",
+      "condition_type": "single_attribute",
+      "targets": [
+        "人员.是否老人"
+      ],
+      "description": "人员必须被判定为“老人”。此条件定义了本问题中有效的人员全集（老人子集）。具体判定标准（如年龄阈值）未定。"
+    },
+    {
+      "condition_name": "房屋居住状态限定",
+      "condition_type": "single_attribute",
+      "targets": [
+        "房屋.是否独居"
+      ],
+      "description": "房屋必须被判定为“独居”。此条件定义了本问题中有效的房屋全集（独居房子集）。具体判定标准（如同住人数）未定。"
+    }
+  ]
+}

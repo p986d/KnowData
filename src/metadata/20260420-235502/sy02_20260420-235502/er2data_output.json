@@ -1,0 +1,120 @@
+{
+  "街道": {
+    "question": "找出所有名称为‘大桥街道’的街道，并给出用于识别这些街道的街道标识及其街道名称。",
+    "schema_linking": {
+      "tables": [
+        "sy_community_link.ads_house_basic_info",
+        "sy_community_link.sys_dept"
+      ],
+      "columns": [
+        "sy_community_link.ads_house_basic_info.street",
+        "sy_community_link.sys_dept.dept_id",
+        "sy_community_link.sys_dept.dept_name"
+      ]
+    },
+    "result_sql": "SELECT \n    `dept_id` AS `街道标识`,\n    `dept_name` AS `街道名称`\nFROM `sy_community_link`.`sys_dept`\nWHERE `dept_name` = '大桥街道'",
+    "nl2sql_result": true
+  },
+  "人员": {
+    "question": "找出属于少数民族的人员，并给出用于识别这些人员的人员标识及其民族信息。",
+    "schema_linking": {
+      "tables": [
+        "sy_community_link.ads_person_basic_info",
+        "sy_community_link.sys_dict_data"
+      ],
+      "columns": [
+        "sy_community_link.ads_person_basic_info.person_id",
+        "sy_community_link.ads_person_basic_info.ethnicity",
+        "sy_community_link.sys_dict_data.dict_value",
+        "sy_community_link.sys_dict_data.dict_label",
+        "sy_community_link.sys_dict_data.dict_type"
+      ]
+    },
+    "result_sql": "SELECT \n    p.`person_id` AS `人员标识`,\n    d.`dict_label` AS `民族信息`\nFROM \n    `sy_community_link`.`ads_person_basic_info` p\nINNER JOIN \n    `sy_community_link`.`sys_dict_data` d \n    ON p.`current_ethnicity` = d.`dict_value`\n    AND d.`dict_type` = 'res_ethnicity'\n    AND d.`dict_value` != '1'\n    AND d.`status` = '0'\n    AND d.`delete_flag` = '0'\nWHERE \n    p.`delete_flag` = '0'",
+    "nl2sql_result": true
+  },
+  "居住地": {
+    "question": "找出所有居住地，并给出它们的居住地标识和所属街道标识。",
+    "schema_linking": {
+      "tables": [
+        "sy_community_link.ads_address_hierarchy",
+        "sy_community_link.ads_house_basic_info",
+        "sy_community_link.ads_house_label_relation",
+        "sy_community_link.ads_residence_relation",
+        "sy_community_link.sys_dept"
+      ],
+      "columns": [
+        "sy_community_link.ads_address_hierarchy.id",
+        "sy_community_link.ads_address_hierarchy.dept_id",
+        "sy_community_link.ads_address_hierarchy.level",
+        "sy_community_link.ads_address_hierarchy.ancestors",
+        "sy_community_link.ads_address_hierarchy.name",
+        "sy_community_link.ads_house_basic_info.house_id",
+        "sy_community_link.ads_house_basic_info.street",
+        "sy_community_link.ads_house_label_relation.house_id",
+        "sy_community_link.ads_residence_relation.house_id",
+        "sy_community_link.ads_residence_relation.dept_id",
+        "sy_community_link.sys_dept.dept_id",
+        "sy_community_link.sys_dept.parent_id",
+        "sy_community_link.sys_dept.dept_name",
+        "sy_community_link.sys_dept.dept_type",
+        "sy_community_link.sys_dept.status",
+        "sy_community_link.sys_dept.delete_flag"
+      ]
+    },
+    "result_sql": "SELECT \n    h.`house_id` AS `居住地标识`,\n    COALESCE(d.`dept_id`, h.`street`) AS `所属街道标识`\nFROM `sy_community_link`.`ads_house_basic_info` h\nLEFT JOIN `sy_community_link`.`sys_dept` d \n    ON h.`street` = d.`dept_id` \n    AND d.`delete_flag` = 0 \n    AND d.`status` = '0'\nWHERE h.`delete_flag` = 0",
+    "nl2sql_result": true
+  },
+  "居住于": {
+    "question": "找出属于少数民族的人员与其居住地之间的所有‘居住于’关系实例，并给出用于识别这些人员与居住地的标识属性（人员标识、居住地标识）。",
+    "schema_linking": {
+      "tables": [
+        "sy_community_link.ads_house_basic_info",
+        "sy_community_link.ads_house_relation_info",
+        "sy_community_link.ads_person_basic_info",
+        "sy_community_link.ads_residence_relation",
+        "sy_community_link.sys_dept",
+        "sy_community_link.sys_dict_data"
+      ],
+      "columns": [
+        "sy_community_link.ads_house_basic_info.house_id",
+        "sy_community_link.ads_house_relation_info.house_id",
+        "sy_community_link.ads_house_relation_info.owner_id",
+        "sy_community_link.ads_house_relation_info.head_id",
+        "sy_community_link.ads_house_relation_info.emergency_id",
+        "sy_community_link.ads_person_basic_info.person_id",
+        "sy_community_link.ads_person_basic_info.current_ethnicity",
+        "sy_community_link.ads_residence_relation.person_id",
+        "sy_community_link.ads_residence_relation.house_id",
+        "sy_community_link.sys_dept.dept_id",
+        "sy_community_link.sys_dept.dept_name",
+        "sy_community_link.sys_dept.status",
+        "sy_community_link.sys_dept.delete_flag",
+        "sy_community_link.sys_dict_data.dict_value",
+        "sy_community_link.sys_dict_data.dict_label",
+        "sy_community_link.sys_dict_data.dict_type",
+        "sy_community_link.sys_dict_data.status",
+        "sy_community_link.sys_dict_data.delete_flag"
+      ]
+    },
+    "result_sql": "SELECT\n    p.`person_id` AS `人员标识`,\n    h.`house_id` AS `居住地标识`\nFROM `sy_community_link`.`ads_person_basic_info` p\nINNER JOIN `sy_community_link`.`sys_dict_data` d \n    ON p.`current_ethnicity` = d.`dict_value`\n    AND d.`dict_type` = 'res_ethnicity'\n    AND d.`dict_value` != '1'\n    AND d.`status` = '0'\n    AND d.`delete_flag` = '0'\nINNER JOIN `sy_community_link`.`ads_residence_relation` r \n    ON p.`person_id` = r.`person_id`\n    AND r.`delete_flag` = '0'\n    AND r.`valid_status` = '1'\nINNER JOIN `sy_community_link`.`ads_house_basic_info` h \n    ON r.`house_id` = h.`house_id`\n    AND h.`delete_flag` = '0'\nWHERE p.`delete_flag` = '0'",
+    "nl2sql_result": true
+  },
+  "位于": {
+    "question": "找出所有被‘大桥街道’管辖的居住地，并给出用于识别这些居住地实例的‘居住地标识’以及管辖它们的街道的‘街道标识’。",
+    "schema_linking": {
+      "tables": [
+        "sy_community_link.ads_house_basic_info",
+        "sy_community_link.sys_dept"
+      ],
+      "columns": [
+        "sy_community_link.ads_house_basic_info.house_id",
+        "sy_community_link.ads_house_basic_info.street",
+        "sy_community_link.sys_dept.dept_id",
+        "sy_community_link.sys_dept.dept_name"
+      ]
+    },
+    "result_sql": "SELECT \n    h.`house_id` AS `居住地标识`,\n    s.`dept_id` AS `街道标识`\nFROM `sy_community_link`.`ads_house_basic_info` h\nINNER JOIN `sy_community_link`.`sys_dept` s\n    ON h.`street` = s.`dept_id`\n    AND s.`dept_name` = '大桥街道'\n    AND s.`delete_flag` = 0\n    AND s.`status` = '0'\nWHERE h.`delete_flag` = 0",
+    "nl2sql_result": true
+  }
+}

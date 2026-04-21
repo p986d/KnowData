@@ -1,0 +1,20 @@
+{
+  "entities": [
+    {
+      "entity_name": "房屋",
+      "desc": "需要进行统计的房屋对象，每套/每间房屋为一个实例。",
+      "grain": "一套/一间独立的房屋。",
+      "attributes": [
+        {
+          "name": "房屋_surrogate_id",
+          "semantics": "用于唯一标识一套/一间房屋的逻辑标识符。"
+        }
+      ],
+      "primary_key": [
+        "房屋_surrogate_id"
+      ]
+    }
+  ],
+  "relations": [],
+  "conditions": []
+}
