@@ -17,6 +17,8 @@ from src.nl2sql.providers.reforce_wrapper_common import (
     load_upstream_module,
 )
 
+DEFAULT_M1_SCHEMA_LINK_PROMPT_MODE = "ce_multi_sql"
+
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
@@ -33,6 +35,11 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--output_path", default=None)
     parser.add_argument("--temperature", type=float, default=0.7)
     parser.add_argument("--schema_link_temperature", type=float, default=0.0)
+    parser.add_argument(
+        "--schema_link_prompt_mode",
+        choices=["ce_multi_sql", "single_sql"],
+        default=DEFAULT_M1_SCHEMA_LINK_PROMPT_MODE,
+    )
     parser.add_argument("--shortlist_trigger", type=int, default=18)
     parser.add_argument("--max_shortlist_tables", type=int, default=24)
     parser.add_argument("--sample_row_limit", type=int, default=2)
@@ -67,6 +74,23 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--db_root", default=None)
     parser.add_argument("--database_source", default=None)
     return parser.parse_args()
+
+
+def resolve_upstream_runner(
+    upstream,
+    *,
+    schema_link_prompt_mode: str,
+):
+    if hasattr(upstream, "run_online_nl2sql"):
+        return upstream.run_online_nl2sql, {}
+    if hasattr(upstream, "run_online_nl2sql_gen_sl_m1"):
+        return upstream.run_online_nl2sql_gen_sl_m1, {
+            "schema_link_prompt_mode": schema_link_prompt_mode,
+        }
+    raise AttributeError(
+        "Unsupported ReFoRCE upstream module: expected `run_online_nl2sql` "
+        "or `run_online_nl2sql_gen_sl_m1`."
+    )
 
 
 def validate_backend_args(args: argparse.Namespace) -> tuple[str, str]:
@@ -140,6 +164,9 @@ def main() -> None:
             )
 
         upstream.load_database_tables = _patched_load_database_tables
+        online_nl2sql_module = sys.modules.get("online_nl2sql")
+        if online_nl2sql_module is not None:
+            online_nl2sql_module.load_database_tables = _patched_load_database_tables
         online_schema_linking_module = sys.modules.get("online_schema_linking")
         if online_schema_linking_module is not None:
             online_schema_linking_module.load_database_tables = _patched_load_database_tables
@@ -187,9 +214,13 @@ def main() -> None:
         mysql_password=args.mysql_password,
         mysql_database=args.mysql_database,
     )
+    runner, runner_kwargs = resolve_upstream_runner(
+        upstream,
+        schema_link_prompt_mode=args.schema_link_prompt_mode,
+    )
 
     try:
-        response = upstream.run_online_nl2sql(request)
+        response = runner(request, **runner_kwargs)
     except Exception as exc:
         upstream.progress(
             f"sql_generation_ok=False stage=none error={upstream.compact_text(str(exc), limit=160)}"
@@ -205,6 +236,7 @@ def main() -> None:
         metadata["backend"] = backend
         metadata["dialect"] = dialect
         metadata["upstream_script"] = str(Path(args.upstream_script).resolve())
+        metadata["schema_link_prompt_mode"] = args.schema_link_prompt_mode
 
         schema_linking_payload = result_payload.get("schema_linking")
         if isinstance(schema_linking_payload, dict):
@@ -216,6 +248,7 @@ def main() -> None:
             schema_linking_metadata["backend"] = backend
             schema_linking_metadata["dialect"] = dialect
             schema_linking_metadata["upstream_script"] = str(Path(args.upstream_script).resolve())
+            schema_linking_metadata["schema_link_prompt_mode"] = args.schema_link_prompt_mode
 
         result_path = response.get("result_path")
         if isinstance(result_path, str) and result_path.strip():

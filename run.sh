@@ -26,6 +26,7 @@ if [ "${RUN_MODE,,}" = "single" ]; then
   python -m src.run.pipeline \
     --input-path "$INPUT_PATH" \
     --question-id "$QUESTION_IDS" \
+    --engine-provider "$NL2SQL_ENGINE" \
     --nl2er-model-config "$LLM" \
     --question-model-config "$LLM" \
     --nl2sql-model-config "$LLM" \

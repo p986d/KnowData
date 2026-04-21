@@ -73,17 +73,42 @@ def patch_nl2sql_upstream(
     prompt_module = sys.modules.get("prompt")
     sql_module = sys.modules.get("sql")
     utils_module = sys.modules.get("utils")
+    online_nl2sql_module = sys.modules.get("online_nl2sql")
     online_schema_linking_module = sys.modules.get("online_schema_linking")
 
     if agent_module is None or prompt_module is None or sql_module is None:
         raise RuntimeError("Failed to resolve upstream ReFoRCE support modules for MySQL patching.")
 
+    patch_source = upstream
+    if not (hasattr(patch_source, "Prompts") and hasattr(patch_source, "SqlEnv")):
+        patch_source = online_nl2sql_module
+    if patch_source is None or not (
+        hasattr(patch_source, "Prompts") and hasattr(patch_source, "SqlEnv")
+    ):
+        raise AttributeError(
+            "Failed to resolve ReFoRCE NL2SQL patch target with `Prompts` and `SqlEnv`."
+        )
+
     original_agent_get_api_name = getattr(agent_module, "get_api_name")
     original_utils_get_api_name = getattr(utils_module, "get_api_name", None)
-    original_prompts_cls = upstream.Prompts
-    original_sql_env_cls = upstream.SqlEnv
-    original_build_table_context = upstream.build_table_context
-    original_build_snowflake_credentials = upstream.build_snowflake_credentials
+    original_prompts_cls = patch_source.Prompts
+    original_sql_env_cls = patch_source.SqlEnv
+    original_build_table_context = patch_source.build_table_context
+    original_build_snowflake_credentials = patch_source.build_snowflake_credentials
+    shorten_text_fn = getattr(upstream, "shorten_text", None) or getattr(
+        patch_source,
+        "shorten_text",
+        None,
+    )
+    trim_sample_rows_fn = getattr(upstream, "trim_sample_rows", None) or getattr(
+        patch_source,
+        "trim_sample_rows",
+        None,
+    ) or getattr(
+        online_schema_linking_module,
+        "trim_sample_rows",
+        None,
+    )
 
     def _patched_get_api_name(sql_data):
         text = str(sql_data or "").strip().lower()
@@ -280,14 +305,20 @@ def patch_nl2sql_upstream(
                 if str(column_name).upper() in linked_set:
                     line += " [schema-linked]"
                 if description:
-                    line += f" Description: {upstream.shorten_text(description, 240)}"
+                    if shorten_text_fn is not None:
+                        line += f" Description: {shorten_text_fn(description, 240)}"
+                    else:
+                        line += f" Description: {str(description)[:240]}"
                 lines.append(line)
 
-            sample_rows = upstream.trim_sample_rows(
-                representative.sample_rows,
-                request.sample_row_limit,
-                request.sample_value_max_chars,
-            )
+            if trim_sample_rows_fn is not None:
+                sample_rows = trim_sample_rows_fn(
+                    representative.sample_rows,
+                    request.sample_row_limit,
+                    request.sample_value_max_chars,
+                )
+            else:
+                sample_rows = representative.sample_rows[: int(request.sample_row_limit or 0)]
             if sample_rows:
                 lines.append("Sample rows:")
                 lines.append(json.dumps(sample_rows, ensure_ascii=False, indent=2))
@@ -308,15 +339,24 @@ def patch_nl2sql_upstream(
         )
         return table_info, table_struct, table_structure
 
-    upstream.Prompts = BackendAwarePrompts
     if prompt_module is not None:
         prompt_module.Prompts = BackendAwarePrompts
-    upstream.SqlEnv = BackendAwareSqlEnv
     if sql_module is not None:
         sql_module.SqlEnv = BackendAwareSqlEnv
-    upstream.build_snowflake_credentials = _patched_build_execution_credentials
-    upstream.build_table_context = _patched_build_table_context
-    patch_schema_linking_upstream(
-        upstream,
-        backend=backend,
-    )
+    patch_targets = [patch_source]
+    if upstream is not patch_source:
+        patch_targets.append(upstream)
+
+    for target in patch_targets:
+        if hasattr(target, "Prompts"):
+            target.Prompts = BackendAwarePrompts
+        if hasattr(target, "SqlEnv"):
+            target.SqlEnv = BackendAwareSqlEnv
+        if hasattr(target, "build_snowflake_credentials"):
+            target.build_snowflake_credentials = _patched_build_execution_credentials
+        if hasattr(target, "build_table_context"):
+            target.build_table_context = _patched_build_table_context
+        patch_schema_linking_upstream(
+            target,
+            backend=backend,
+        )

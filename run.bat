@@ -9,7 +9,7 @@ set "INPUT_PATH=%CD%\data\sy_input.json"
 set "INPUT_PATH=%CD%\data\sy_input_with_hint.json"
 
 @REM Choose `single` to run specified question_id values, or `all` to traverse every question in INPUT_PATH.
-set "RUN_MODE=all"
+set "RUN_MODE=single"
 
 
 set "QUESTION_IDS=sy13"
@@ -44,20 +44,24 @@ exit /b 1
 python -m src.run.pipeline ^
   --input-path "%INPUT_PATH%" ^
   --question-id %QUESTION_IDS% ^
+  --engine-provider "%NL2SQL_ENGINE%" ^
   --nl2er-model-config "%LLM%" ^
   --question-model-config "%LLM%" ^
   --nl2sql-model-config "%LLM%" ^
   --include-conditions-in-er2query ^
   --include-conditions-in-sql2nl ^
-  --enable-nl2er-db-hint false ^
+  --enable-nl2er-db-hint true ^
   --enable-er2data-db-hint true ^
+  --enable-er2query-db-hint false ^
+  --exclude-desc-in-er2query ^
+  --nl2sql-timeout-seconds 1800 ^
   --max-nl2sql-workers 64
 goto after_run
 
 :run_all
 python -m src.run.pipeline ^
   --input-path "%INPUT_PATH%" ^
-  --engine-provider "%ENGINE_PROVIDER%" ^
+  --engine-provider "%NL2SQL_ENGINE%" ^
   --nl2er-model-config "%LLM%" ^
   --question-model-config "%LLM%" ^
   --nl2sql-model-config "%LLM%" ^

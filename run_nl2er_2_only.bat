@@ -11,7 +11,7 @@ set "MAX_WORKERS=25"
 
 set "INPUT_PATH=%CD%\data\input.json"
 set "INPUT_PATH=%CD%\data\sy_input.json"
-@REM set "INPUT_PATH=%CD%\data\sy_input_with_hint.json"
+set "INPUT_PATH=%CD%\data\sy_input_with_hint.json"
 @REM Multiple values can be comma-separated.
 set "QUESTION_IDS=sf_bq248"
 set "QUESTION_IDS=sf_bq017"
