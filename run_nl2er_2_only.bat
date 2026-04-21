@@ -7,12 +7,13 @@ pushd "%~dp0" || exit /b 1
 @REM Choose `single` to run specified question_id values, or `all` to traverse every question in data\input.json.
 set "RUN_MODE=all"
 set "MODE=er_test_st2"
-set "MAX_WORKERS=6"
+set "MAX_WORKERS=25"
 
 set "INPUT_PATH=%CD%\data\input.json"
-@REM set "INPUT_PATH=%CD%\data\sy_input.json"
-
+set "INPUT_PATH=%CD%\data\sy_input.json"
+@REM set "INPUT_PATH=%CD%\data\sy_input_with_hint.json"
 @REM Multiple values can be comma-separated.
+set "QUESTION_IDS=sf_bq248"
 set "QUESTION_IDS=sf_bq017"
 @REM set "QUESTION_IDS=sy02"
 @REM set "QUESTION_IDS=sf_bq182"
@@ -27,7 +28,7 @@ set "QUESTION_IDS=sf_bq017"
 
 @REM Alternative example for list input:
 @REM set "INPUT_PATH=%CD%\data\sy_input.json"
-@REM set "QUESTION_IDS=sy00,sy01,sy02"
+set "QUESTION_IDS=sy00"
 
 set "LLM=deepseek_chat_2"
 

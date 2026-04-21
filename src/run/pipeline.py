@@ -156,6 +156,17 @@ def positive_int(value: str) -> int:
     return parsed
 
 
+def parse_cli_bool(value: str) -> bool:
+    normalized = str(value or "").strip().casefold()
+    if normalized == "true":
+        return True
+    if normalized == "false":
+        return False
+    raise argparse.ArgumentTypeError(
+        f"Expected `true` or `false`, got `{value}`."
+    )
+
+
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description="Run the NL2ER -> ER2Data pipeline for one or more questions from the input file."
@@ -176,6 +187,27 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--question-model-config", default=None)
     parser.add_argument("--schema-link-model-config", default=None)
     parser.add_argument("--nl2sql-model-config", default=None)
+    parser.add_argument(
+        "--enable-nl2er-db-hint",
+        type=parse_cli_bool,
+        default=True,
+        metavar="{true,false}",
+        help="Whether to pass `db_hint` into NL2ER prompts.",
+    )
+    parser.add_argument(
+        "--enable-er2data-db-hint",
+        type=parse_cli_bool,
+        default=True,
+        metavar="{true,false}",
+        help="Whether to pass `db_hint` into ER2Data NL2SQL and final-query assembly.",
+    )
+    parser.add_argument(
+        "--enable-er2query-db-hint",
+        type=parse_cli_bool,
+        default=None,
+        metavar="{true,false}",
+        help="Whether to pass `db_hint` into ER2Query prompts. Defaults to `--enable-er2data-db-hint` when omitted.",
+    )
     parser.add_argument(
         "--exclude-desc-in-er2query",
         action="store_true",
@@ -261,6 +293,20 @@ def _resolve_case_dir_path(run_root: Path, *, question_id: str, run_timestamp: s
     return resolved_root / f"{question_id}_{run_timestamp}"
 
 
+def _resolve_batch_case_dir_path(
+    run_root: Path,
+    *,
+    batch_timestamp: str,
+    question_id: str,
+    run_timestamp: str,
+) -> Path:
+    return _resolve_case_dir_path(
+        run_root=run_root / batch_timestamp,
+        question_id=question_id,
+        run_timestamp=run_timestamp,
+    )
+
+
 def build_unhandled_case_summary(
     *,
     input_payload: PipelineInput,
@@ -268,18 +314,21 @@ def build_unhandled_case_summary(
     args: argparse.Namespace,
     error_message: str,
 ) -> dict[str, object]:
-    metadata_dir = _resolve_case_dir_path(
+    metadata_dir = _resolve_batch_case_dir_path(
         args.metadata_root,
+        batch_timestamp=run_timestamp,
         question_id=input_payload.question_id,
         run_timestamp=run_timestamp,
     )
-    nl2er_log_dir = _resolve_case_dir_path(
+    nl2er_log_dir = _resolve_batch_case_dir_path(
         args.nl2er_log_root,
+        batch_timestamp=run_timestamp,
         question_id=input_payload.question_id,
         run_timestamp=run_timestamp,
     )
-    er2data_log_dir = _resolve_case_dir_path(
+    er2data_log_dir = _resolve_batch_case_dir_path(
         args.er2data_log_root,
+        batch_timestamp=run_timestamp,
         question_id=input_payload.question_id,
         run_timestamp=run_timestamp,
     )
@@ -304,7 +353,7 @@ def build_unhandled_case_summary(
         error_message=error_message,
     )
     summary["pipeline_input_path"] = str(args.input_path)
-    return summary
+    return annotate_db_hint_flags(summary, args=args)
 
 
 def emit_batch_progress(
@@ -322,6 +371,23 @@ def emit_batch_progress(
     )
 
 
+def annotate_db_hint_flags(
+    summary: dict[str, object],
+    *,
+    args: argparse.Namespace,
+) -> dict[str, object]:
+    summary["enable_nl2er_db_hint"] = bool(args.enable_nl2er_db_hint)
+    summary["enable_er2data_db_hint"] = bool(args.enable_er2data_db_hint)
+    summary["enable_er2query_db_hint"] = bool(resolve_er2query_db_hint_flag(args))
+    return summary
+
+
+def resolve_er2query_db_hint_flag(args: argparse.Namespace) -> bool:
+    if args.enable_er2query_db_hint is None:
+        return bool(args.enable_er2data_db_hint)
+    return bool(args.enable_er2query_db_hint)
+
+
 def run_single_question(
     *,
     input_payload: PipelineInput,
@@ -333,19 +399,19 @@ def run_single_question(
     metadata_dir = resolve_run_dir(
         run_prefix=input_payload.question_id,
         run_dir=None,
-        run_root=args.metadata_root,
+        run_root=args.metadata_root / run_timestamp,
         timestamp=run_timestamp,
     )
     nl2er_log_dir = resolve_run_dir(
         run_prefix=input_payload.question_id,
         run_dir=None,
-        run_root=args.nl2er_log_root,
+        run_root=args.nl2er_log_root / run_timestamp,
         timestamp=run_timestamp,
     )
     er2data_log_dir = resolve_run_dir(
         run_prefix=input_payload.question_id,
         run_dir=None,
-        run_root=args.er2data_log_root,
+        run_root=args.er2data_log_root / run_timestamp,
         timestamp=run_timestamp,
     )
 
@@ -355,6 +421,13 @@ def run_single_question(
     er2data_final_query_output_path = metadata_dir / DEFAULT_ER2DATA_FINAL_QUERY_FILENAME
 
     serialized_input = serialize_input_payload(input_payload)
+    nl2er_db_hint = input_payload.db_hint if args.enable_nl2er_db_hint else ""
+    er2data_db_hint = input_payload.db_hint if args.enable_er2data_db_hint else ""
+    enable_er2query_db_hint = resolve_er2query_db_hint_flag(args)
+    nl2er_serialized_input = {
+        **serialized_input,
+        "db_hint": nl2er_db_hint,
+    }
     write_json(
         metadata_dir / "input.json",
         {
@@ -382,6 +455,9 @@ def run_single_question(
             "er2data_analysis_output_path": str(er2data_analysis_output_path),
             "er2data_final_query_output_path": str(er2data_final_query_output_path),
             "engine_provider": args.engine_provider,
+            "enable_nl2er_db_hint": args.enable_nl2er_db_hint,
+            "enable_er2data_db_hint": args.enable_er2data_db_hint,
+            "enable_er2query_db_hint": enable_er2query_db_hint,
             "include_desc_in_er2query": not args.exclude_desc_in_er2query,
             "include_conditions_in_er2query": args.include_conditions_in_er2query,
             "include_conditions_in_sql2nl": args.include_conditions_in_sql2nl,
@@ -394,16 +470,19 @@ def run_single_question(
     print(f"[PIPELINE] metadata_dir={metadata_dir}")
     print(f"[PIPELINE] nl2er_log_dir={nl2er_log_dir}")
     print(f"[PIPELINE] er2data_log_dir={er2data_log_dir}")
+    print(f"[PIPELINE] enable_nl2er_db_hint={args.enable_nl2er_db_hint}")
+    print(f"[PIPELINE] enable_er2data_db_hint={args.enable_er2data_db_hint}")
+    print(f"[PIPELINE] enable_er2query_db_hint={enable_er2query_db_hint}")
 
     nl2er_input = NL2ERInput(
         question_id=input_payload.question_id,
         user_intent=input_payload.user_intent,
         db_id=input_payload.db_id,
-        db_hint=input_payload.db_hint,
+        db_hint=nl2er_db_hint,
         external_knowledge=input_payload.external_knowledge,
     )
-    write_json(metadata_dir / "nl2er_input.json", serialized_input)
-    write_json(nl2er_log_dir / "input.json", serialized_input)
+    write_json(metadata_dir / "nl2er_input.json", nl2er_serialized_input)
+    write_json(nl2er_log_dir / "input.json", nl2er_serialized_input)
 
     nl2er = NL2ER(
         prompt_dir=args.nl2er_prompt_dir,
@@ -441,6 +520,7 @@ def run_single_question(
             error_message=str(exc),
         )
         run_summary["pipeline_input_path"] = str(args.input_path)
+        annotate_db_hint_flags(run_summary, args=args)
         write_json(metadata_dir / "run_context.json", run_summary)
         write_json(
             nl2er_log_dir / "error.json",
@@ -473,6 +553,7 @@ def run_single_question(
             error_message=str(exc),
         )
         run_summary["pipeline_input_path"] = str(args.input_path)
+        annotate_db_hint_flags(run_summary, args=args)
         write_json(metadata_dir / "run_context.json", run_summary)
         write_json(
             nl2er_log_dir / "error.json",
@@ -511,6 +592,9 @@ def run_single_question(
             input_path=nl2er_output_path,
             output_path=er2data_output_path,
             db_id=input_payload.db_id,
+            db_hint=er2data_db_hint,
+            enable_db_hint=args.enable_er2data_db_hint,
+            enable_er2query_db_hint=enable_er2query_db_hint,
             external_knowledge=input_payload.external_knowledge,
             max_question_concurrency=args.max_question_concurrency,
             skip_schema_linking=args.skip_schema_linking,
@@ -550,6 +634,7 @@ def run_single_question(
             error_message=str(exc),
         )
         run_summary["pipeline_input_path"] = str(args.input_path)
+        annotate_db_hint_flags(run_summary, args=args)
         write_json(metadata_dir / "run_context.json", run_summary)
         write_json(
             er2data_log_dir / "error.json",
@@ -586,6 +671,9 @@ def run_single_question(
     )
     run_summary["pipeline_input_path"] = str(args.input_path)
     run_summary["engine_provider"] = args.engine_provider
+    run_summary["enable_nl2er_db_hint"] = args.enable_nl2er_db_hint
+    run_summary["enable_er2data_db_hint"] = args.enable_er2data_db_hint
+    run_summary["enable_er2query_db_hint"] = enable_er2query_db_hint
     run_summary["include_desc_in_er2query"] = not args.exclude_desc_in_er2query
     run_summary["include_conditions_in_er2query"] = args.include_conditions_in_er2query
     run_summary["include_conditions_in_sql2nl"] = args.include_conditions_in_sql2nl

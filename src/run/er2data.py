@@ -43,7 +43,7 @@ DEFAULT_DB_ID = "NEW_YORK_CITIBIKE_1"
 DEFAULT_PROMPT_DIR = Path("src/prompt/prompt_template")
 DEFAULT_LOG_ROOT = Path("log/er2data")
 DEFAULT_METADATA_ROOT = Path("metadata")
-DEFAULT_ER2QUERY_TEMPLATE_NAME = "ER2Data_er2query_st1_v1.0.md"
+DEFAULT_ER2QUERY_TEMPLATE_NAME = "ER2Data_er2query_st1_v1.2.md"
 LEGACY_ER2QUERY_TEMPLATE_NAME = "ER2Data_er2query_st1_v0.3.md"
 PROMPT_TEMPLATE_KEY = "er2data_unit_to_query"
 ANALYSIS_TEMPLATE_NAME = "ER2Data_query2unit_check_st2_v0.md"
@@ -172,10 +172,28 @@ def read_external_knowledge_from_sidecar(path: str | Path) -> str:
     return read_sidecar_context(path).get("external_knowledge", "").strip()
 
 
+def resolve_db_hint(
+    *,
+    er_model: dict[str, Any],
+    input_path: str | Path,
+    db_hint: str = "",
+    enable_db_hint: bool = True,
+) -> str:
+    if not enable_db_hint:
+        return ""
+
+    resolved_db_hint = str(db_hint or er_model.get("db_hint") or "").strip()
+    if resolved_db_hint:
+        return resolved_db_hint
+    return read_sidecar_context(input_path).get("db_hint", "").strip()
+
+
 def resolve_er2query_prompt_context(
     *,
     er_model: dict[str, Any],
     input_path: str | Path,
+    db_hint: str = "",
+    enable_db_hint: bool = True,
     external_knowledge: str = "",
 ) -> dict[str, str]:
     sidecar_context = read_sidecar_context(input_path)
@@ -184,9 +202,12 @@ def resolve_er2query_prompt_context(
     if not user_intent:
         user_intent = sidecar_context.get("user_intent", "").strip()
 
-    db_hint = str(er_model.get("db_hint") or "").strip()
-    if not db_hint:
-        db_hint = sidecar_context.get("db_hint", "").strip()
+    resolved_db_hint = resolve_db_hint(
+        er_model=er_model,
+        input_path=input_path,
+        db_hint=db_hint,
+        enable_db_hint=enable_db_hint,
+    )
 
     resolved_external_knowledge = str(external_knowledge or "").strip()
     if not resolved_external_knowledge:
@@ -198,7 +219,7 @@ def resolve_er2query_prompt_context(
 
     return {
         "user_intent": user_intent,
-        "db_hint": db_hint,
+        "db_hint": resolved_db_hint,
         "external_knowledge": resolved_external_knowledge,
     }
 
@@ -211,6 +232,17 @@ def cli_option_provided(option_name: str) -> bool:
     return False
 
 
+def parse_cli_bool(value: str) -> bool:
+    normalized = str(value or "").strip().casefold()
+    if normalized == "true":
+        return True
+    if normalized == "false":
+        return False
+    raise argparse.ArgumentTypeError(
+        f"Expected `true` or `false`, got `{value}`."
+    )
+
+
 def normalize_nl2er_attr_list(
     value: Any,
     *,
@@ -219,22 +251,93 @@ def normalize_nl2er_attr_list(
 ) -> list[dict[str, str]]:
     if value is None:
         return []
-    if not isinstance(value, list):
-        raise ValueError(f"`{field_name}` must be a list in {location}")
+
+    def extract_attr_name(item: Any) -> str:
+        if isinstance(item, str):
+            return item.strip()
+        if not isinstance(item, dict):
+            return ""
+        for candidate_key in (
+            "name",
+            "attr",
+            "attribute_name",
+            "field_name",
+            "key",
+            "value",
+        ):
+            candidate_value = str(item.get(candidate_key) or "").strip()
+            if candidate_value:
+                return candidate_value
+        if len(item) == 1:
+            raw_name = next(iter(item.keys()), "")
+            return str(raw_name or "").strip()
+        return ""
+
+    def extract_attr_semantics(item: Any, *, attr_name: str) -> str:
+        if not isinstance(item, dict):
+            return ""
+        for candidate_key in (
+            "semantics",
+            "semantic",
+            "desc",
+            "description",
+            "meaning",
+        ):
+            candidate_value = item.get(candidate_key)
+            if candidate_value is None:
+                continue
+            candidate_text = str(candidate_value).strip()
+            if candidate_text:
+                return candidate_text
+        if attr_name and len(item) == 1 and attr_name in item:
+            raw_value = item.get(attr_name)
+            if raw_value is None:
+                return ""
+            return str(raw_value).strip()
+        return ""
+
     normalized: list[dict[str, str]] = []
-    seen_names: set[str] = set()
-    for index, item in enumerate(value):
-        if not isinstance(item, str):
-            raise ValueError(
-                f"`{field_name}[{index}]` must be a string in {location}"
-            )
-        name = item.strip()
+    index_by_name: dict[str, int] = {}
+
+    def append_attr(name: str, semantics: str) -> None:
         if not name:
-            continue
-        if name in seen_names:
-            continue
-        normalized.append({"name": name})
-        seen_names.add(name)
+            return
+        existing_index = index_by_name.get(name)
+        if existing_index is None:
+            index_by_name[name] = len(normalized)
+            record: dict[str, str] = {"name": name}
+            semantics_text = semantics.strip()
+            if semantics_text:
+                record["semantics"] = semantics_text
+            normalized.append(record)
+            return
+        semantics_text = semantics.strip()
+        if semantics_text and not str(normalized[existing_index].get("semantics") or "").strip():
+            normalized[existing_index]["semantics"] = semantics_text
+
+    if isinstance(value, list):
+        for index, item in enumerate(value):
+            name = extract_attr_name(item)
+            if not name:
+                raise ValueError(
+                    f"`{field_name}[{index}]` must be a string, a named object, or a single-entry mapping in {location}"
+                )
+            append_attr(name, extract_attr_semantics(item, attr_name=name))
+        return normalized
+
+    if isinstance(value, dict):
+        for raw_name, raw_semantics in value.items():
+            name = str(raw_name or "").strip()
+            if not name:
+                continue
+            semantics = "" if raw_semantics is None else str(raw_semantics).strip()
+            append_attr(name, semantics)
+        return normalized
+
+    raise ValueError(
+        f"`{field_name}` must be a list, a named object, or a name-to-semantics mapping in {location}"
+    )
+
     return normalized
 
 
@@ -1425,11 +1528,15 @@ class ER2DataRunner:
         unit_result: dict[str, Any],
         *,
         base_external_knowledge: str,
+        base_db_hint: str = "",
     ) -> str:
         sections: list[str] = []
         base_text = base_external_knowledge.strip()
         if base_text:
             sections.append(base_text)
+        db_hint_text = base_db_hint.strip()
+        if db_hint_text:
+            sections.append("Database hint:\n" + db_hint_text)
 
         sections.append(SEMANTIC_UNIT_OUTPUT_CONTRACT)
         target_unit = unit_result.get("target_unit", {})
@@ -1443,12 +1550,16 @@ class ER2DataRunner:
         unit_result: dict[str, Any],
         *,
         base_external_knowledge: str,
+        base_db_hint: str = "",
         entity_sql_by_name: dict[str, str],
     ) -> str:
         sections: list[str] = []
         base_text = base_external_knowledge.strip()
         if base_text:
             sections.append(base_text)
+        db_hint_text = base_db_hint.strip()
+        if db_hint_text:
+            sections.append("Database hint:\n" + db_hint_text)
 
         sections.append(SEMANTIC_UNIT_OUTPUT_CONTRACT)
         sections.append(RELATIONSHIP_OUTPUT_ALIAS_CONTRACT)
@@ -1715,13 +1826,15 @@ class ER2DataRunner:
         user_question: str = "",
         input_path: str | Path | None = None,
         db_id: str = "",
+        db_hint: str = "",
+        enable_db_hint: bool = True,
         base_external_knowledge: str = "",
         max_retry: int = 3,
     ) -> dict[str, Any]:
         resolved_question = str(user_question or "").strip()
         resolved_db_id = str(db_id or "").strip()
         resolved_external_knowledge = str(base_external_knowledge or "").strip()
-        resolved_db_hint = ""
+        resolved_db_hint = str(db_hint or "").strip() if enable_db_hint else ""
 
         candidate_sidecars: list[Path] = []
         if input_path is not None:
@@ -1743,7 +1856,7 @@ class ER2DataRunner:
                 ).strip()
             if not resolved_db_id:
                 resolved_db_id = str(payload.get("db_id") or "").strip()
-            if not resolved_db_hint:
+            if enable_db_hint and not resolved_db_hint:
                 resolved_db_hint = str(payload.get("db_hint") or "").strip()
             if not resolved_external_knowledge:
                 candidate_knowledge = payload.get("external_knowledge")
@@ -2472,6 +2585,9 @@ class ER2DataRunner:
         sample_value_max_chars: int = 300,
         similar_tables_hint_limit: int = 12,
         external_knowledge: str = "",
+        db_hint: str = "",
+        enable_db_hint: bool = True,
+        enable_er2query_db_hint: bool | None = None,
         merge_connections_into_relationships: bool = False,
     ) -> dict[str, Any]:
         runtime = resolve_engine_runtime(
@@ -2495,10 +2611,21 @@ class ER2DataRunner:
             resolved_external_knowledge = read_external_knowledge_from_sidecar(input_path)
         write_json(self.log_dir / "input.json", er_model)
         units = self.build_units(er_model)
+        resolved_enable_er2query_db_hint = (
+            enable_db_hint if enable_er2query_db_hint is None else bool(enable_er2query_db_hint)
+        )
         prompt_context = resolve_er2query_prompt_context(
             er_model=er_model,
             input_path=input_path,
+            db_hint=db_hint,
+            enable_db_hint=resolved_enable_er2query_db_hint,
             external_knowledge=resolved_external_knowledge,
+        )
+        resolved_db_hint = resolve_db_hint(
+            er_model=er_model,
+            input_path=input_path,
+            db_hint=db_hint,
+            enable_db_hint=enable_db_hint,
         )
 
         if not units:
@@ -2550,6 +2677,7 @@ class ER2DataRunner:
                 external_knowledge_resolver=lambda unit_result: self.build_entity_external_knowledge(
                     unit_result,
                     base_external_knowledge=resolved_external_knowledge,
+                    base_db_hint=resolved_db_hint,
                 ),
                 max_workers=max_nl2sql_workers,
                 provider_name=runtime.provider_name,
@@ -2564,6 +2692,7 @@ class ER2DataRunner:
                 external_knowledge_resolver=lambda unit_result: self.build_relationship_external_knowledge(
                     unit_result,
                     base_external_knowledge=resolved_external_knowledge,
+                    base_db_hint=resolved_db_hint,
                     entity_sql_by_name=entity_sql_by_name,
                 ),
                 max_workers=max_nl2sql_workers,
@@ -2634,6 +2763,8 @@ class ER2DataRunner:
             user_question=str(er_model.get("user_intent") or er_model.get("instruction") or "").strip(),
             input_path=input_path,
             db_id=db_id,
+            db_hint=db_hint,
+            enable_db_hint=enable_db_hint,
             base_external_knowledge=resolved_external_knowledge,
         )
         write_json(final_query_output_path, final_query_payload)
@@ -2686,6 +2817,20 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--question-model-config", default=None)
     parser.add_argument("--schema-link-model-config", default=None)
     parser.add_argument("--nl2sql-model-config", default=None)
+    parser.add_argument(
+        "--enable-db-hint",
+        type=parse_cli_bool,
+        default=True,
+        metavar="{true,false}",
+        help="Whether to pass `db_hint` into ER2Data NL2SQL and final-query prompts.",
+    )
+    parser.add_argument(
+        "--enable-er2query-db-hint",
+        type=parse_cli_bool,
+        default=None,
+        metavar="{true,false}",
+        help="Whether to pass `db_hint` into ER2Query prompts. Defaults to `--enable-db-hint` when omitted.",
+    )
     parser.add_argument(
         "--er2query-template-name",
         default=DEFAULT_ER2QUERY_TEMPLATE_NAME,
@@ -2776,6 +2921,9 @@ def main() -> None:
         default_filename=DEFAULT_OUTPUT_FILENAME,
     )
     final_query_output_path = output_path.with_name(DEFAULT_FINAL_QUERY_FILENAME)
+    resolved_enable_er2query_db_hint = (
+        args.enable_db_hint if args.enable_er2query_db_hint is None else args.enable_er2query_db_hint
+    )
 
     write_json(
         metadata_dir / "input.json",
@@ -2801,6 +2949,8 @@ def main() -> None:
             "database_source": database_source,
             "database_root": database_root,
             "database_resolution_error": database_resolution_error,
+            "enable_db_hint": args.enable_db_hint,
+            "enable_er2query_db_hint": resolved_enable_er2query_db_hint,
             "er2query_template_name": args.er2query_template_name,
             "include_desc_in_er2query": not args.exclude_desc_in_er2query,
             "include_conditions_in_er2query": args.include_conditions_in_er2query,
@@ -2812,6 +2962,8 @@ def main() -> None:
     print(f"[ER2Data] run_id={run_id}")
     print(f"[ER2Data] question_id={question_id}")
     print(f"[ER2Data] db_id={db_id}")
+    print(f"[ER2Data] enable_db_hint={args.enable_db_hint}")
+    print(f"[ER2Data] enable_er2query_db_hint={resolved_enable_er2query_db_hint}")
     if database_source and database_root:
         print(f"[ER2Data] database_source={database_source}")
         print(f"[ER2Data] database_root={database_root}")
@@ -2834,6 +2986,8 @@ def main() -> None:
         input_path=args.input_path,
         output_path=output_path,
         db_id=db_id,
+        enable_db_hint=args.enable_db_hint,
+        enable_er2query_db_hint=resolved_enable_er2query_db_hint,
         max_question_concurrency=args.max_question_concurrency,
         skip_schema_linking=args.skip_schema_linking,
         max_linking_workers=args.max_linking_workers,
@@ -2872,6 +3026,8 @@ def main() -> None:
             "database_source": database_source,
             "database_root": database_root,
             "database_resolution_error": database_resolution_error,
+            "enable_db_hint": args.enable_db_hint,
+            "enable_er2query_db_hint": resolved_enable_er2query_db_hint,
             "er2query_template_name": args.er2query_template_name,
             "include_desc_in_er2query": not args.exclude_desc_in_er2query,
             "include_conditions_in_er2query": args.include_conditions_in_er2query,

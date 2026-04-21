@@ -8,6 +8,7 @@ analysis/**
 log/**
 metadata/**
 test/**
+!test/run_mysql_sql_benchmark.py
 databases/**
 
 .env

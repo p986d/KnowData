@@ -4,14 +4,15 @@ setlocal EnableExtensions
 pushd "%~dp0" || exit /b 1
 
 @REM Choose the source input file.
-@REM set "INPUT_PATH=%CD%\data\input.json"
+set "INPUT_PATH=%CD%\data\input.json"
 set "INPUT_PATH=%CD%\data\sy_input.json"
+set "INPUT_PATH=%CD%\data\sy_input_with_hint.json"
 
 @REM Choose `single` to run specified question_id values, or `all` to traverse every question in INPUT_PATH.
 set "RUN_MODE=all"
 
 
-set "QUESTION_IDS=sy02"
+set "QUESTION_IDS=sy13"
 
 @REM set "QUESTION_IDS=sf_bq050"
 @REM set "QUESTION_IDS=sf_bq017"
@@ -48,6 +49,8 @@ python -m src.run.pipeline ^
   --nl2sql-model-config "%LLM%" ^
   --include-conditions-in-er2query ^
   --include-conditions-in-sql2nl ^
+  --enable-nl2er-db-hint false ^
+  --enable-er2data-db-hint true ^
   --max-nl2sql-workers 64
 goto after_run
 
@@ -60,10 +63,15 @@ python -m src.run.pipeline ^
   --nl2sql-model-config "%LLM%" ^
   --include-conditions-in-er2query ^
   --include-conditions-in-sql2nl ^
+  --enable-nl2er-db-hint true ^
+  --enable-er2data-db-hint true ^
+  --enable-er2query-db-hint false ^
   --exclude-desc-in-er2query ^
-  --max-batch-worker 3 ^
+  --max-batch-workers 6 ^
+  --nl2sql-timeout-seconds 1800 ^
   --max-nl2sql-workers 64
 
+  @REM --exclude-desc-in-er2query ^
 :after_run
 if errorlevel 1 (
   echo [run.bat] pipeline failed.

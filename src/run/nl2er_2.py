@@ -35,6 +35,24 @@ _NAME_FUZZY_RE = re.compile(r"[^0-9a-z]+")
 _SQL_LIKE_RE = re.compile(
     r"(?is)\bselect\b.+\bfrom\b|\bgroup\s+by\b|\border\s+by\b|\bhaving\b|\blimit\b",
 )
+ATTRIBUTE_MODE_NAMES = "names"
+ATTRIBUTE_MODE_LIST = "list"
+ATTRIBUTE_MODE_DICT = "dict"
+_NAMED_ITEM_KEYS = (
+    "name",
+    "attr",
+    "attribute_name",
+    "field_name",
+    "key",
+    "value",
+)
+_ATTRIBUTE_SEMANTIC_KEYS = (
+    "semantics",
+    "semantic",
+    "desc",
+    "description",
+    "meaning",
+)
 
 
 @dataclass(slots=True)
@@ -292,7 +310,6 @@ def build_er_test_st1_output_payload(
 ) -> dict[str, Any]:
     return {
         "mode": "er_test_st1",
-        "answer_target": dict(object_sketch.get("answer_target") or {}),
         "entities": list(object_sketch.get("entities") or []),
         "relations": list(object_sketch.get("relations") or []),
         "integrity_report": build_compact_integrity_report(integrity_report),
@@ -390,11 +407,16 @@ class NL2ER:
         log_dir: str | Path,
         input_payload: NL2ERInput,
         model_config: str | None = None,
+        stage2_attribute_mode: str = ATTRIBUTE_MODE_LIST,
     ) -> None:
         self.prompt_dir = Path(prompt_dir)
         self.log_dir = Path(log_dir)
         self.log_dir.mkdir(parents=True, exist_ok=True)
         self.input_payload = input_payload
+        self.stage2_attribute_mode = self._normalize_attribute_mode(
+            stage2_attribute_mode,
+            supported_modes=(ATTRIBUTE_MODE_LIST, ATTRIBUTE_MODE_DICT),
+        )
 
         settings = load_settings()
         self.llm = LLMClient(settings.llm.get(model_config))
@@ -407,7 +429,7 @@ class NL2ER:
         (self.log_dir / filename).write_text(content, encoding="utf-8")
 
     def extract_er_object_sketch(self) -> dict[str, Any]:
-        template_name = "NL2ER_ER_test_st1_v0.13.md"
+        template_name = "NL2ER_ER_test_st1_v0.16.md"
         self.build_prompt.register_template(
             name="step_1_extract_er_object_sketch",
             template_name=template_name,
@@ -438,7 +460,7 @@ class NL2ER:
         return self.normalize_er_object_sketch(json_parse(response))
 
     def review_er_object_sketch(self, stage1_object_sketch: dict[str, Any]) -> dict[str, Any]:
-        template_name = "NL2ER_ER_test_st2_v0.1.md"
+        template_name = "NL2ER_ER_test_st2_v0.14.md"
         self.build_prompt.register_template(
             name="step_2_review_er_object_sketch",
             template_name=template_name,
@@ -471,7 +493,10 @@ class NL2ER:
                 "NL2ER ER test stage2 LLM returned an empty response. Check model connectivity, credentials, or prompt validity."
             )
 
-        return self.normalize_er_semantic_review(json_parse(response))
+        return self.normalize_er_semantic_review(
+            json_parse(response),
+            attribute_mode=self.stage2_attribute_mode,
+        )
 
     def extract_query_units(self) -> dict[str, Any]:
         template_name = "NL2ER_SQL_Conceptual_2_st1_v1.2.md"
@@ -563,50 +588,6 @@ class NL2ER:
         conceptual_plan = self.normalize_conceptual_query_plan(json_parse(response))
         conceptual_plan["query_units"] = query_units
         return conceptual_plan
-
-    @staticmethod
-    def _normalize_boolean(
-        value: Any,
-        *,
-        location: str,
-        field_name: str,
-    ) -> bool:
-        if isinstance(value, bool):
-            return value
-        if isinstance(value, int) and value in (0, 1):
-            return bool(value)
-        if isinstance(value, str):
-            normalized = value.strip().casefold()
-            if normalized == "true":
-                return True
-            if normalized == "false":
-                return False
-        raise ValueError(f"`{field_name}` must be a boolean in {location}")
-
-    @classmethod
-    def _normalize_er_test_answer_target(cls, value: Any) -> dict[str, Any]:
-        location = "answer_target"
-        if not isinstance(value, dict):
-            raise ValueError(f"`{location}` must be an object.")
-
-        name = str(value.get("name") or "").strip()
-        if not name:
-            raise ValueError(f"`{location}.name` is required.")
-
-        grain = str(value.get("grain") or "").strip()
-        if not grain:
-            raise ValueError(f"`{location}.grain` is required.")
-
-        return {
-            "name": name,
-            "grain": grain,
-            "is_derived": cls._normalize_boolean(
-                value.get("is_derived"),
-                location=location,
-                field_name="is_derived",
-            ),
-            "reason": str(value.get("reason") or "").strip(),
-        }
 
     @classmethod
     def _normalize_er_test_entities(cls, value: Any) -> list[dict[str, Any]]:
@@ -708,7 +689,6 @@ class NL2ER:
             )
 
         return {
-            "answer_target": cls._normalize_er_test_answer_target(payload.get("answer_target")),
             "entities": cls._normalize_er_test_entities(payload.get("entities")),
             "relations": cls._normalize_er_test_relations(payload.get("relations")),
         }
@@ -860,18 +840,32 @@ class NL2ER:
         return dict(value)
 
     @classmethod
-    def normalize_er_semantic_review(cls, payload: dict[str, Any]) -> dict[str, Any]:
+    def normalize_er_semantic_review(
+        cls,
+        payload: dict[str, Any],
+        *,
+        attribute_mode: str = ATTRIBUTE_MODE_LIST,
+    ) -> dict[str, Any]:
         if not isinstance(payload, dict):
             raise ValueError(
                 f"Expected ER semantic review JSON object, got {type(payload).__name__}"
             )
 
+        normalized_attribute_mode = cls._normalize_attribute_mode(
+            attribute_mode,
+            supported_modes=(ATTRIBUTE_MODE_LIST, ATTRIBUTE_MODE_DICT),
+        )
+
         if any(key in payload for key in ("entities", "relations", "conditions")):
             return {
-                "entities": cls._normalize_entities(payload.get("entities")),
+                "entities": cls._normalize_entities(
+                    payload.get("entities"),
+                    attribute_mode=normalized_attribute_mode,
+                ),
                 "relations": cls._normalize_units(
                     payload.get("relations"),
                     unit_type="relation",
+                    attribute_mode=normalized_attribute_mode,
                 ),
                 "conditions": cls._normalize_conditions(payload.get("conditions")),
             }
@@ -935,31 +929,38 @@ class NL2ER:
             )
 
         return {
-            "entities": NL2ER._normalize_entities(payload.get("entities")),
+            "entities": NL2ER._normalize_entities(
+                payload.get("entities"),
+                attribute_mode=ATTRIBUTE_MODE_NAMES,
+            ),
             "relations": NL2ER._normalize_units(
                 payload.get("relations"),
                 unit_type="relation",
+                attribute_mode=ATTRIBUTE_MODE_NAMES,
             ),
             "connections": NL2ER._normalize_units(
                 payload.get("connections"),
                 unit_type="connection",
+                attribute_mode=ATTRIBUTE_MODE_NAMES,
             ),
             "conditions": NL2ER._normalize_conditions(payload.get("conditions")),
         }
 
-    @staticmethod
-    def _extract_string_list(value: Any) -> list[str]:
-        if not isinstance(value, list):
-            return []
-
+    @classmethod
+    def _extract_string_list(cls, value: Any) -> list[str]:
         normalized: list[str] = []
         seen: set[str] = set()
-        for item in value:
-            text = ""
-            if isinstance(item, str):
-                text = item.strip()
-            elif isinstance(item, dict):
-                text = str(item.get("name") or "").strip()
+
+        items: list[Any]
+        if isinstance(value, list):
+            items = list(value)
+        elif isinstance(value, dict):
+            items = list(value.keys())
+        else:
+            return []
+
+        for item in items:
+            text = cls._extract_named_item_name(item)
             if not text or text in seen:
                 continue
             normalized.append(text)
@@ -967,7 +968,206 @@ class NL2ER:
         return normalized
 
     @staticmethod
+    def _normalize_attribute_mode(
+        attribute_mode: str | None,
+        *,
+        supported_modes: tuple[str, ...] = (
+            ATTRIBUTE_MODE_NAMES,
+            ATTRIBUTE_MODE_LIST,
+            ATTRIBUTE_MODE_DICT,
+        ),
+    ) -> str:
+        normalized_mode = str(attribute_mode or ATTRIBUTE_MODE_LIST).strip().casefold()
+        if normalized_mode not in supported_modes:
+            supported = ", ".join(f"`{mode}`" for mode in supported_modes)
+            raise ValueError(f"`attribute_mode` must be one of {supported}.")
+        return normalized_mode
+
+    @staticmethod
+    def _extract_named_item_name(item: Any) -> str:
+        if isinstance(item, str):
+            return item.strip()
+        if not isinstance(item, dict):
+            return ""
+
+        for candidate_key in _NAMED_ITEM_KEYS:
+            candidate_value = str(item.get(candidate_key) or "").strip()
+            if candidate_value:
+                return candidate_value
+
+        if len(item) == 1:
+            raw_name = next(iter(item.keys()), "")
+            return str(raw_name or "").strip()
+
+        return ""
+
+    @classmethod
+    def _parse_attribute_item(
+        cls,
+        item: Any,
+        *,
+        location: str,
+        field_name: str,
+        index: int | None = None,
+    ) -> dict[str, str]:
+        item_label = (
+            f"`{field_name}[{index}]`" if index is not None else f"`{field_name}`"
+        )
+        if isinstance(item, str):
+            text = item.strip()
+            if not text:
+                raise ValueError(f"{item_label} must not be empty in {location}")
+            return {"name": text, "semantics": ""}
+        if not isinstance(item, dict):
+            raise ValueError(
+                f"{item_label} must be a string, a named object, or a single-entry mapping in {location}"
+            )
+
+        name = cls._extract_named_item_name(item)
+        semantics = ""
+        if name:
+            for candidate_key in _ATTRIBUTE_SEMANTIC_KEYS:
+                candidate_value = item.get(candidate_key)
+                if candidate_value is None:
+                    continue
+                candidate_text = str(candidate_value).strip()
+                if candidate_text:
+                    semantics = candidate_text
+                    break
+        elif len(item) == 1:
+            raw_name, raw_semantics = next(iter(item.items()))
+            name = str(raw_name or "").strip()
+            if raw_semantics is not None:
+                semantics = str(raw_semantics).strip()
+
+        if not name:
+            raise ValueError(
+                f"{item_label} must be a string, a named object, or a single-entry mapping in {location}"
+            )
+
+        return {"name": name, "semantics": semantics}
+
+    @classmethod
+    def _normalize_attribute_records(
+        cls,
+        value: Any,
+        *,
+        location: str,
+        field_name: str,
+    ) -> list[dict[str, str]]:
+        if value is None:
+            return []
+
+        normalized: list[dict[str, str]] = []
+        index_by_name: dict[str, int] = {}
+
+        def append_record(name: str, semantics: str) -> None:
+            if not name:
+                return
+            existing_index = index_by_name.get(name)
+            if existing_index is None:
+                index_by_name[name] = len(normalized)
+                normalized.append({"name": name, "semantics": semantics})
+                return
+            if semantics and not normalized[existing_index]["semantics"]:
+                normalized[existing_index]["semantics"] = semantics
+
+        if isinstance(value, list):
+            for index, item in enumerate(value):
+                record = cls._parse_attribute_item(
+                    item,
+                    location=location,
+                    field_name=field_name,
+                    index=index,
+                )
+                append_record(record["name"], record["semantics"])
+            return normalized
+
+        if isinstance(value, dict):
+            for raw_name, raw_semantics in value.items():
+                name = str(raw_name or "").strip()
+                if not name:
+                    continue
+                semantics = "" if raw_semantics is None else str(raw_semantics).strip()
+                append_record(name, semantics)
+            return normalized
+
+        raise ValueError(f"`{field_name}` must be a list or an object in {location}")
+
+    @classmethod
+    def _merge_attribute_records(
+        cls,
+        attribute_records: list[dict[str, str]],
+        extra_names: list[str],
+    ) -> list[dict[str, str]]:
+        merged: list[dict[str, str]] = []
+        seen: set[str] = set()
+        for record in attribute_records:
+            name = str(record.get("name") or "").strip()
+            if not name or name in seen:
+                continue
+            merged.append(
+                {
+                    "name": name,
+                    "semantics": str(record.get("semantics") or "").strip(),
+                }
+            )
+            seen.add(name)
+
+        for raw_name in extra_names:
+            name = str(raw_name or "").strip()
+            if not name or name in seen:
+                continue
+            merged.append({"name": name, "semantics": ""})
+            seen.add(name)
+
+        return merged
+
+    @classmethod
+    def _serialize_attribute_records(
+        cls,
+        attribute_records: list[dict[str, str]],
+        *,
+        attribute_mode: str,
+    ) -> Any:
+        normalized_mode = cls._normalize_attribute_mode(attribute_mode)
+        if normalized_mode == ATTRIBUTE_MODE_NAMES:
+            return [record["name"] for record in attribute_records]
+        if normalized_mode == ATTRIBUTE_MODE_DICT:
+            return {
+                record["name"]: str(record.get("semantics") or "").strip()
+                for record in attribute_records
+            }
+        return [
+            {
+                "name": record["name"],
+                "semantics": str(record.get("semantics") or "").strip(),
+            }
+            for record in attribute_records
+        ]
+
+    @classmethod
+    def _normalize_attributes(
+        cls,
+        value: Any,
+        *,
+        location: str,
+        field_name: str,
+        attribute_mode: str,
+    ) -> Any:
+        attribute_records = cls._normalize_attribute_records(
+            value,
+            location=location,
+            field_name=field_name,
+        )
+        return cls._serialize_attribute_records(
+            attribute_records,
+            attribute_mode=attribute_mode,
+        )
+
+    @classmethod
     def _normalize_string_list(
+        cls,
         value: Any,
         *,
         location: str,
@@ -981,37 +1181,24 @@ class NL2ER:
         normalized: list[str] = []
         seen: set[str] = set()
         for index, item in enumerate(value):
-            text = ""
-            if isinstance(item, str):
-                text = item.strip()
-            elif isinstance(item, dict):
-                for candidate_key in (
-                    "name",
-                    "attribute_name",
-                    "field_name",
-                    "key",
-                    "value",
-                ):
-                    candidate_value = str(item.get(candidate_key) or "").strip()
-                    if candidate_value:
-                        text = candidate_value
-                        break
-                if not text:
-                    raise ValueError(
-                        f"`{field_name}[{index}]` must be a string or a named object in {location}"
-                    )
-            else:
+            text = cls._extract_named_item_name(item)
+            if not text:
                 raise ValueError(
                     f"`{field_name}[{index}]` must be a string or a named object in {location}"
                 )
-            if not text or text in seen:
+            if text in seen:
                 continue
             normalized.append(text)
             seen.add(text)
         return normalized
 
     @classmethod
-    def _normalize_entities(cls, value: Any) -> list[dict[str, Any]]:
+    def _normalize_entities(
+        cls,
+        value: Any,
+        *,
+        attribute_mode: str = ATTRIBUTE_MODE_NAMES,
+    ) -> list[dict[str, Any]]:
         if value is None:
             return []
         if not isinstance(value, list):
@@ -1027,7 +1214,7 @@ class NL2ER:
             if not entity_name:
                 raise ValueError(f"`{location}.entity_name` is required.")
 
-            attributes = cls._normalize_string_list(
+            attribute_records = cls._normalize_attribute_records(
                 entity.get("attributes"),
                 location=location,
                 field_name="attributes",
@@ -1038,13 +1225,10 @@ class NL2ER:
                 field_name="primary_key",
             )
 
-            merged_attributes = list(attributes)
-            existing_attrs = set(merged_attributes)
-            for attr_name in primary_key:
-                if attr_name in existing_attrs:
-                    continue
-                merged_attributes.append(attr_name)
-                existing_attrs.add(attr_name)
+            merged_attributes = cls._serialize_attribute_records(
+                cls._merge_attribute_records(attribute_records, primary_key),
+                attribute_mode=attribute_mode,
+            )
 
             normalized_entities.append(
                 {
@@ -1100,6 +1284,7 @@ class NL2ER:
         value: Any,
         *,
         unit_type: str,
+        attribute_mode: str = ATTRIBUTE_MODE_NAMES,
     ) -> list[dict[str, Any]]:
         if value is None:
             return []
@@ -1127,10 +1312,11 @@ class NL2ER:
                         location=location,
                     ),
                     "link_condition": str(unit.get("link_condition") or "").strip(),
-                    "attributes": cls._normalize_string_list(
+                    "attributes": cls._normalize_attributes(
                         unit.get("attributes"),
                         location=location,
                         field_name="attributes",
+                        attribute_mode=attribute_mode,
                     ),
                 }
             )
@@ -1583,7 +1769,6 @@ class NL2ER:
         errors: list[str] = []
         warnings: list[str] = []
 
-        answer_target = object_sketch.get("answer_target") or {}
         entities = list(object_sketch.get("entities") or [])
         relations = list(object_sketch.get("relations") or [])
 
@@ -1651,14 +1836,6 @@ class NL2ER:
 
         if not entity_names:
             errors.append("Object sketch must contain at least one entity.")
-
-        answer_target_name = str(answer_target.get("name") or "").strip()
-        answer_target_is_derived = bool(answer_target.get("is_derived"))
-        if answer_target_name and not answer_target_is_derived:
-            if answer_target_name not in entity_name_set and answer_target_name not in relation_name_set:
-                warnings.append(
-                    f"Non-derived answer_target `{answer_target_name}` does not match any entity or relation name."
-                )
 
         passed = not errors
         if passed:
@@ -1771,9 +1948,6 @@ class NL2ER:
             prefix="NL2ER",
             step="extract_er_object_sketch",
             elapsed_seconds=time.time() - step_started_at,
-            answer_target=str(
-                (object_sketch.get("answer_target") or {}).get("name") or ""
-            ).strip(),
             entity_count=len(object_sketch.get("entities") or []),
             relation_count=len(object_sketch.get("relations") or []),
         )
@@ -1807,9 +1981,6 @@ class NL2ER:
             prefix="NL2ER",
             step="extract_er_object_sketch",
             elapsed_seconds=time.time() - step_started_at,
-            answer_target=str(
-                (stage1_object_sketch.get("answer_target") or {}).get("name") or ""
-            ).strip(),
             entity_count=len(stage1_object_sketch.get("entities") or []),
             relation_count=len(stage1_object_sketch.get("relations") or []),
         )
@@ -1893,6 +2064,12 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--question-id", default=None)
     parser.add_argument("--db-id", default=None)
     parser.add_argument("--model-config", default=None)
+    parser.add_argument(
+        "--stage2-attribute-mode",
+        choices=[ATTRIBUTE_MODE_LIST, ATTRIBUTE_MODE_DICT],
+        default=ATTRIBUTE_MODE_LIST,
+        help="Stage2 ER semantic review output mode for `attributes`: `list` keeps `[{'name', 'semantics'}]`, `dict` converts them to `{attr_name: semantics}`.",
+    )
     parser.add_argument("--output-path", type=Path, default=None)
     parser.add_argument("--prompt-dir", type=Path, default=DEFAULT_PROMPT_DIR)
     parser.add_argument("--log-dir", type=Path, default=None)
@@ -1959,12 +2136,14 @@ def main() -> None:
     print(f"[NL2ER] question_id={input_payload.question_id}")
     print(f"[NL2ER] db_id={input_payload.db_id}")
     print(f"[NL2ER] mode={args.mode}")
+    print(f"[NL2ER] stage2_attribute_mode={args.stage2_attribute_mode}")
 
     nl2er = NL2ER(
         prompt_dir=args.prompt_dir,
         log_dir=log_dir,
         input_payload=input_payload,
         model_config=args.model_config,
+        stage2_attribute_mode=args.stage2_attribute_mode,
     )
 
     if args.mode == "er_test_st1":
