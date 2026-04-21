@@ -893,6 +893,11 @@ class ER2DataRunner:
         for condition in conditions:
             if not isinstance(condition, dict):
                 continue
+
+            condition_type = str(condition.get("condition_type") or "").strip()
+            if condition_type.lower() != "single_attribute":
+                continue
+
             payload: dict[str, Any] = {}
 
             condition_name = str(
@@ -901,7 +906,6 @@ class ER2DataRunner:
             if condition_name:
                 payload["condition_name"] = condition_name
 
-            condition_type = str(condition.get("condition_type") or "").strip()
             if condition_type:
                 payload["condition_type"] = condition_type
 
