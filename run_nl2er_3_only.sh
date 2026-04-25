@@ -6,11 +6,11 @@ SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 cd "$SCRIPT_DIR" || exit 1
 
 # Choose `single` to run specified question_id values, or `all` to traverse every question in the input file.
-RUN_MODE="single"
+RUN_MODE="all"
 MAX_WORKERS="25"
 
 INPUT_PATH="$PWD/data/input.json"
-INPUT_PATH="$PWD/data/sy_input.json"
+# INPUT_PATH="$PWD/data/sy_input.json"
 # INPUT_PATH="$PWD/data/sy_input_with_hint.json"
 
 # Multiple values can be comma-separated.

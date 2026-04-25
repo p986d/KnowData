@@ -6,7 +6,6 @@ import traceback
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any
 
 from src.run.nl2er_3 import (
     DEFAULT_INPUT_PATH,
@@ -15,11 +14,14 @@ from src.run.nl2er_3 import (
     DEFAULT_OUTPUT_FILENAME,
     DEFAULT_PROMPT_DIR,
     NL2ERInput,
-    NL2ERSubquestionGenerator,
+    NL2ERSinglePromptRunner,
     serialize_input_payload,
     write_case_metadata,
 )
 from src.utils.run_log import build_timestamp, resolve_run_dir, write_json
+
+
+RUN_MODE_NAME = "single_prompt"
 
 
 @dataclass(slots=True)
@@ -142,7 +144,7 @@ def positive_int(value: str) -> int:
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
-        description="Run only the NL2ER-3 subquestion generation stage for one or more questions."
+        description="Run only the NL2ER-3 single-prompt workflow for one or more questions."
     )
     parser.add_argument("--input-path", type=Path, default=DEFAULT_INPUT_PATH)
     parser.add_argument(
@@ -167,6 +169,7 @@ def build_case_summary(
     metadata_dir: Path,
     log_dir: Path,
     output_path: Path,
+    mode: str,
     status: str,
     elapsed_seconds: float | None = None,
     error_message: str | None = None,
@@ -176,6 +179,7 @@ def build_case_summary(
         "question_id": input_payload.question_id,
         "db_id": input_payload.db_id,
         "timestamp": run_timestamp,
+        "mode": mode,
         "metadata_dir": str(metadata_dir),
         "log_dir": str(log_dir),
         "output_path": str(output_path),
@@ -193,22 +197,21 @@ def write_case_failure_log(
     log_dir: Path,
     input_payload: BatchInput,
     run_id: str,
+    mode: str,
     error_type: str,
     error_message: str,
     traceback_text: str | None = None,
-    integrity_report: dict[str, Any] | None = None,
 ) -> None:
-    payload: dict[str, Any] = {
+    payload: dict[str, object] = {
         "run_id": run_id,
         "question_id": input_payload.question_id,
         "db_id": input_payload.db_id,
+        "mode": mode,
         "error_type": error_type,
         "error_message": error_message,
     }
     if traceback_text:
         payload["traceback"] = traceback_text
-    if integrity_report is not None:
-        payload["integrity_report"] = integrity_report
     write_json(log_dir / "error.json", payload)
 
 
@@ -221,6 +224,20 @@ def _resolve_case_dir_path(run_root: Path, *, question_id: str, run_timestamp: s
     return resolved_root / f"{question_id}_{run_timestamp}"
 
 
+def _resolve_batch_case_dir_path(
+    run_root: Path,
+    *,
+    batch_timestamp: str,
+    question_id: str,
+    run_timestamp: str,
+) -> Path:
+    return _resolve_case_dir_path(
+        run_root=run_root / batch_timestamp,
+        question_id=question_id,
+        run_timestamp=run_timestamp,
+    )
+
+
 def build_unhandled_case_summary(
     *,
     input_payload: BatchInput,
@@ -228,28 +245,32 @@ def build_unhandled_case_summary(
     args: argparse.Namespace,
     error_message: str,
 ) -> dict[str, object]:
-    metadata_dir = _resolve_case_dir_path(
+    metadata_dir = _resolve_batch_case_dir_path(
         args.metadata_root,
+        batch_timestamp=run_timestamp,
         question_id=input_payload.question_id,
         run_timestamp=run_timestamp,
     )
-    log_dir = _resolve_case_dir_path(
+    log_dir = _resolve_batch_case_dir_path(
         args.nl2er_log_root,
+        batch_timestamp=run_timestamp,
         question_id=input_payload.question_id,
         run_timestamp=run_timestamp,
     )
     output_path = metadata_dir / DEFAULT_OUTPUT_FILENAME
     run_id = f"{input_payload.question_id}_{run_timestamp}"
-    return build_case_summary(
+    run_summary = build_case_summary(
         input_payload=input_payload,
         run_id=run_id,
         run_timestamp=run_timestamp,
         metadata_dir=metadata_dir,
         log_dir=log_dir,
         output_path=output_path,
+        mode=RUN_MODE_NAME,
         status="failed",
         error_message=error_message,
     )
+    return run_summary
 
 
 def emit_batch_progress(
@@ -277,13 +298,13 @@ def run_single_question(
     metadata_dir = resolve_run_dir(
         run_prefix=input_payload.question_id,
         run_dir=None,
-        run_root=args.metadata_root,
+        run_root=args.metadata_root / run_timestamp,
         timestamp=run_timestamp,
     )
     log_dir = resolve_run_dir(
         run_prefix=input_payload.question_id,
         run_dir=None,
-        run_root=args.nl2er_log_root,
+        run_root=args.nl2er_log_root / run_timestamp,
         timestamp=run_timestamp,
     )
     output_path = metadata_dir / DEFAULT_OUTPUT_FILENAME
@@ -304,14 +325,30 @@ def run_single_question(
         question_id=input_payload.question_id,
     )
     write_json(log_dir / "input.json", serialized_input)
+    write_json(
+        metadata_dir / "run_context.json",
+        {
+            "run_id": run_id,
+            "question_id": input_payload.question_id,
+            "db_id": input_payload.db_id,
+            "timestamp": run_timestamp,
+            "mode": RUN_MODE_NAME,
+            "input_path": str(args.input_path),
+            "metadata_dir": str(metadata_dir),
+            "log_dir": str(log_dir),
+            "output_path": str(output_path),
+            "model_config": args.model_config,
+        },
+    )
 
     print(f"[NL2ER-3-ONLY] run_id={run_id}")
     print(f"[NL2ER-3-ONLY] question_id={input_payload.question_id}")
     print(f"[NL2ER-3-ONLY] db_id={input_payload.db_id}")
+    print(f"[NL2ER-3-ONLY] mode={RUN_MODE_NAME}")
     print(f"[NL2ER-3-ONLY] metadata_dir={metadata_dir}")
     print(f"[NL2ER-3-ONLY] log_dir={log_dir}")
 
-    runner = NL2ERSubquestionGenerator(
+    runner = NL2ERSinglePromptRunner(
         prompt_dir=args.prompt_dir,
         log_dir=log_dir,
         input_payload=NL2ERInput(
@@ -334,6 +371,7 @@ def run_single_question(
             metadata_dir=metadata_dir,
             log_dir=log_dir,
             output_path=output_path,
+            mode=RUN_MODE_NAME,
             status="failed",
             error_message=str(exc),
         )
@@ -341,47 +379,36 @@ def run_single_question(
             log_dir=log_dir,
             input_payload=input_payload,
             run_id=run_id,
+            mode=RUN_MODE_NAME,
             error_type=type(exc).__name__,
             error_message=str(exc),
             traceback_text=traceback.format_exc(),
         )
+        write_json(metadata_dir / "run_context.json", run_summary)
         print(f"[NL2ER-3-ONLY] run failed for {input_payload.question_id}: {exc}")
         return run_summary
 
-    integrity_report = payload["integrity_report"]
-    write_json(output_path, payload["result"])
+    output_path.write_text(str(payload["result"]), encoding="utf-8")
+    print(f"[NL2ER-3-ONLY] output wrote to {output_path}")
 
-    status = "succeeded" if integrity_report.get("passed") else "integrity_failed"
-    error_message = None if integrity_report.get("passed") else str(
-        integrity_report.get("summary") or ""
-    )
-    if status == "integrity_failed":
-        write_case_failure_log(
-            log_dir=log_dir,
-            input_payload=input_payload,
-            run_id=run_id,
-            error_type="SubquestionGenerationIntegrityError",
-            error_message=error_message or "Subquestion generation integrity check failed.",
-            integrity_report=integrity_report,
-        )
-        print(
-            f"[NL2ER-3-ONLY] integrity check failed for {input_payload.question_id}: "
-            f"{error_message}"
-        )
-    else:
-        print(f"[NL2ER-3-ONLY] output wrote to {output_path}")
+    if getattr(args, "echo_response", True):
+        print(f"[NL2ER-3-ONLY] response_begin question_id={input_payload.question_id}")
+        print(payload["result"])
+        print(f"[NL2ER-3-ONLY] response_end question_id={input_payload.question_id}")
 
-    return build_case_summary(
+    run_summary = build_case_summary(
         input_payload=input_payload,
         run_id=run_id,
         run_timestamp=run_timestamp,
         metadata_dir=metadata_dir,
         log_dir=log_dir,
         output_path=output_path,
-        status=status,
+        mode=RUN_MODE_NAME,
+        status="succeeded",
         elapsed_seconds=float(payload["elapsed_seconds"]),
-        error_message=error_message,
     )
+    write_json(metadata_dir / "run_context.json", run_summary)
+    return run_summary
 
 
 def main() -> None:
@@ -392,6 +419,7 @@ def main() -> None:
     selected_inputs = select_inputs(all_inputs, requested_question_ids)
 
     print(f"[NL2ER-3-ONLY] selected {len(selected_inputs)} question(s) from {args.input_path}")
+    print(f"[NL2ER-3-ONLY] mode={RUN_MODE_NAME}")
     if requested_question_ids:
         print(
             "[NL2ER-3-ONLY] requested question_id values: "
@@ -402,6 +430,7 @@ def main() -> None:
     total = len(selected_inputs)
     completed_count = 0
     should_run_parallel = args.max_workers > 1 and total > 1
+    args.echo_response = not should_run_parallel
 
     if should_run_parallel:
         worker_count = min(args.max_workers, total)
@@ -469,12 +498,10 @@ def main() -> None:
             )
 
     succeeded_count = sum(1 for item in batch_summary if item.get("status") == "succeeded")
-    integrity_failed_count = sum(
-        1 for item in batch_summary if item.get("status") == "integrity_failed"
-    )
     failed_count = sum(1 for item in batch_summary if item.get("status") == "failed")
     batch_payload = {
         "timestamp": batch_timestamp,
+        "mode": RUN_MODE_NAME,
         "input_path": str(args.input_path),
         "selected_question_ids": [item.question_id for item in selected_inputs],
         "max_workers": min(args.max_workers, total) if total else args.max_workers,
@@ -482,7 +509,7 @@ def main() -> None:
     }
     print(
         f"[NL2ER-3-ONLY] completed {total} question(s): "
-        f"succeeded={succeeded_count}, integrity_failed={integrity_failed_count}, failed={failed_count}"
+        f"succeeded={succeeded_count}, failed={failed_count}"
     )
     print("[NL2ER-3-ONLY] batch summary follows")
     print(json.dumps(batch_payload, ensure_ascii=False, indent=2))
