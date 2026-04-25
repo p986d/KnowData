@@ -105,7 +105,7 @@
 # 分析步骤
 
 在输出最终结果之前，必须按如下步骤完成整个分析流程。
-**禁止跳过分析直接输出子问题方案。**
+**禁止跳过分析直接输出Json。**
 
 ---
 
@@ -279,9 +279,9 @@
 
 ---
 
-# 输出要求
+# Step 5. 输出
 
-本阶段输出必须是**自然语言分析结果**，不得输出 ER JSON，不得输出 conceptual SQL，不得输出 CTE。
+当完成上述分析步骤 Step 1-4 后，才允许输出最后的 Step 5 最终输出。
 
 输出内容至少包括：
 
@@ -296,35 +296,35 @@
 
 ```json
 {
-  "确定语义": [
+  "Determinate Semantics": [
     {
-      "名称": "",
-      "题面表达": "",
-      "含义": ""
+      "Name": "",
+      "Original Wording": "",
+      "Meaning": ""
     }
   ],
-  "未定语义": [
+  "Underspecified Semantics": [
     {
-      "名称": "",
-      "题面表达": "",
-      "已确定部分": "",
-      "未定部分": ""
+      "Name": "",
+      "Original Wording": "",
+      "Determined Part": "",
+      "Underspecified Part": ""
     }
   ],
-  "候选子问题组": [
+  "Candidate Subproblem Groups": [
     {
-      "组ID": "A",
-      "拆解思路": "",
-      "子问题": [
+      "Group ID": "A",
+      "Decomposition Rationale": "",
+      "Subproblems": [
         {
-          "子问题ID": "A1",
-          "内容": "",
-          "作用": ""
+          "Subproblem ID": "A1",
+          "Question": "",
+          "Role": ""
         },
         {
-          "子问题ID": "A2",
-          "内容": "",
-          "作用": ""
+          "Subproblem ID": "A2",
+          "Question": "",
+          "Role": ""
         }
       ]
     }

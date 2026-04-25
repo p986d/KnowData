@@ -17,7 +17,7 @@ QUESTION_IDS="sy13"
 
 # LLM config.
 # LLM="qwen3_30B_instruct"
-LLM="deepseek_chat"
+LLM="deepseek_chat_2"
 # LLM="qwen_max"
 
 NL2SQL_ENGINE="reforce_gen_sl_m1"
@@ -44,7 +44,7 @@ elif [ "${RUN_MODE,,}" = "all" ]; then
     --nl2sql-model-config "$LLM" \
     --include-conditions-in-er2query \
     --include-conditions-in-sql2nl \
-    --enable-nl2er-db-hint true \
+    --enable-nl2er-db-hint false \
     --enable-er2data-db-hint true \
     --enable-er2query-db-hint false \
     --exclude-desc-in-er2query \
@@ -55,3 +55,5 @@ else
   echo "[run.sh] invalid RUN_MODE=$RUN_MODE. Use 'single' or 'all'." >&2
   exit 1
 fi
+
+#     --exclude-desc-in-er2query \

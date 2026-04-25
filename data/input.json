@@ -1,5 +1,10 @@
 [
   {
+    "question_id":"00",
+    "db_id": "NEW_YORK_CITIBIKE_1",
+    "user_intent":"找出2001年午餐时段高退货风险呼叫中心。午餐时段=t_meal_time='lunch'；高退货风险=该时段退货率(退货数量/销售数量)高于全部呼叫中心P90。"
+  },
+  { 
     "question_id": "sf_bq050",
     "db_id": "NEW_YORK_CITIBIKE_1",
     "user_intent": "I want to analyze bike trips in New York City for 2014 by linking trip data with weather information to understand how weather conditions (temperature, wind speed, and precipitation) affect bike trips between neighborhoods.\n\nFor each combination of starting and ending neighborhoods, I need the following:\n1. Total number of bike trips between the neighborhoods.\n2. Average trip duration in minutes (rounded to 1 decimal).\n3. Average temperature at the start of the trip (rounded to 1 decimal).\n4. Average wind speed at the start (in meters per second, rounded to 1 decimal).\n5. Average precipitation at the start (in centimeters, rounded to 1 decimal).\n6. The month with the most trips (e.g., `4` for April).\n\nThe data should be grouped by the starting and ending neighborhoods, with:`zip_codes` in `geo_us_boundaries` used to map the bike trip locations based on latitude and longitude. `zip_codes` in `cyclistic` used to obtain the borough and neighborhood names. Using weather data from the Central Park station for the trip date, covering all trips in 2014.",
