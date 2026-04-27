@@ -429,7 +429,7 @@ class NL2ER:
         (self.log_dir / filename).write_text(content, encoding="utf-8")
 
     def extract_er_object_sketch(self) -> dict[str, Any]:
-        template_name = "NL2ER_ER_test_st1_v0.17.md"
+        template_name = "NL2ER_ER_test_st1_v0.18.md"
         self.build_prompt.register_template(
             name="step_1_extract_er_object_sketch",
             template_name=template_name,

@@ -7,7 +7,7 @@ set "PYTHON_EXE=D:\Tools\MiniConda\envs\spider2\python.exe"
 if not exist "%PYTHON_EXE%" set "PYTHON_EXE=python"
 
 @REM Choose `single` to run specified question_id values, or `all` to traverse every question in the input file.
-set "RUN_MODE=all"
+set "RUN_MODE=single"
 
 set "INPUT_PATH=%CD%\data\input.json"
 @REM set "INPUT_PATH=%CD%\data\sy_input.json"
@@ -17,9 +17,9 @@ set "INPUT_PATH=%CD%\data\input.json"
 @REM set "QUESTION_IDS=sf_bq017"
 @REM set "QUESTION_IDS=sf_bq248"
 @REM set "QUESTION_IDS=sf_local157"
-set "QUESTION_IDS=sy00"
+set "QUESTION_IDS=sf_bq050"
 
-set "LLM=deepseek_chat_2"
+set "LLM=deepseek_chat"
 
 @REM Used only when RUN_MODE=all.
 set "MAX_WORKERS=64"

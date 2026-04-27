@@ -43,8 +43,8 @@ class LLMClient:
 
         self.llm = ChatOpenAI(
             model=config.model,
-            api_key=config.api_key,
-            base_url=config.base_url,
+            openai_api_key=config.api_key,
+            openai_api_base=config.base_url,
             temperature=config.temperature,
             top_p=config.top_p,
             timeout=config.timeout,

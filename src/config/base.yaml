@@ -24,19 +24,19 @@ llm:
       top_p: 0.95
       timeout: 600.0
       max_retries: 2
-      max_completion_tokens: 204800
+      max_completion_tokens: 65535
       max_concurrency: 8
       default_system_prompt: "You are a helpful assistant."
 
     deepseek_chat:
       api_key_env: "API_KEY_Lab_DeepSeek"
       base_url_env: "BASE_URL_Lab_DeepSeek"
-      model: "deepseek-chat"
+      model: "ep-20260426182751-8k5s5"
       temperature: 0.1
       top_p: 0.95
       timeout: 600.0
       max_retries: 2
-      max_completion_tokens: 204800
+      max_completion_tokens: 65535
       max_concurrency: 8
       default_system_prompt: "You are a helpful assistant."  
 
@@ -48,7 +48,7 @@ llm:
       top_p: 0.95
       timeout: 600.0
       max_retries: 2
-      max_completion_tokens: 204800
+      max_completion_tokens: 65535
       max_concurrency: 8
       default_system_prompt: "" 
 
@@ -60,7 +60,7 @@ llm:
       top_p: 0.95
       timeout: 600.0
       max_retries: 2
-      max_completion_tokens: 204800
+      max_completion_tokens: 65535
       max_concurrency: 8
       default_system_prompt: "You are a helpful assistant."  
 
@@ -72,7 +72,7 @@ llm:
       top_p: 0.95
       timeout: 600.0
       max_retries: 2
-      max_completion_tokens: 204800
+      max_completion_tokens: 65535
       max_concurrency: 8
       default_system_prompt: "" 
 
@@ -84,7 +84,7 @@ llm:
       top_p: 0.95
       timeout: 60.0
       max_retries: 2
-      max_completion_tokens: 204800
+      max_completion_tokens: 65535
       max_concurrency: 8
       default_system_prompt: "You are a helpful assistant." 
 
@@ -96,7 +96,7 @@ llm:
       top_p: 0.95
       timeout: 60.0
       max_retries: 2
-      max_completion_tokens: 204800
+      max_completion_tokens: 65535
       max_concurrency: 8
       default_system_prompt: "You are a helpful assistant."     
 
