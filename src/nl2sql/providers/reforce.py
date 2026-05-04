@@ -347,6 +347,10 @@ class ReforceEngineProvider:
             "--dialect",
             db_profile.dialect,
         ]
+        if request.thinking_type:
+            command.extend(["--thinking_type", request.thinking_type])
+        if request.reasoning_effort:
+            command.extend(["--reasoning_effort", request.reasoning_effort])
 
         try:
             completed = subprocess.run(

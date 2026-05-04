@@ -26,6 +26,8 @@ class SchemaLinkingRequest:
     question: str
     run_prefix: str | None = None
     model: str = "qwen-plus"
+    thinking_type: str | None = None
+    reasoning_effort: str | None = None
     output_path: str | None = None
     temperature: float = 0.0
     shortlist_trigger: int = 18

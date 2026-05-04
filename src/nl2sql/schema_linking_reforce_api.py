@@ -24,6 +24,8 @@ class SchemaLinkingRequest:
     question: str
     run_prefix: str | None = None
     model: str = "qwen-plus"
+    thinking_type: str | None = None
+    reasoning_effort: str | None = None
     spider2_root: str = str(DEFAULT_SPIDER2_ROOT)
     output_path: str | None = None
     temperature: float = 0.0
@@ -59,6 +61,8 @@ def run_schema_linking(
             question=request.question,
             run_prefix=request.run_prefix,
             model=request.model,
+            thinking_type=request.thinking_type,
+            reasoning_effort=request.reasoning_effort,
             output_path=request.output_path,
             temperature=request.temperature,
             shortlist_trigger=request.shortlist_trigger,
@@ -91,6 +95,8 @@ def parse_args() -> argparse.Namespace:
         help="Question ID used as the default log/output directory prefix when --output_path is omitted.",
     )
     parser.add_argument("--model", default="qwen-plus", help="Model name passed through to ReFoRCE.")
+    parser.add_argument("--thinking_type", default=None)
+    parser.add_argument("--reasoning_effort", default=None)
     parser.add_argument("--spider2_root", default=str(DEFAULT_SPIDER2_ROOT), help="Path to local Spider2 spider2-snow.")
     parser.add_argument("--output_path", default=None, help="Where ReFoRCE should save its result JSON.")
     parser.add_argument("--temperature", type=float, default=0.0)
@@ -127,6 +133,8 @@ def main() -> None:
         question=question,
         run_prefix=args.question_id,
         model=args.model,
+        thinking_type=args.thinking_type,
+        reasoning_effort=args.reasoning_effort,
         spider2_root=args.spider2_root,
         output_path=args.output_path,
         temperature=args.temperature,

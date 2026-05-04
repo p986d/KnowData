@@ -7,6 +7,7 @@ from pathlib import Path
 
 from src.config import load_settings
 from src.llm.llm_client import LLMClient
+from src.llm.reasoning import REASONING_MODE_MAP, apply_reasoning_mode
 from src.prompt.prompt_builder import PromptBuilder
 from src.run.nl2er_2 import (
     DEFAULT_INPUT_PATH,
@@ -29,8 +30,8 @@ from src.utils.run_log import (
 
 
 DEFAULT_LOG_ROOT = Path("log/nl2er_3")
-DEFAULT_OUTPUT_FILENAME = "nl2er_er_test_st1_v0.2_output.md"
-PROMPT_TEMPLATE_NAME = "NL2ER_ER_test_st1_v0.2.md"
+DEFAULT_OUTPUT_FILENAME = "response.md"
+PROMPT_TEMPLATE_NAME = "NL2ER_ER_sketch_st1_v0.4.md"
 
 
 class NL2ERSinglePromptRunner:
@@ -41,14 +42,17 @@ class NL2ERSinglePromptRunner:
         log_dir: str | Path,
         input_payload: NL2ERInput,
         model_config: str | None = None,
+        reasoning_mode: str | None = None,
     ) -> None:
         self.prompt_dir = Path(prompt_dir)
         self.log_dir = Path(log_dir)
         self.log_dir.mkdir(parents=True, exist_ok=True)
         self.input_payload = input_payload
+        self.reasoning_mode = reasoning_mode
 
         settings = load_settings()
-        self.llm = LLMClient(settings.llm.get(model_config))
+        llm_config = apply_reasoning_mode(settings.llm.get(model_config), reasoning_mode)
+        self.llm = LLMClient(llm_config)
         self.build_prompt = PromptBuilder(
             template_dir=self.prompt_dir,
             strict_undefined=False,
@@ -119,6 +123,11 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--question-id", default=None)
     parser.add_argument("--db-id", default=None)
     parser.add_argument("--model-config", default=None)
+    parser.add_argument(
+        "--reasoning-mode",
+        choices=sorted(REASONING_MODE_MAP.keys()),
+        default=None,
+    )
     parser.add_argument("--output-path", type=Path, default=None)
     parser.add_argument("--prompt-dir", type=Path, default=DEFAULT_PROMPT_DIR)
     parser.add_argument("--log-dir", type=Path, default=None)
@@ -174,12 +183,15 @@ def main() -> None:
     print(f"[NL2ER-3] question_id={input_payload.question_id}")
     print(f"[NL2ER-3] db_id={input_payload.db_id}")
     print(f"[NL2ER-3] prompt_template={PROMPT_TEMPLATE_NAME}")
+    if args.reasoning_mode:
+        print(f"[NL2ER-3] reasoning_mode={args.reasoning_mode}")
 
     runner = NL2ERSinglePromptRunner(
         prompt_dir=args.prompt_dir,
         log_dir=log_dir,
         input_payload=input_payload,
         model_config=args.model_config,
+        reasoning_mode=args.reasoning_mode,
     )
     payload = runner.run()
 

@@ -146,6 +146,8 @@ def load_settings(
                 "default_system_prompt",
                 "You are a helpful assistant.",
             ),
+            thinking_type=cfg.get("thinking_type"),
+            reasoning_effort=cfg.get("reasoning_effort"),
         )
 
     llm = LLMSettings(

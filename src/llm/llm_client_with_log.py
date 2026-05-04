@@ -16,6 +16,7 @@ from langchain_openai import ChatOpenAI
 from tqdm.auto import tqdm
 
 from src.config import LLMConfig
+from src.llm.response_formatter import message_to_text
 
 CheckFunc = Callable[[str], bool]
 
@@ -41,7 +42,7 @@ class LLMClient:
         self.log_path = self._resolve_log_path(log_path)
         self._log_lock = threading.Lock()
 
-        self.llm = ChatOpenAI(
+        llm_kwargs = dict(
             model=config.model,
             openai_api_key=config.api_key,
             openai_api_base=config.base_url,
@@ -51,6 +52,15 @@ class LLMClient:
             max_retries=config.max_retries,
             max_completion_tokens=config.max_completion_tokens,
         )
+        extra_body = {}
+        if config.thinking_type:
+            extra_body["thinking"] = {"type": config.thinking_type}
+        if config.reasoning_effort:
+            extra_body["reasoning_effort"] = config.reasoning_effort
+        if extra_body:
+            llm_kwargs["extra_body"] = extra_body
+
+        self.llm = ChatOpenAI(**llm_kwargs)
 
         self._sessions: dict[str, list[BaseMessage]] = {}
         self.logger.info("LLM interaction log path: %s", self.log_path)
@@ -76,12 +86,7 @@ class LLMClient:
 
     @staticmethod
     def _to_text(message: BaseMessage | str) -> str:
-        if isinstance(message, str):
-            return message
-        content = getattr(message, "content", "")
-        if isinstance(content, str):
-            return content
-        return str(content)
+        return message_to_text(message)
 
     @staticmethod
     def _serialize_message(message: BaseMessage) -> dict[str, str]:

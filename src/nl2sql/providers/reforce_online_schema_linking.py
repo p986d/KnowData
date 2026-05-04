@@ -18,6 +18,49 @@ from src.nl2sql.providers.reforce_wrapper_common import (
 from src.nl2sql.providers.reforce_backend_patch import patch_schema_linking_upstream
 
 
+def build_reasoning_extra_body(
+    *,
+    thinking_type: str | None,
+    reasoning_effort: str | None,
+) -> dict[str, object]:
+    resolved_thinking_type = str(thinking_type or "").strip() or None
+    resolved_reasoning_effort = str(reasoning_effort or "").strip() or None
+    if resolved_thinking_type == "disabled":
+        resolved_reasoning_effort = None
+
+    extra_body: dict[str, object] = {}
+    if resolved_thinking_type:
+        extra_body["thinking"] = {"type": resolved_thinking_type}
+    if resolved_reasoning_effort:
+        extra_body["reasoning_effort"] = resolved_reasoning_effort
+    return extra_body
+
+
+def patch_reasoning_upstream(
+    upstream,
+    *,
+    thinking_type: str | None,
+    reasoning_effort: str | None,
+) -> None:
+    extra_body = build_reasoning_extra_body(
+        thinking_type=thinking_type,
+        reasoning_effort=reasoning_effort,
+    )
+    if not extra_body:
+        return
+
+    def get_model_response(client, model: str, prompt: str, temperature: float) -> str:
+        response = client.chat.completions.create(
+            model=model,
+            messages=[{"role": "user", "content": prompt}],
+            temperature=temperature,
+            extra_body=extra_body,
+        )
+        return response.choices[0].message.content or ""
+
+    upstream.get_model_response = get_model_response
+
+
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description="Knowdata wrapper around ReFoRCE online_schema_linking.py with db_root support."
@@ -25,6 +68,8 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--api_key", required=True)
     parser.add_argument("--base_url", required=True)
     parser.add_argument("--model", default="qwen-plus")
+    parser.add_argument("--thinking_type", default=None)
+    parser.add_argument("--reasoning_effort", default=None)
     parser.add_argument("--db_id", required=True)
     parser.add_argument("--question", required=True)
     parser.add_argument("--spider2_root", required=True)
@@ -52,6 +97,11 @@ def main() -> None:
     patch_schema_linking_upstream(
         upstream,
         backend=str(args.backend or "snowflake").strip().lower(),
+    )
+    patch_reasoning_upstream(
+        upstream,
+        thinking_type=args.thinking_type,
+        reasoning_effort=args.reasoning_effort,
     )
 
     spider2_root = Path(args.spider2_root)
@@ -111,6 +161,8 @@ def main() -> None:
         "linked_columns": linked_columns,
         "metadata": {
             "model": args.model,
+            "thinking_type": args.thinking_type,
+            "reasoning_effort": args.reasoning_effort,
             "base_url": args.base_url,
             "spider2_root": str(spider2_root),
             "db_root": str(Path(args.db_root).resolve()) if args.db_root else None,

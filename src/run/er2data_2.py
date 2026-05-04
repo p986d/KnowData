@@ -8,6 +8,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
+from src.llm.reasoning import REASONING_MODE_MAP
 from src.nl2sql.defaults import (
     DEFAULT_ENGINE_SCRIPT,
     DEFAULT_REFORCE_ROOT,
@@ -180,6 +181,7 @@ class ER2DataSchemaLinkRunner:
         er2query_template_name: str = DEFAULT_ER2QUERY_TEMPLATE_NAME,
         question_model_config: str | None = None,
         schema_link_model_config: str | None = None,
+        reasoning_mode: str | None = None,
         include_desc_in_er2query: bool = True,
         include_conditions_in_er2query: bool = False,
     ) -> None:
@@ -190,6 +192,7 @@ class ER2DataSchemaLinkRunner:
             question_model_config=question_model_config,
             schema_link_model_config=schema_link_model_config,
             nl2sql_model_config=schema_link_model_config,
+            reasoning_mode=reasoning_mode,
             include_desc_in_er2query=include_desc_in_er2query,
             include_conditions_in_er2query=include_conditions_in_er2query,
             include_conditions_in_sql2nl=False,
@@ -365,6 +368,11 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--question-model-config", default=None)
     parser.add_argument("--schema-link-model-config", default=None)
     parser.add_argument(
+        "--reasoning-mode",
+        choices=sorted(REASONING_MODE_MAP.keys()),
+        default=None,
+    )
+    parser.add_argument(
         "--enable-er2query-db-hint",
         type=parse_cli_bool,
         default=True,
@@ -430,6 +438,7 @@ def run_single_case(
         er2query_template_name=args.er2query_template_name,
         question_model_config=args.question_model_config,
         schema_link_model_config=args.schema_link_model_config,
+        reasoning_mode=args.reasoning_mode,
         include_desc_in_er2query=not args.exclude_desc_in_er2query,
         include_conditions_in_er2query=args.include_conditions_in_er2query,
     )
@@ -523,6 +532,8 @@ def main() -> None:
     print(f"[ER2DATA_2] max_linking_workers={args.max_linking_workers}")
     print(f"[ER2DATA_2] prompt_dir={resolve_path(args.prompt_dir)}")
     print(f"[ER2DATA_2] log_root={resolve_path(args.log_root)}")
+    if args.reasoning_mode:
+        print(f"[ER2DATA_2] reasoning_mode={args.reasoning_mode}")
 
     completed_summaries: list[dict[str, Any]] = []
     worker_count = max(1, min(args.max_batch_workers, len(case_inputs)))

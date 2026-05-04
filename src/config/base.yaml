@@ -26,7 +26,7 @@ llm:
       max_retries: 2
       max_completion_tokens: 65535
       max_concurrency: 8
-      default_system_prompt: "You are a helpful assistant."
+      default_system_prompt: ""
 
     deepseek_chat:
       api_key_env: "API_KEY_Lab_DeepSeek"
@@ -38,7 +38,19 @@ llm:
       max_retries: 2
       max_completion_tokens: 65535
       max_concurrency: 8
-      default_system_prompt: "You are a helpful assistant."  
+      default_system_prompt: ""  
+
+    deepseek_v4_flash:
+      api_key_env: "API_KEY_DeepSeek_v4_flash"
+      base_url_env: "BASE_URL_DeepSeek_v4_flash"
+      model: "deepseek-v4-flash"
+      temperature: 0.1
+      top_p: 0.95
+      timeout: 600.0
+      max_retries: 2
+      max_completion_tokens: 65535
+      max_concurrency: 8
+      default_system_prompt: ""  
 
     deepseek_chat_2:
       api_key_env: "API_KEY_Comp_DashScope"
@@ -62,7 +74,7 @@ llm:
       max_retries: 2
       max_completion_tokens: 65535
       max_concurrency: 8
-      default_system_prompt: "You are a helpful assistant."  
+      default_system_prompt: ""  
 
     qwen3_30B_instruct:
       api_key_env: "API_KEY_Comp_DashScope"
@@ -86,7 +98,7 @@ llm:
       max_retries: 2
       max_completion_tokens: 65535
       max_concurrency: 8
-      default_system_prompt: "You are a helpful assistant." 
+      default_system_prompt: "" 
 
     qwen_max:
       api_key_env: "API_KEY_Comp_DashScope"
@@ -98,7 +110,7 @@ llm:
       max_retries: 2
       max_completion_tokens: 65535
       max_concurrency: 8
-      default_system_prompt: "You are a helpful assistant."     
+      default_system_prompt: ""     
 
 
 engine:

@@ -54,6 +54,8 @@ class LLMConfig:
     max_completion_tokens: int = 4096
     max_concurrency: int = 8
     default_system_prompt: str = "You are a helpful assistant."
+    thinking_type: Optional[str] = None
+    reasoning_effort: Optional[str] = None
 
 
 @dataclass(slots=True)

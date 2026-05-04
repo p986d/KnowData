@@ -10,6 +10,7 @@ from typing import Any
 
 from src.config import load_settings
 from src.llm.llm_client import LLMClient
+from src.llm.reasoning import REASONING_MODE_MAP, apply_reasoning_mode
 from src.prompt.prompt_builder import PromptBuilder
 from src.utils.json_util import json_check, json_parse
 from src.utils.run_log import (
@@ -407,19 +408,22 @@ class NL2ER:
         log_dir: str | Path,
         input_payload: NL2ERInput,
         model_config: str | None = None,
+        reasoning_mode: str | None = None,
         stage2_attribute_mode: str = ATTRIBUTE_MODE_LIST,
     ) -> None:
         self.prompt_dir = Path(prompt_dir)
         self.log_dir = Path(log_dir)
         self.log_dir.mkdir(parents=True, exist_ok=True)
         self.input_payload = input_payload
+        self.reasoning_mode = reasoning_mode
         self.stage2_attribute_mode = self._normalize_attribute_mode(
             stage2_attribute_mode,
             supported_modes=(ATTRIBUTE_MODE_LIST, ATTRIBUTE_MODE_DICT),
         )
 
         settings = load_settings()
-        self.llm = LLMClient(settings.llm.get(model_config))
+        llm_config = apply_reasoning_mode(settings.llm.get(model_config), reasoning_mode)
+        self.llm = LLMClient(llm_config)
         self.build_prompt = PromptBuilder(
             template_dir=self.prompt_dir,
             strict_undefined=False,
@@ -429,7 +433,7 @@ class NL2ER:
         (self.log_dir / filename).write_text(content, encoding="utf-8")
 
     def extract_er_object_sketch(self) -> dict[str, Any]:
-        template_name = "NL2ER_ER_test_st1_v0.18.md"
+        template_name = "NL2ER_ERA_sketch_st1_v0.1.md"
         self.build_prompt.register_template(
             name="step_1_extract_er_object_sketch",
             template_name=template_name,
@@ -460,7 +464,7 @@ class NL2ER:
         return self.normalize_er_object_sketch(json_parse(response))
 
     def review_er_object_sketch(self, stage1_object_sketch: dict[str, Any]) -> dict[str, Any]:
-        template_name = "NL2ER_ER_test_st2_v0.14.md"
+        template_name = "NL2ER_ERAC_review_st2_v0.1.md"
         self.build_prompt.register_template(
             name="step_2_review_er_object_sketch",
             template_name=template_name,
@@ -2065,6 +2069,11 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--db-id", default=None)
     parser.add_argument("--model-config", default=None)
     parser.add_argument(
+        "--reasoning-mode",
+        choices=sorted(REASONING_MODE_MAP.keys()),
+        default=None,
+    )
+    parser.add_argument(
         "--stage2-attribute-mode",
         choices=[ATTRIBUTE_MODE_LIST, ATTRIBUTE_MODE_DICT],
         default=ATTRIBUTE_MODE_LIST,
@@ -2137,12 +2146,15 @@ def main() -> None:
     print(f"[NL2ER] db_id={input_payload.db_id}")
     print(f"[NL2ER] mode={args.mode}")
     print(f"[NL2ER] stage2_attribute_mode={args.stage2_attribute_mode}")
+    if args.reasoning_mode:
+        print(f"[NL2ER] reasoning_mode={args.reasoning_mode}")
 
     nl2er = NL2ER(
         prompt_dir=args.prompt_dir,
         log_dir=log_dir,
         input_payload=input_payload,
         model_config=args.model_config,
+        reasoning_mode=args.reasoning_mode,
         stage2_attribute_mode=args.stage2_attribute_mode,
     )
 

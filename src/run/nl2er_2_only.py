@@ -19,6 +19,7 @@ from src.run.nl2er_2 import (
     ERSkeletonIntegrityError,
     NL2ER,
     NL2ERInput,
+    REASONING_MODE_MAP,
     build_er_test_st1_output_payload,
     build_er_test_st2_output_payload,
     build_output_payload,
@@ -171,6 +172,11 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--nl2er-log-root", type=Path, default=DEFAULT_LOG_ROOT)
     parser.add_argument("--prompt-dir", type=Path, default=DEFAULT_PROMPT_DIR)
     parser.add_argument("--model-config", default=None)
+    parser.add_argument(
+        "--reasoning-mode",
+        choices=sorted(REASONING_MODE_MAP.keys()),
+        default=None,
+    )
     parser.add_argument("--max-workers", type=positive_int, default=1)
     return parser.parse_args()
 
@@ -364,6 +370,7 @@ def run_single_question(
             "log_dir": str(log_dir),
             "output_path": str(output_path),
             "model_config": args.model_config,
+            "reasoning_mode": args.reasoning_mode,
         },
     )
 
@@ -371,6 +378,8 @@ def run_single_question(
     print(f"[NL2ER-2-ONLY] question_id={input_payload.question_id}")
     print(f"[NL2ER-2-ONLY] db_id={input_payload.db_id}")
     print(f"[NL2ER-2-ONLY] mode={args.mode}")
+    if args.reasoning_mode:
+        print(f"[NL2ER-2-ONLY] reasoning_mode={args.reasoning_mode}")
     print(f"[NL2ER-2-ONLY] metadata_dir={metadata_dir}")
     print(f"[NL2ER-2-ONLY] log_dir={log_dir}")
 
@@ -385,6 +394,7 @@ def run_single_question(
             external_knowledge=input_payload.external_knowledge,
         ),
         model_config=args.model_config,
+        reasoning_mode=args.reasoning_mode,
     )
 
     if args.mode == "er_test_st1":

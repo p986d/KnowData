@@ -13,6 +13,7 @@ from src.run.nl2er_3 import (
     DEFAULT_METADATA_ROOT,
     DEFAULT_OUTPUT_FILENAME,
     DEFAULT_PROMPT_DIR,
+    REASONING_MODE_MAP,
     NL2ERInput,
     NL2ERSinglePromptRunner,
     serialize_input_payload,
@@ -157,6 +158,11 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--nl2er-log-root", type=Path, default=DEFAULT_LOG_ROOT)
     parser.add_argument("--prompt-dir", type=Path, default=DEFAULT_PROMPT_DIR)
     parser.add_argument("--model-config", default=None)
+    parser.add_argument(
+        "--reasoning-mode",
+        choices=sorted(REASONING_MODE_MAP.keys()),
+        default=None,
+    )
     parser.add_argument("--max-workers", type=positive_int, default=1)
     return parser.parse_args()
 
@@ -338,6 +344,7 @@ def run_single_question(
             "log_dir": str(log_dir),
             "output_path": str(output_path),
             "model_config": args.model_config,
+            "reasoning_mode": args.reasoning_mode,
         },
     )
 
@@ -345,6 +352,8 @@ def run_single_question(
     print(f"[NL2ER-3-ONLY] question_id={input_payload.question_id}")
     print(f"[NL2ER-3-ONLY] db_id={input_payload.db_id}")
     print(f"[NL2ER-3-ONLY] mode={RUN_MODE_NAME}")
+    if args.reasoning_mode:
+        print(f"[NL2ER-3-ONLY] reasoning_mode={args.reasoning_mode}")
     print(f"[NL2ER-3-ONLY] metadata_dir={metadata_dir}")
     print(f"[NL2ER-3-ONLY] log_dir={log_dir}")
 
@@ -359,6 +368,7 @@ def run_single_question(
             external_knowledge=input_payload.external_knowledge,
         ),
         model_config=args.model_config,
+        reasoning_mode=args.reasoning_mode,
     )
 
     try:

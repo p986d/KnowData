@@ -11,6 +11,7 @@ from langchain_core.messages import AIMessage, BaseMessage, HumanMessage, System
 from langchain_openai import ChatOpenAI
 
 from src.config import LLMConfig
+from src.llm.response_formatter import message_to_text
 from tqdm.auto import tqdm
 
 CheckFunc = Callable[[str], bool]
@@ -29,7 +30,7 @@ class LLMClient:
         self.config = config
         self.logger = logger or self._build_default_logger()
 
-        self.llm = ChatOpenAI(
+        llm_kwargs = dict(
             model=config.model,
             openai_api_key=config.api_key,
             openai_api_base=config.base_url,
@@ -39,6 +40,15 @@ class LLMClient:
             max_retries=config.max_retries,
             max_completion_tokens=config.max_completion_tokens,
         )
+        extra_body = {}
+        if config.thinking_type:
+            extra_body["thinking"] = {"type": config.thinking_type}
+        if config.reasoning_effort:
+            extra_body["reasoning_effort"] = config.reasoning_effort
+        if extra_body:
+            llm_kwargs["extra_body"] = extra_body
+
+        self.llm = ChatOpenAI(**llm_kwargs)
 
         self._sessions: dict[str, list[BaseMessage]] = {}
 
@@ -63,12 +73,7 @@ class LLMClient:
 
     @staticmethod
     def _to_text(message: BaseMessage | str) -> str:
-        if isinstance(message, str):
-            return message
-        content = getattr(message, "content", "")
-        if isinstance(content, str):
-            return content
-        return str(content)
+        return message_to_text(message)
 
     def new_session_id(self) -> str:
         return uuid.uuid4().hex

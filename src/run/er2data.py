@@ -15,6 +15,7 @@ from typing import Any, Callable
 
 from src.config import load_settings
 from src.llm.llm_client import LLMClient
+from src.llm.reasoning import apply_reasoning_mode
 from src.nl2sql.base import NL2SQLRequest, SchemaLinkingRequest
 from src.nl2sql.defaults import (
     DEFAULT_ENGINE_SCRIPT,
@@ -44,7 +45,6 @@ DEFAULT_PROMPT_DIR = Path("src/prompt/prompt_template")
 DEFAULT_LOG_ROOT = Path("log/er2data")
 DEFAULT_METADATA_ROOT = Path("metadata")
 DEFAULT_ER2QUERY_TEMPLATE_NAME = "ER2Data_er2query_st1_v1.2.md"
-LEGACY_ER2QUERY_TEMPLATE_NAME = "ER2Data_er2query_st1_v0.3.md"
 PROMPT_TEMPLATE_KEY = "er2data_unit_to_query"
 ANALYSIS_TEMPLATE_NAME = "ER2Data_query2unit_check_st2_v0.md"
 ANALYSIS_TEMPLATE_KEY = "er2data_query_to_unit_check"
@@ -733,6 +733,7 @@ class ER2DataRunner:
         question_model_config: str | None = None,
         schema_link_model_config: str | None = None,
         nl2sql_model_config: str | None = None,
+        reasoning_mode: str | None = None,
         include_desc_in_er2query: bool = True,
         include_conditions_in_er2query: bool = False,
         include_conditions_in_sql2nl: bool = False,
@@ -740,6 +741,7 @@ class ER2DataRunner:
         self.prompt_dir = Path(prompt_dir)
         self.log_dir = Path(log_dir)
         self.er2query_template_name = str(er2query_template_name).strip()
+        self.reasoning_mode = reasoning_mode
         self.include_desc_in_er2query = include_desc_in_er2query
         self.include_conditions_in_er2query = include_conditions_in_er2query
         self.include_conditions_in_sql2nl = include_conditions_in_sql2nl
@@ -773,8 +775,14 @@ class ER2DataRunner:
         self.nl2sql_model_config_name = (
             nl2sql_model_config or self.schema_link_model_config_name
         )
-        self.question_llm_config = settings.llm.get(self.question_model_config_name)
-        self.schema_link_llm_config = settings.llm.get(self.schema_link_model_config_name)
+        self.question_llm_config = apply_reasoning_mode(
+            settings.llm.get(self.question_model_config_name),
+            reasoning_mode,
+        )
+        self.schema_link_llm_config = apply_reasoning_mode(
+            settings.llm.get(self.schema_link_model_config_name),
+            reasoning_mode,
+        )
         settings.llm.get(self.nl2sql_model_config_name)
         self.question_llm = LLMClient(self.question_llm_config)
 
@@ -1284,6 +1292,8 @@ class ER2DataRunner:
                 db_id=db_id,
                 question=str(unit_result["question"]),
                 model=self.schema_link_llm_config.model,
+                thinking_type=self.schema_link_llm_config.thinking_type,
+                reasoning_effort=self.schema_link_llm_config.reasoning_effort,
                 output_path=str(engine_output_path),
                 temperature=temperature,
                 shortlist_trigger=shortlist_trigger,
