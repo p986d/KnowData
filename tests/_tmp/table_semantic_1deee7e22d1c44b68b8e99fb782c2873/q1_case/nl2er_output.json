@@ -1,6 +1,0 @@
-{
-  "resolve_process": [
-    "Subquery 1: Find orders.",
-    "Subquery 2: Group orders by customer."
-  ]
-}

@@ -1,8 +1,0 @@
-{
-  "question_id": "q1",
-  "user_intent": "show orders",
-  "db_id": "db1",
-  "db_hint": "",
-  "external_knowledge": "",
-  "sub_questions": "Subquery 1: Find orders.\nSubquery 2: Group orders by customer."
-}
