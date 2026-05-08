@@ -7,6 +7,7 @@ from dataclasses import dataclass
 from pathlib import Path
 import traceback
 
+from src.llm.reasoning import REASONING_MODE_MAP
 from src.run.er2data import (
     DEFAULT_ENGINE_SCRIPT,
     DEFAULT_ANALYSIS_FILENAME as DEFAULT_ER2DATA_ANALYSIS_FILENAME,
@@ -19,7 +20,7 @@ from src.run.er2data import (
     DEFAULT_SPIDER2_ROOT,
     ER2DataRunner,
 )
-from src.run.nl2er_2 import (
+from src.run.nl2er import (
     DEFAULT_INPUT_PATH,
     DEFAULT_LOG_ROOT as DEFAULT_NL2ER_LOG_ROOT,
     DEFAULT_OUTPUT_FILENAME as DEFAULT_NL2ER_OUTPUT_FILENAME,
@@ -187,6 +188,11 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--question-model-config", default=None)
     parser.add_argument("--schema-link-model-config", default=None)
     parser.add_argument("--nl2sql-model-config", default=None)
+    parser.add_argument(
+        "--reasoning-mode",
+        choices=sorted(REASONING_MODE_MAP.keys()),
+        default=None,
+    )
     parser.add_argument(
         "--enable-nl2er-db-hint",
         type=parse_cli_bool,
@@ -461,6 +467,7 @@ def run_single_question(
             "include_desc_in_er2query": not args.exclude_desc_in_er2query,
             "include_conditions_in_er2query": args.include_conditions_in_er2query,
             "include_conditions_in_sql2nl": args.include_conditions_in_sql2nl,
+            "reasoning_mode": args.reasoning_mode,
         },
     )
 
@@ -473,6 +480,8 @@ def run_single_question(
     print(f"[PIPELINE] enable_nl2er_db_hint={args.enable_nl2er_db_hint}")
     print(f"[PIPELINE] enable_er2data_db_hint={args.enable_er2data_db_hint}")
     print(f"[PIPELINE] enable_er2query_db_hint={enable_er2query_db_hint}")
+    if args.reasoning_mode:
+        print(f"[PIPELINE] reasoning_mode={args.reasoning_mode}")
 
     nl2er_input = NL2ERInput(
         question_id=input_payload.question_id,
@@ -489,6 +498,7 @@ def run_single_question(
         log_dir=nl2er_log_dir,
         input_payload=nl2er_input,
         model_config=args.nl2er_model_config,
+        reasoning_mode=args.reasoning_mode,
     )
     try:
         nl2er_payload = nl2er.run()
@@ -583,6 +593,7 @@ def run_single_question(
         question_model_config=args.question_model_config,
         schema_link_model_config=args.schema_link_model_config,
         nl2sql_model_config=args.nl2sql_model_config,
+        reasoning_mode=args.reasoning_mode,
         include_desc_in_er2query=not args.exclude_desc_in_er2query,
         include_conditions_in_er2query=args.include_conditions_in_er2query,
         include_conditions_in_sql2nl=args.include_conditions_in_sql2nl,
@@ -677,6 +688,7 @@ def run_single_question(
     run_summary["include_desc_in_er2query"] = not args.exclude_desc_in_er2query
     run_summary["include_conditions_in_er2query"] = args.include_conditions_in_er2query
     run_summary["include_conditions_in_sql2nl"] = args.include_conditions_in_sql2nl
+    run_summary["reasoning_mode"] = args.reasoning_mode
     write_json(metadata_dir / "run_context.json", run_summary)
     return run_summary
 

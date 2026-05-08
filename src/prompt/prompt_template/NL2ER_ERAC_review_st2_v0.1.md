@@ -443,18 +443,3 @@ Conceptual SQL 是验证产物，不是对基础ER的重构；它仅用来检测
 }
 
 ```
-
-# 输出要求
-
-* 输出必须是单个合法 JSON 对象；
-* 不得输出 conceptual SQL；
-* 不得输出 CTE；
-* 不得输出 SQL 语法片段；
-* `refined_object_sketch` 只保留基础层对象；
-* `conditions` 只保留稳定语义约束；
-* `logical_query_sketch` 只表达逻辑查询语义，不表达执行代码；
-* 每个 `entity` 都必须有非空 `primary_key`；若题面未显式给出自然键，允许使用带 `_surrogate_id` 后缀的代理标识属性；
-* 每个 `relations.participants[].anchor_attribute` 都必须是非空数组，并落到对应实体的 `primary_key` 或等价稳定标识属性上；
-* 所有说明使用与用户输入一致的语言；
-* 字段值必须具体、清晰，不得使用 `...`、`same as above`、`TBD` 等占位表达；
-* 若某项为空，也必须返回空数组，而不是省略字段。

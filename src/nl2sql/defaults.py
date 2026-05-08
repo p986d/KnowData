@@ -4,11 +4,11 @@ from pathlib import Path
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
-WORKSPACE_ROOT = PROJECT_ROOT.parent
+WORKSPACE_ROOT = PROJECT_ROOT.parents[1]
 
 DEFAULT_ENGINE_PROVIDER = "reforce"
 DEFAULT_REFORCE_ROOT = WORKSPACE_ROOT / "ReFoRCE"
-DEFAULT_SPIDER2_ROOT = WORKSPACE_ROOT / "Spider2" / "spider2-snow"
+DEFAULT_SPIDER2_ROOT = DEFAULT_REFORCE_ROOT / "spider2-snow"
 DEFAULT_SCHEMA_LINKING_ENGINE_SCRIPT = (
     DEFAULT_REFORCE_ROOT / "methods" / "ReFoRCE" / "online_schema_linking.py"
 )

@@ -1,0 +1,50 @@
+{
+  "db_id": "PATENTS",
+  "grouping_method": "reforce_table_family",
+  "raw_table_count": 3,
+  "group_count": 3,
+  "groups": [
+    {
+      "group_id": "group_0001_PATENTS.PATENTS.CPC_DEFINITION",
+      "grouping_method": "reforce_table_family",
+      "group_key": {
+        "namespace": "PATENTS.PATENTS",
+        "normalized_table_name": "CPC_DEFINITION",
+        "column_signature_hash": "ffc84a69c34b"
+      },
+      "representative_table": "PATENTS.PATENTS.CPC_DEFINITION",
+      "member_tables": [
+        "PATENTS.PATENTS.CPC_DEFINITION"
+      ],
+      "family_size": 1
+    },
+    {
+      "group_id": "group_0002_PATENTS.PATENTS.DISCLOSURES_13",
+      "grouping_method": "reforce_table_family",
+      "group_key": {
+        "namespace": "PATENTS.PATENTS",
+        "normalized_table_name": "DISCLOSURES_",
+        "column_signature_hash": "ccd9a395dc0d"
+      },
+      "representative_table": "PATENTS.PATENTS.DISCLOSURES_13",
+      "member_tables": [
+        "PATENTS.PATENTS.DISCLOSURES_13"
+      ],
+      "family_size": 1
+    },
+    {
+      "group_id": "group_0003_PATENTS.PATENTS.PUBLICATIONS",
+      "grouping_method": "reforce_table_family",
+      "group_key": {
+        "namespace": "PATENTS.PATENTS",
+        "normalized_table_name": "PUBLICATIONS",
+        "column_signature_hash": "ce7789bdfc95"
+      },
+      "representative_table": "PATENTS.PATENTS.PUBLICATIONS",
+      "member_tables": [
+        "PATENTS.PATENTS.PUBLICATIONS"
+      ],
+      "family_size": 1
+    }
+  ]
+}

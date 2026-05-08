@@ -94,6 +94,8 @@ class BatchCoverageReport:
     covered_cases: int
     uncovered_cases: int
     error_cases: int
+    strict_table_recall_rate: float
+    strict_column_recall_rate: float
     cases: list[BatchCoverageCaseResult]
 
     def to_payload(self) -> dict[str, Any]:
@@ -105,6 +107,8 @@ class BatchCoverageReport:
             "covered_cases": self.covered_cases,
             "uncovered_cases": self.uncovered_cases,
             "error_cases": self.error_cases,
+            "strict_table_recall_rate": self.strict_table_recall_rate,
+            "strict_column_recall_rate": self.strict_column_recall_rate,
             "cases": [item.to_payload() for item in self.cases],
         }
 
@@ -212,12 +216,16 @@ def extract_schema_linking_selection(schema_linking_payload: Any) -> SchemaLinki
         if isinstance(node, dict):
             linked_tables = _extract_item_fullnames(node.get("linked_tables"), kind="table")
             linked_columns = _extract_item_fullnames(node.get("linked_columns"), kind="column")
+            generated_tables = _extract_item_fullnames(node.get("gen_tb"), kind="table")
+            generated_columns = _extract_item_fullnames(node.get("gen_col"), kind="column")
             raw_tables = _extract_item_fullnames(node.get("tables"), kind="table")
             raw_columns = _extract_item_fullnames(node.get("columns"), kind="column")
 
             table_names.update(linked_tables)
+            table_names.update(generated_tables)
             table_names.update(raw_tables)
             column_names.update(linked_columns)
+            column_names.update(generated_columns)
             column_names.update(raw_columns)
 
             for value in node.values():
@@ -273,7 +281,6 @@ def evaluate_schema_linking_coverage(
 
     fully_covered = (
         table_coverage.fully_covered
-        and column_name_coverage.fully_covered
         and (not gold_resolved_columns or resolved_column_coverage.fully_covered)
     )
 
@@ -293,6 +300,7 @@ def generate_batch_coverage_report(
     ground_truth_dir: str | Path,
     dialect: str | None = None,
     allow_local_ground_truth_fallback: bool = True,
+    schema_linking_filename: str = "schema_linking.json",
 ) -> BatchCoverageReport:
     resolved_metadata_dir = Path(metadata_dir).expanduser().resolve()
     resolved_ground_truth_dir = Path(ground_truth_dir).expanduser().resolve()
@@ -304,11 +312,14 @@ def generate_batch_coverage_report(
             f"Ground-truth directory does not exist: {resolved_ground_truth_dir}"
         )
 
-    case_dirs = _discover_metadata_case_dirs(resolved_metadata_dir)
+    case_dirs = _discover_metadata_case_dirs(
+        resolved_metadata_dir,
+        schema_linking_filename=schema_linking_filename,
+    )
     case_results: list[BatchCoverageCaseResult] = []
 
     for case_dir in case_dirs:
-        schema_linking_path = case_dir / "schema_linking.json"
+        schema_linking_path = case_dir / schema_linking_filename
         question_id = _read_case_question_id(case_dir)
         case_dialect = dialect or _infer_dialect(question_id)
         ground_truth_path, ground_truth_source = _resolve_ground_truth_sql_path(
@@ -381,6 +392,9 @@ def generate_batch_coverage_report(
         if item.ok and item.coverage is not None and not item.coverage.fully_covered
     )
     error_cases = len(case_results) - ok_cases
+    strict_table_recall_rate, strict_column_recall_rate = compute_strict_recall_rates(
+        case_results
+    )
 
     return BatchCoverageReport(
         metadata_dir=str(resolved_metadata_dir),
@@ -390,8 +404,32 @@ def generate_batch_coverage_report(
         covered_cases=covered_cases,
         uncovered_cases=uncovered_cases,
         error_cases=error_cases,
+        strict_table_recall_rate=strict_table_recall_rate,
+        strict_column_recall_rate=strict_column_recall_rate,
         cases=case_results,
     )
+
+
+def compute_strict_recall_rates(
+    case_results: list[BatchCoverageCaseResult],
+) -> tuple[float, float]:
+    ok_coverages = [
+        item.coverage
+        for item in case_results
+        if item.ok and item.coverage is not None
+    ]
+    if not ok_coverages:
+        return 0.0, 0.0
+
+    strict_table_recall_rate = sum(
+        1.0 if coverage.table_coverage.recall == 1.0 else 0.0
+        for coverage in ok_coverages
+    ) / len(ok_coverages)
+    strict_column_recall_rate = sum(
+        1.0 if coverage.resolved_column_coverage.recall == 1.0 else 0.0
+        for coverage in ok_coverages
+    ) / len(ok_coverages)
+    return strict_table_recall_rate, strict_column_recall_rate
 
 
 def format_batch_coverage_report(
@@ -409,7 +447,9 @@ def format_batch_coverage_report(
             f"ok={report.ok_cases} "
             f"covered={report.covered_cases} "
             f"uncovered={report.uncovered_cases} "
-            f"errors={report.error_cases}"
+            f"errors={report.error_cases} "
+            f"strict_table_recall_rate={report.strict_table_recall_rate:.3f} "
+            f"strict_column_recall_rate={report.strict_column_recall_rate:.3f}"
         ),
         "",
     ]
@@ -430,14 +470,10 @@ def format_batch_coverage_report(
 
         lines.append(
             f"{status} {item.question_id} "
-            f"dialect={item.dialect or '-'} "
-            f"ground_truth_source={item.ground_truth_source} "
+            f"table_precision={coverage.table_coverage.precision:.3f} "
             f"table_recall={coverage.table_coverage.recall:.3f} "
-            f"resolved_col_recall={coverage.resolved_column_coverage.recall:.3f} "
-            f"col_name_recall={coverage.column_name_coverage.recall:.3f} "
-            f"missing_tables={len(coverage.table_coverage.missing)} "
-            f"missing_resolved_cols={len(coverage.resolved_column_coverage.missing)} "
-            f"missing_col_names={len(coverage.column_name_coverage.missing)}"
+            f"column_precision={coverage.resolved_column_coverage.precision:.3f} "
+            f"column_recall={coverage.resolved_column_coverage.recall:.3f}"
         )
 
         if coverage.fully_covered:
@@ -449,13 +485,8 @@ def format_batch_coverage_report(
             )
         if coverage.resolved_column_coverage.missing:
             lines.append(
-                "  missing_resolved_columns: "
+                "  missing_columns: "
                 + ", ".join(coverage.resolved_column_coverage.missing)
-            )
-        if coverage.column_name_coverage.missing:
-            lines.append(
-                "  missing_column_names: "
-                + ", ".join(coverage.column_name_coverage.missing)
             )
 
     if len(lines) == 5:
@@ -488,6 +519,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--ground-truth-dir", type=Path, default=None)
     parser.add_argument("--dialect", default=None)
     parser.add_argument("--output-path", type=Path, default=None)
+    parser.add_argument("--schema-linking-filename", default="schema_linking.json")
     parser.add_argument("--json", action="store_true")
     parser.add_argument("--show-covered-details", action="store_true")
     parser.add_argument("--no-local-ground-truth-fallback", action="store_true")
@@ -517,6 +549,7 @@ def main() -> None:
             ground_truth_dir=args.ground_truth_dir,
             dialect=args.dialect,
             allow_local_ground_truth_fallback=not args.no_local_ground_truth_fallback,
+            schema_linking_filename=args.schema_linking_filename,
         )
         payload = report.to_payload()
         rendered_text = format_batch_coverage_report(
@@ -605,23 +638,27 @@ def _extract_item_fullname(item: Any, *, kind: str) -> str:
     return ".".join(normalized_parts)
 
 
-def _discover_metadata_case_dirs(metadata_dir: Path) -> list[Path]:
+def _discover_metadata_case_dirs(
+    metadata_dir: Path,
+    *,
+    schema_linking_filename: str = "schema_linking.json",
+) -> list[Path]:
     if metadata_dir.is_file():
         raise ValueError(f"Expected a metadata directory, got file: {metadata_dir}")
 
-    direct_schema_linking = metadata_dir / "schema_linking.json"
+    direct_schema_linking = metadata_dir / schema_linking_filename
     if direct_schema_linking.exists():
         return [metadata_dir]
 
     case_dirs = sorted(
         {
             path.parent.resolve()
-            for path in metadata_dir.rglob("schema_linking.json")
+            for path in metadata_dir.rglob(schema_linking_filename)
         }
     )
     if not case_dirs:
         raise FileNotFoundError(
-            f"No `schema_linking.json` files were found under {metadata_dir}"
+            f"No `{schema_linking_filename}` files were found under {metadata_dir}"
         )
     return case_dirs
 

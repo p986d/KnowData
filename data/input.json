@@ -1,9 +1,4 @@
 [
-  {
-    "question_id":"00",
-    "db_id": "NEW_YORK_CITIBIKE_1",
-    "user_intent":"找出2001年午餐时段高退货风险呼叫中心。午餐时段=t_meal_time='lunch'；高退货风险=该时段退货率(退货数量/销售数量)高于全部呼叫中心P90。"
-  },
   { 
     "question_id": "sf_bq050",
     "db_id": "NEW_YORK_CITIBIKE_1",

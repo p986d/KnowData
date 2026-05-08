@@ -1,0 +1,274 @@
+{
+  "db_id": "BANK_SALES_TRADING",
+  "grouping_method": "reforce_table_family",
+  "raw_table_count": 19,
+  "group_count": 19,
+  "groups": [
+    {
+      "group_id": "group_0001_BANK_SALES_TRADING.BANK_SALES_TRADING.BITCOIN_MEMBERS",
+      "grouping_method": "reforce_table_family",
+      "group_key": {
+        "namespace": "BANK_SALES_TRADING.BANK_SALES_TRADING",
+        "normalized_table_name": "BITCOIN_MEMBERS",
+        "column_signature_hash": "fa1836eeb7f3"
+      },
+      "representative_table": "BANK_SALES_TRADING.BANK_SALES_TRADING.BITCOIN_MEMBERS",
+      "member_tables": [
+        "BANK_SALES_TRADING.BANK_SALES_TRADING.BITCOIN_MEMBERS"
+      ],
+      "family_size": 1
+    },
+    {
+      "group_id": "group_0002_BANK_SALES_TRADING.BANK_SALES_TRADING.BITCOIN_PRICES",
+      "grouping_method": "reforce_table_family",
+      "group_key": {
+        "namespace": "BANK_SALES_TRADING.BANK_SALES_TRADING",
+        "normalized_table_name": "BITCOIN_PRICES",
+        "column_signature_hash": "4d9d13720f33"
+      },
+      "representative_table": "BANK_SALES_TRADING.BANK_SALES_TRADING.BITCOIN_PRICES",
+      "member_tables": [
+        "BANK_SALES_TRADING.BANK_SALES_TRADING.BITCOIN_PRICES"
+      ],
+      "family_size": 1
+    },
+    {
+      "group_id": "group_0003_BANK_SALES_TRADING.BANK_SALES_TRADING.BITCOIN_TRANSACTIONS",
+      "grouping_method": "reforce_table_family",
+      "group_key": {
+        "namespace": "BANK_SALES_TRADING.BANK_SALES_TRADING",
+        "normalized_table_name": "BITCOIN_TRANSACTIONS",
+        "column_signature_hash": "52713c0d5880"
+      },
+      "representative_table": "BANK_SALES_TRADING.BANK_SALES_TRADING.BITCOIN_TRANSACTIONS",
+      "member_tables": [
+        "BANK_SALES_TRADING.BANK_SALES_TRADING.BITCOIN_TRANSACTIONS"
+      ],
+      "family_size": 1
+    },
+    {
+      "group_id": "group_0004_BANK_SALES_TRADING.BANK_SALES_TRADING.CLEANED_WEEKLY_SALES",
+      "grouping_method": "reforce_table_family",
+      "group_key": {
+        "namespace": "BANK_SALES_TRADING.BANK_SALES_TRADING",
+        "normalized_table_name": "CLEANED_WEEKLY_SALES",
+        "column_signature_hash": "589c67a4c1d3"
+      },
+      "representative_table": "BANK_SALES_TRADING.BANK_SALES_TRADING.CLEANED_WEEKLY_SALES",
+      "member_tables": [
+        "BANK_SALES_TRADING.BANK_SALES_TRADING.CLEANED_WEEKLY_SALES"
+      ],
+      "family_size": 1
+    },
+    {
+      "group_id": "group_0005_BANK_SALES_TRADING.BANK_SALES_TRADING.CUSTOMER_NODES",
+      "grouping_method": "reforce_table_family",
+      "group_key": {
+        "namespace": "BANK_SALES_TRADING.BANK_SALES_TRADING",
+        "normalized_table_name": "CUSTOMER_NODES",
+        "column_signature_hash": "c1353c5b2c4e"
+      },
+      "representative_table": "BANK_SALES_TRADING.BANK_SALES_TRADING.CUSTOMER_NODES",
+      "member_tables": [
+        "BANK_SALES_TRADING.BANK_SALES_TRADING.CUSTOMER_NODES"
+      ],
+      "family_size": 1
+    },
+    {
+      "group_id": "group_0006_BANK_SALES_TRADING.BANK_SALES_TRADING.CUSTOMER_REGIONS",
+      "grouping_method": "reforce_table_family",
+      "group_key": {
+        "namespace": "BANK_SALES_TRADING.BANK_SALES_TRADING",
+        "normalized_table_name": "CUSTOMER_REGIONS",
+        "column_signature_hash": "dbae17f3a156"
+      },
+      "representative_table": "BANK_SALES_TRADING.BANK_SALES_TRADING.CUSTOMER_REGIONS",
+      "member_tables": [
+        "BANK_SALES_TRADING.BANK_SALES_TRADING.CUSTOMER_REGIONS"
+      ],
+      "family_size": 1
+    },
+    {
+      "group_id": "group_0007_BANK_SALES_TRADING.BANK_SALES_TRADING.CUSTOMER_TRANSACTIONS",
+      "grouping_method": "reforce_table_family",
+      "group_key": {
+        "namespace": "BANK_SALES_TRADING.BANK_SALES_TRADING",
+        "normalized_table_name": "CUSTOMER_TRANSACTIONS",
+        "column_signature_hash": "1bd1f8c8a18e"
+      },
+      "representative_table": "BANK_SALES_TRADING.BANK_SALES_TRADING.CUSTOMER_TRANSACTIONS",
+      "member_tables": [
+        "BANK_SALES_TRADING.BANK_SALES_TRADING.CUSTOMER_TRANSACTIONS"
+      ],
+      "family_size": 1
+    },
+    {
+      "group_id": "group_0008_BANK_SALES_TRADING.BANK_SALES_TRADING.INTEREST_MAP",
+      "grouping_method": "reforce_table_family",
+      "group_key": {
+        "namespace": "BANK_SALES_TRADING.BANK_SALES_TRADING",
+        "normalized_table_name": "INTEREST_MAP",
+        "column_signature_hash": "c082c7e58004"
+      },
+      "representative_table": "BANK_SALES_TRADING.BANK_SALES_TRADING.INTEREST_MAP",
+      "member_tables": [
+        "BANK_SALES_TRADING.BANK_SALES_TRADING.INTEREST_MAP"
+      ],
+      "family_size": 1
+    },
+    {
+      "group_id": "group_0009_BANK_SALES_TRADING.BANK_SALES_TRADING.INTEREST_METRICS",
+      "grouping_method": "reforce_table_family",
+      "group_key": {
+        "namespace": "BANK_SALES_TRADING.BANK_SALES_TRADING",
+        "normalized_table_name": "INTEREST_METRICS",
+        "column_signature_hash": "b8c39d0a84a9"
+      },
+      "representative_table": "BANK_SALES_TRADING.BANK_SALES_TRADING.INTEREST_METRICS",
+      "member_tables": [
+        "BANK_SALES_TRADING.BANK_SALES_TRADING.INTEREST_METRICS"
+      ],
+      "family_size": 1
+    },
+    {
+      "group_id": "group_0010_BANK_SALES_TRADING.BANK_SALES_TRADING.SHOPPING_CART_CAMPAIGN_IDENTIFIER",
+      "grouping_method": "reforce_table_family",
+      "group_key": {
+        "namespace": "BANK_SALES_TRADING.BANK_SALES_TRADING",
+        "normalized_table_name": "SHOPPING_CART_CAMPAIGN_IDENTIFIER",
+        "column_signature_hash": "01a7db1d600a"
+      },
+      "representative_table": "BANK_SALES_TRADING.BANK_SALES_TRADING.SHOPPING_CART_CAMPAIGN_IDENTIFIER",
+      "member_tables": [
+        "BANK_SALES_TRADING.BANK_SALES_TRADING.SHOPPING_CART_CAMPAIGN_IDENTIFIER"
+      ],
+      "family_size": 1
+    },
+    {
+      "group_id": "group_0011_BANK_SALES_TRADING.BANK_SALES_TRADING.SHOPPING_CART_EVENTS",
+      "grouping_method": "reforce_table_family",
+      "group_key": {
+        "namespace": "BANK_SALES_TRADING.BANK_SALES_TRADING",
+        "normalized_table_name": "SHOPPING_CART_EVENTS",
+        "column_signature_hash": "072c9d673e84"
+      },
+      "representative_table": "BANK_SALES_TRADING.BANK_SALES_TRADING.SHOPPING_CART_EVENTS",
+      "member_tables": [
+        "BANK_SALES_TRADING.BANK_SALES_TRADING.SHOPPING_CART_EVENTS"
+      ],
+      "family_size": 1
+    },
+    {
+      "group_id": "group_0012_BANK_SALES_TRADING.BANK_SALES_TRADING.SHOPPING_CART_EVENT_IDENTIFIER",
+      "grouping_method": "reforce_table_family",
+      "group_key": {
+        "namespace": "BANK_SALES_TRADING.BANK_SALES_TRADING",
+        "normalized_table_name": "SHOPPING_CART_EVENT_IDENTIFIER",
+        "column_signature_hash": "f3e2cfaa3e24"
+      },
+      "representative_table": "BANK_SALES_TRADING.BANK_SALES_TRADING.SHOPPING_CART_EVENT_IDENTIFIER",
+      "member_tables": [
+        "BANK_SALES_TRADING.BANK_SALES_TRADING.SHOPPING_CART_EVENT_IDENTIFIER"
+      ],
+      "family_size": 1
+    },
+    {
+      "group_id": "group_0013_BANK_SALES_TRADING.BANK_SALES_TRADING.SHOPPING_CART_PAGE_HIERARCHY",
+      "grouping_method": "reforce_table_family",
+      "group_key": {
+        "namespace": "BANK_SALES_TRADING.BANK_SALES_TRADING",
+        "normalized_table_name": "SHOPPING_CART_PAGE_HIERARCHY",
+        "column_signature_hash": "e0a854c2d198"
+      },
+      "representative_table": "BANK_SALES_TRADING.BANK_SALES_TRADING.SHOPPING_CART_PAGE_HIERARCHY",
+      "member_tables": [
+        "BANK_SALES_TRADING.BANK_SALES_TRADING.SHOPPING_CART_PAGE_HIERARCHY"
+      ],
+      "family_size": 1
+    },
+    {
+      "group_id": "group_0014_BANK_SALES_TRADING.BANK_SALES_TRADING.SHOPPING_CART_USERS",
+      "grouping_method": "reforce_table_family",
+      "group_key": {
+        "namespace": "BANK_SALES_TRADING.BANK_SALES_TRADING",
+        "normalized_table_name": "SHOPPING_CART_USERS",
+        "column_signature_hash": "258fd98b348d"
+      },
+      "representative_table": "BANK_SALES_TRADING.BANK_SALES_TRADING.SHOPPING_CART_USERS",
+      "member_tables": [
+        "BANK_SALES_TRADING.BANK_SALES_TRADING.SHOPPING_CART_USERS"
+      ],
+      "family_size": 1
+    },
+    {
+      "group_id": "group_0015_BANK_SALES_TRADING.BANK_SALES_TRADING.VEG_CAT",
+      "grouping_method": "reforce_table_family",
+      "group_key": {
+        "namespace": "BANK_SALES_TRADING.BANK_SALES_TRADING",
+        "normalized_table_name": "VEG_CAT",
+        "column_signature_hash": "fb7ba28b3d90"
+      },
+      "representative_table": "BANK_SALES_TRADING.BANK_SALES_TRADING.VEG_CAT",
+      "member_tables": [
+        "BANK_SALES_TRADING.BANK_SALES_TRADING.VEG_CAT"
+      ],
+      "family_size": 1
+    },
+    {
+      "group_id": "group_0016_BANK_SALES_TRADING.BANK_SALES_TRADING.VEG_LOSS_RATE_DF",
+      "grouping_method": "reforce_table_family",
+      "group_key": {
+        "namespace": "BANK_SALES_TRADING.BANK_SALES_TRADING",
+        "normalized_table_name": "VEG_LOSS_RATE_DF",
+        "column_signature_hash": "774eaedb865b"
+      },
+      "representative_table": "BANK_SALES_TRADING.BANK_SALES_TRADING.VEG_LOSS_RATE_DF",
+      "member_tables": [
+        "BANK_SALES_TRADING.BANK_SALES_TRADING.VEG_LOSS_RATE_DF"
+      ],
+      "family_size": 1
+    },
+    {
+      "group_id": "group_0017_BANK_SALES_TRADING.BANK_SALES_TRADING.VEG_TXN_DF",
+      "grouping_method": "reforce_table_family",
+      "group_key": {
+        "namespace": "BANK_SALES_TRADING.BANK_SALES_TRADING",
+        "normalized_table_name": "VEG_TXN_DF",
+        "column_signature_hash": "ea44ded126ed"
+      },
+      "representative_table": "BANK_SALES_TRADING.BANK_SALES_TRADING.VEG_TXN_DF",
+      "member_tables": [
+        "BANK_SALES_TRADING.BANK_SALES_TRADING.VEG_TXN_DF"
+      ],
+      "family_size": 1
+    },
+    {
+      "group_id": "group_0018_BANK_SALES_TRADING.BANK_SALES_TRADING.VEG_WHSLE_DF",
+      "grouping_method": "reforce_table_family",
+      "group_key": {
+        "namespace": "BANK_SALES_TRADING.BANK_SALES_TRADING",
+        "normalized_table_name": "VEG_WHSLE_DF",
+        "column_signature_hash": "e558148ea4dd"
+      },
+      "representative_table": "BANK_SALES_TRADING.BANK_SALES_TRADING.VEG_WHSLE_DF",
+      "member_tables": [
+        "BANK_SALES_TRADING.BANK_SALES_TRADING.VEG_WHSLE_DF"
+      ],
+      "family_size": 1
+    },
+    {
+      "group_id": "group_0019_BANK_SALES_TRADING.BANK_SALES_TRADING.WEEKLY_SALES",
+      "grouping_method": "reforce_table_family",
+      "group_key": {
+        "namespace": "BANK_SALES_TRADING.BANK_SALES_TRADING",
+        "normalized_table_name": "WEEKLY_SALES",
+        "column_signature_hash": "9fbe93941a99"
+      },
+      "representative_table": "BANK_SALES_TRADING.BANK_SALES_TRADING.WEEKLY_SALES",
+      "member_tables": [
+        "BANK_SALES_TRADING.BANK_SALES_TRADING.WEEKLY_SALES"
+      ],
+      "family_size": 1
+    }
+  ]
+}

@@ -118,12 +118,12 @@ engine:
 
   providers:
     reforce:
-      root: "../ReFoRCE"
-      spider2_root: "../ReFoRCE/spider2-snow"
-      nl2sql_script: "../ReFoRCE/methods/ReFoRCE/online_nl2sql.py"
-      schema_linking_script: "../ReFoRCE/methods/ReFoRCE/online_schema_linking.py"
+      root: "../../ReFoRCE"
+      spider2_root: "../../ReFoRCE/spider2-snow"
+      nl2sql_script: "../../ReFoRCE/methods/ReFoRCE/online_nl2sql.py"
+      schema_linking_script: "../../ReFoRCE/methods/ReFoRCE/online_schema_linking.py"
     reforce_gen_sl_m1:
-      root: "../ReFoRCE"
-      spider2_root: "../ReFoRCE/spider2-snow"
-      nl2sql_script: "../ReFoRCE/methods/ReFoRCE/online_nl2sql_gen_sl_m1.py"
-      schema_linking_script: "../ReFoRCE/methods/ReFoRCE/online_schema_linking.py"
+      root: "../../ReFoRCE"
+      spider2_root: "../../ReFoRCE/spider2-snow"
+      nl2sql_script: "../../ReFoRCE/methods/ReFoRCE/online_nl2sql_gen_sl_m1.py"
+      schema_linking_script: "../../ReFoRCE/methods/ReFoRCE/online_schema_linking.py"

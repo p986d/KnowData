@@ -1,0 +1,737 @@
+{
+  "ok": true,
+  "method": "database_table_semantic_sketch",
+  "grouping_method": "reforce_table_family",
+  "question_id": "sf_bq209",
+  "db_id": "PATENTS",
+  "question": "Can you calculate the number of utility patents that were granted in 2010 and have exactly one forward citation within a 10-year window following their application/filing date? For this analysis, forward citations should be counted as distinct citing application numbers that cited the patent within 10 years after the patent's own filing date.",
+  "sub_questions": "",
+  "output_path": "D:\\Workspace\\Ace\\Knowdata\\tests\\_tmp\\database_table_parallel_check_01\\sf_bq209_20260507-120109\\database_table_profile.json",
+  "log_dir": "D:\\Workspace\\Ace\\Knowdata\\tests\\_tmp\\database_table_parallel_log\\20260508-143054\\sf_bq209_20260507-120109",
+  "raw_table_count": 3,
+  "group_count": 3,
+  "relevant_group_count": 3,
+  "linked_tables": [
+    "PATENTS.PATENTS.CPC_DEFINITION",
+    "PATENTS.PATENTS.DISCLOSURES_13",
+    "PATENTS.PATENTS.PUBLICATIONS"
+  ],
+  "linked_columns": [
+    "PATENTS.PATENTS.CPC_DEFINITION.status",
+    "PATENTS.PATENTS.CPC_DEFINITION.precedenceLimitingReferences",
+    "PATENTS.PATENTS.CPC_DEFINITION.rules",
+    "PATENTS.PATENTS.CPC_DEFINITION.childGroups",
+    "PATENTS.PATENTS.CPC_DEFINITION.scopeLimitingReferences",
+    "PATENTS.PATENTS.CPC_DEFINITION.level",
+    "PATENTS.PATENTS.CPC_DEFINITION.titlePart",
+    "PATENTS.PATENTS.CPC_DEFINITION.residualReferences",
+    "PATENTS.PATENTS.CPC_DEFINITION.definition",
+    "PATENTS.PATENTS.CPC_DEFINITION.breakdownCode",
+    "PATENTS.PATENTS.CPC_DEFINITION.limitingReferences",
+    "PATENTS.PATENTS.CPC_DEFINITION.glossary",
+    "PATENTS.PATENTS.CPC_DEFINITION.applicationReferences",
+    "PATENTS.PATENTS.CPC_DEFINITION.notAllocatable",
+    "PATENTS.PATENTS.CPC_DEFINITION.titleFull",
+    "PATENTS.PATENTS.CPC_DEFINITION.dateRevised",
+    "PATENTS.PATENTS.CPC_DEFINITION.informativeReferences",
+    "PATENTS.PATENTS.CPC_DEFINITION.symbol",
+    "PATENTS.PATENTS.CPC_DEFINITION.synonyms",
+    "PATENTS.PATENTS.CPC_DEFINITION.children",
+    "PATENTS.PATENTS.CPC_DEFINITION.parents",
+    "PATENTS.PATENTS.CPC_DEFINITION.ipcConcordant",
+    "PATENTS.PATENTS.DISCLOSURES_13.serial_cleaned",
+    "PATENTS.PATENTS.DISCLOSURES_13.sso",
+    "PATENTS.PATENTS.DISCLOSURES_13.disclosure_event",
+    "PATENTS.PATENTS.DISCLOSURES_13.reciprocity",
+    "PATENTS.PATENTS.DISCLOSURES_13.patent_owner_harmonized",
+    "PATENTS.PATENTS.DISCLOSURES_13.record_id",
+    "PATENTS.PATENTS.DISCLOSURES_13.family_id",
+    "PATENTS.PATENTS.DISCLOSURES_13.blanket_scope",
+    "PATENTS.PATENTS.DISCLOSURES_13.copyright",
+    "PATENTS.PATENTS.DISCLOSURES_13.standard",
+    "PATENTS.PATENTS.DISCLOSURES_13.licensing_commitment",
+    "PATENTS.PATENTS.DISCLOSURES_13.committee_project",
+    "PATENTS.PATENTS.DISCLOSURES_13.sc_name",
+    "PATENTS.PATENTS.DISCLOSURES_13.blanket_type",
+    "PATENTS.PATENTS.DISCLOSURES_13.pub_cleaned",
+    "PATENTS.PATENTS.DISCLOSURES_13.third_party",
+    "PATENTS.PATENTS.DISCLOSURES_13.wg_name",
+    "PATENTS.PATENTS.DISCLOSURES_13.patent_owner_unharmonized",
+    "PATENTS.PATENTS.DISCLOSURES_13.tc_name",
+    "PATENTS.PATENTS.DISCLOSURES_13.date",
+    "PATENTS.PATENTS.PUBLICATIONS.examiner",
+    "PATENTS.PATENTS.PUBLICATIONS.fterm",
+    "PATENTS.PATENTS.PUBLICATIONS.application_number_formatted",
+    "PATENTS.PATENTS.PUBLICATIONS.application_number",
+    "PATENTS.PATENTS.PUBLICATIONS.grant_date",
+    "PATENTS.PATENTS.PUBLICATIONS.cpc",
+    "PATENTS.PATENTS.PUBLICATIONS.locarno",
+    "PATENTS.PATENTS.PUBLICATIONS.description_localized_html",
+    "PATENTS.PATENTS.PUBLICATIONS.publication_date",
+    "PATENTS.PATENTS.PUBLICATIONS.kind_code",
+    "PATENTS.PATENTS.PUBLICATIONS.spif_publication_number",
+    "PATENTS.PATENTS.PUBLICATIONS.ipc",
+    "PATENTS.PATENTS.PUBLICATIONS.pct_number",
+    "PATENTS.PATENTS.PUBLICATIONS.entity_status",
+    "PATENTS.PATENTS.PUBLICATIONS.filing_date",
+    "PATENTS.PATENTS.PUBLICATIONS.abstract_localized",
+    "PATENTS.PATENTS.PUBLICATIONS.description_localized",
+    "PATENTS.PATENTS.PUBLICATIONS.assignee",
+    "PATENTS.PATENTS.PUBLICATIONS.citation",
+    "PATENTS.PATENTS.PUBLICATIONS.fi",
+    "PATENTS.PATENTS.PUBLICATIONS.claims_localized_html",
+    "PATENTS.PATENTS.PUBLICATIONS.inventor_harmonized",
+    "PATENTS.PATENTS.PUBLICATIONS.inventor",
+    "PATENTS.PATENTS.PUBLICATIONS.claims_localized",
+    "PATENTS.PATENTS.PUBLICATIONS.priority_date",
+    "PATENTS.PATENTS.PUBLICATIONS.application_kind",
+    "PATENTS.PATENTS.PUBLICATIONS.priority_claim",
+    "PATENTS.PATENTS.PUBLICATIONS.assignee_harmonized",
+    "PATENTS.PATENTS.PUBLICATIONS.title_localized",
+    "PATENTS.PATENTS.PUBLICATIONS.art_unit",
+    "PATENTS.PATENTS.PUBLICATIONS.child",
+    "PATENTS.PATENTS.PUBLICATIONS.family_id",
+    "PATENTS.PATENTS.PUBLICATIONS.spif_application_number",
+    "PATENTS.PATENTS.PUBLICATIONS.uspc",
+    "PATENTS.PATENTS.PUBLICATIONS.publication_number",
+    "PATENTS.PATENTS.PUBLICATIONS.country_code",
+    "PATENTS.PATENTS.PUBLICATIONS.parent"
+  ],
+  "group_profiles": [
+    {
+      "group_id": "group_0001_PATENTS.PATENTS.CPC_DEFINITION",
+      "grouping_method": "reforce_table_family",
+      "representative_table": "PATENTS.PATENTS.CPC_DEFINITION",
+      "member_tables": [
+        "PATENTS.PATENTS.CPC_DEFINITION"
+      ],
+      "family_size": 1,
+      "table_fullname": "PATENTS.PATENTS.CPC_DEFINITION",
+      "supported_question_semantics": [
+        "Dry-run placeholder: inspect the generated prompt for intended group-level support."
+      ],
+      "is_relevant": true,
+      "semantic_units": [
+        {
+          "unit_type": "entity",
+          "unit_name": "CPC_DEFINITION",
+          "desc": "Dry-run placeholder semantic unit.",
+          "grain": "Dry-run placeholder grain.",
+          "attributes": [
+            {
+              "name": "status",
+              "semantics": "Dry-run placeholder attribute support.",
+              "evidence_columns": [
+                "PATENTS.PATENTS.CPC_DEFINITION.status"
+              ]
+            },
+            {
+              "name": "precedenceLimitingReferences",
+              "semantics": "Dry-run placeholder attribute support.",
+              "evidence_columns": [
+                "PATENTS.PATENTS.CPC_DEFINITION.precedenceLimitingReferences"
+              ]
+            },
+            {
+              "name": "rules",
+              "semantics": "Dry-run placeholder attribute support.",
+              "evidence_columns": [
+                "PATENTS.PATENTS.CPC_DEFINITION.rules"
+              ]
+            },
+            {
+              "name": "childGroups",
+              "semantics": "Dry-run placeholder attribute support.",
+              "evidence_columns": [
+                "PATENTS.PATENTS.CPC_DEFINITION.childGroups"
+              ]
+            },
+            {
+              "name": "scopeLimitingReferences",
+              "semantics": "Dry-run placeholder attribute support.",
+              "evidence_columns": [
+                "PATENTS.PATENTS.CPC_DEFINITION.scopeLimitingReferences"
+              ]
+            },
+            {
+              "name": "level",
+              "semantics": "Dry-run placeholder attribute support.",
+              "evidence_columns": [
+                "PATENTS.PATENTS.CPC_DEFINITION.level"
+              ]
+            },
+            {
+              "name": "titlePart",
+              "semantics": "Dry-run placeholder attribute support.",
+              "evidence_columns": [
+                "PATENTS.PATENTS.CPC_DEFINITION.titlePart"
+              ]
+            },
+            {
+              "name": "residualReferences",
+              "semantics": "Dry-run placeholder attribute support.",
+              "evidence_columns": [
+                "PATENTS.PATENTS.CPC_DEFINITION.residualReferences"
+              ]
+            },
+            {
+              "name": "definition",
+              "semantics": "Dry-run placeholder attribute support.",
+              "evidence_columns": [
+                "PATENTS.PATENTS.CPC_DEFINITION.definition"
+              ]
+            },
+            {
+              "name": "breakdownCode",
+              "semantics": "Dry-run placeholder attribute support.",
+              "evidence_columns": [
+                "PATENTS.PATENTS.CPC_DEFINITION.breakdownCode"
+              ]
+            },
+            {
+              "name": "limitingReferences",
+              "semantics": "Dry-run placeholder attribute support.",
+              "evidence_columns": [
+                "PATENTS.PATENTS.CPC_DEFINITION.limitingReferences"
+              ]
+            },
+            {
+              "name": "glossary",
+              "semantics": "Dry-run placeholder attribute support.",
+              "evidence_columns": [
+                "PATENTS.PATENTS.CPC_DEFINITION.glossary"
+              ]
+            },
+            {
+              "name": "applicationReferences",
+              "semantics": "Dry-run placeholder attribute support.",
+              "evidence_columns": [
+                "PATENTS.PATENTS.CPC_DEFINITION.applicationReferences"
+              ]
+            },
+            {
+              "name": "notAllocatable",
+              "semantics": "Dry-run placeholder attribute support.",
+              "evidence_columns": [
+                "PATENTS.PATENTS.CPC_DEFINITION.notAllocatable"
+              ]
+            },
+            {
+              "name": "titleFull",
+              "semantics": "Dry-run placeholder attribute support.",
+              "evidence_columns": [
+                "PATENTS.PATENTS.CPC_DEFINITION.titleFull"
+              ]
+            },
+            {
+              "name": "dateRevised",
+              "semantics": "Dry-run placeholder attribute support.",
+              "evidence_columns": [
+                "PATENTS.PATENTS.CPC_DEFINITION.dateRevised"
+              ]
+            },
+            {
+              "name": "informativeReferences",
+              "semantics": "Dry-run placeholder attribute support.",
+              "evidence_columns": [
+                "PATENTS.PATENTS.CPC_DEFINITION.informativeReferences"
+              ]
+            },
+            {
+              "name": "symbol",
+              "semantics": "Dry-run placeholder attribute support.",
+              "evidence_columns": [
+                "PATENTS.PATENTS.CPC_DEFINITION.symbol"
+              ]
+            },
+            {
+              "name": "synonyms",
+              "semantics": "Dry-run placeholder attribute support.",
+              "evidence_columns": [
+                "PATENTS.PATENTS.CPC_DEFINITION.synonyms"
+              ]
+            },
+            {
+              "name": "children",
+              "semantics": "Dry-run placeholder attribute support.",
+              "evidence_columns": [
+                "PATENTS.PATENTS.CPC_DEFINITION.children"
+              ]
+            },
+            {
+              "name": "parents",
+              "semantics": "Dry-run placeholder attribute support.",
+              "evidence_columns": [
+                "PATENTS.PATENTS.CPC_DEFINITION.parents"
+              ]
+            },
+            {
+              "name": "ipcConcordant",
+              "semantics": "Dry-run placeholder attribute support.",
+              "evidence_columns": [
+                "PATENTS.PATENTS.CPC_DEFINITION.ipcConcordant"
+              ]
+            }
+          ],
+          "participants": []
+        }
+      ],
+      "prompt_path": "D:\\Workspace\\Ace\\Knowdata\\tests\\_tmp\\database_table_parallel_log\\20260508-143054\\sf_bq209_20260507-120109\\group_prompts\\group_0001_PATENTS.PATENTS.CPC_DEFINITION.md",
+      "response_path": "D:\\Workspace\\Ace\\Knowdata\\tests\\_tmp\\database_table_parallel_log\\20260508-143054\\sf_bq209_20260507-120109\\group_responses\\group_0001_PATENTS.PATENTS.CPC_DEFINITION.json"
+    },
+    {
+      "group_id": "group_0002_PATENTS.PATENTS.DISCLOSURES_13",
+      "grouping_method": "reforce_table_family",
+      "representative_table": "PATENTS.PATENTS.DISCLOSURES_13",
+      "member_tables": [
+        "PATENTS.PATENTS.DISCLOSURES_13"
+      ],
+      "family_size": 1,
+      "table_fullname": "PATENTS.PATENTS.DISCLOSURES_13",
+      "supported_question_semantics": [
+        "Dry-run placeholder: inspect the generated prompt for intended group-level support."
+      ],
+      "is_relevant": true,
+      "semantic_units": [
+        {
+          "unit_type": "entity",
+          "unit_name": "DISCLOSURES_13",
+          "desc": "Dry-run placeholder semantic unit.",
+          "grain": "Dry-run placeholder grain.",
+          "attributes": [
+            {
+              "name": "serial_cleaned",
+              "semantics": "Dry-run placeholder attribute support.",
+              "evidence_columns": [
+                "PATENTS.PATENTS.DISCLOSURES_13.serial_cleaned"
+              ]
+            },
+            {
+              "name": "sso",
+              "semantics": "Dry-run placeholder attribute support.",
+              "evidence_columns": [
+                "PATENTS.PATENTS.DISCLOSURES_13.sso"
+              ]
+            },
+            {
+              "name": "disclosure_event",
+              "semantics": "Dry-run placeholder attribute support.",
+              "evidence_columns": [
+                "PATENTS.PATENTS.DISCLOSURES_13.disclosure_event"
+              ]
+            },
+            {
+              "name": "reciprocity",
+              "semantics": "Dry-run placeholder attribute support.",
+              "evidence_columns": [
+                "PATENTS.PATENTS.DISCLOSURES_13.reciprocity"
+              ]
+            },
+            {
+              "name": "patent_owner_harmonized",
+              "semantics": "Dry-run placeholder attribute support.",
+              "evidence_columns": [
+                "PATENTS.PATENTS.DISCLOSURES_13.patent_owner_harmonized"
+              ]
+            },
+            {
+              "name": "record_id",
+              "semantics": "Dry-run placeholder attribute support.",
+              "evidence_columns": [
+                "PATENTS.PATENTS.DISCLOSURES_13.record_id"
+              ]
+            },
+            {
+              "name": "family_id",
+              "semantics": "Dry-run placeholder attribute support.",
+              "evidence_columns": [
+                "PATENTS.PATENTS.DISCLOSURES_13.family_id"
+              ]
+            },
+            {
+              "name": "blanket_scope",
+              "semantics": "Dry-run placeholder attribute support.",
+              "evidence_columns": [
+                "PATENTS.PATENTS.DISCLOSURES_13.blanket_scope"
+              ]
+            },
+            {
+              "name": "copyright",
+              "semantics": "Dry-run placeholder attribute support.",
+              "evidence_columns": [
+                "PATENTS.PATENTS.DISCLOSURES_13.copyright"
+              ]
+            },
+            {
+              "name": "standard",
+              "semantics": "Dry-run placeholder attribute support.",
+              "evidence_columns": [
+                "PATENTS.PATENTS.DISCLOSURES_13.standard"
+              ]
+            },
+            {
+              "name": "licensing_commitment",
+              "semantics": "Dry-run placeholder attribute support.",
+              "evidence_columns": [
+                "PATENTS.PATENTS.DISCLOSURES_13.licensing_commitment"
+              ]
+            },
+            {
+              "name": "committee_project",
+              "semantics": "Dry-run placeholder attribute support.",
+              "evidence_columns": [
+                "PATENTS.PATENTS.DISCLOSURES_13.committee_project"
+              ]
+            },
+            {
+              "name": "sc_name",
+              "semantics": "Dry-run placeholder attribute support.",
+              "evidence_columns": [
+                "PATENTS.PATENTS.DISCLOSURES_13.sc_name"
+              ]
+            },
+            {
+              "name": "blanket_type",
+              "semantics": "Dry-run placeholder attribute support.",
+              "evidence_columns": [
+                "PATENTS.PATENTS.DISCLOSURES_13.blanket_type"
+              ]
+            },
+            {
+              "name": "pub_cleaned",
+              "semantics": "Dry-run placeholder attribute support.",
+              "evidence_columns": [
+                "PATENTS.PATENTS.DISCLOSURES_13.pub_cleaned"
+              ]
+            },
+            {
+              "name": "third_party",
+              "semantics": "Dry-run placeholder attribute support.",
+              "evidence_columns": [
+                "PATENTS.PATENTS.DISCLOSURES_13.third_party"
+              ]
+            },
+            {
+              "name": "wg_name",
+              "semantics": "Dry-run placeholder attribute support.",
+              "evidence_columns": [
+                "PATENTS.PATENTS.DISCLOSURES_13.wg_name"
+              ]
+            },
+            {
+              "name": "patent_owner_unharmonized",
+              "semantics": "Dry-run placeholder attribute support.",
+              "evidence_columns": [
+                "PATENTS.PATENTS.DISCLOSURES_13.patent_owner_unharmonized"
+              ]
+            },
+            {
+              "name": "tc_name",
+              "semantics": "Dry-run placeholder attribute support.",
+              "evidence_columns": [
+                "PATENTS.PATENTS.DISCLOSURES_13.tc_name"
+              ]
+            },
+            {
+              "name": "date",
+              "semantics": "Dry-run placeholder attribute support.",
+              "evidence_columns": [
+                "PATENTS.PATENTS.DISCLOSURES_13.date"
+              ]
+            }
+          ],
+          "participants": []
+        }
+      ],
+      "prompt_path": "D:\\Workspace\\Ace\\Knowdata\\tests\\_tmp\\database_table_parallel_log\\20260508-143054\\sf_bq209_20260507-120109\\group_prompts\\group_0002_PATENTS.PATENTS.DISCLOSURES_13.md",
+      "response_path": "D:\\Workspace\\Ace\\Knowdata\\tests\\_tmp\\database_table_parallel_log\\20260508-143054\\sf_bq209_20260507-120109\\group_responses\\group_0002_PATENTS.PATENTS.DISCLOSURES_13.json"
+    },
+    {
+      "group_id": "group_0003_PATENTS.PATENTS.PUBLICATIONS",
+      "grouping_method": "reforce_table_family",
+      "representative_table": "PATENTS.PATENTS.PUBLICATIONS",
+      "member_tables": [
+        "PATENTS.PATENTS.PUBLICATIONS"
+      ],
+      "family_size": 1,
+      "table_fullname": "PATENTS.PATENTS.PUBLICATIONS",
+      "supported_question_semantics": [
+        "Dry-run placeholder: inspect the generated prompt for intended group-level support."
+      ],
+      "is_relevant": true,
+      "semantic_units": [
+        {
+          "unit_type": "entity",
+          "unit_name": "PUBLICATIONS",
+          "desc": "Dry-run placeholder semantic unit.",
+          "grain": "Dry-run placeholder grain.",
+          "attributes": [
+            {
+              "name": "examiner",
+              "semantics": "Dry-run placeholder attribute support.",
+              "evidence_columns": [
+                "PATENTS.PATENTS.PUBLICATIONS.examiner"
+              ]
+            },
+            {
+              "name": "fterm",
+              "semantics": "Dry-run placeholder attribute support.",
+              "evidence_columns": [
+                "PATENTS.PATENTS.PUBLICATIONS.fterm"
+              ]
+            },
+            {
+              "name": "application_number_formatted",
+              "semantics": "Dry-run placeholder attribute support.",
+              "evidence_columns": [
+                "PATENTS.PATENTS.PUBLICATIONS.application_number_formatted"
+              ]
+            },
+            {
+              "name": "application_number",
+              "semantics": "Dry-run placeholder attribute support.",
+              "evidence_columns": [
+                "PATENTS.PATENTS.PUBLICATIONS.application_number"
+              ]
+            },
+            {
+              "name": "grant_date",
+              "semantics": "Dry-run placeholder attribute support.",
+              "evidence_columns": [
+                "PATENTS.PATENTS.PUBLICATIONS.grant_date"
+              ]
+            },
+            {
+              "name": "cpc",
+              "semantics": "Dry-run placeholder attribute support.",
+              "evidence_columns": [
+                "PATENTS.PATENTS.PUBLICATIONS.cpc"
+              ]
+            },
+            {
+              "name": "locarno",
+              "semantics": "Dry-run placeholder attribute support.",
+              "evidence_columns": [
+                "PATENTS.PATENTS.PUBLICATIONS.locarno"
+              ]
+            },
+            {
+              "name": "description_localized_html",
+              "semantics": "Dry-run placeholder attribute support.",
+              "evidence_columns": [
+                "PATENTS.PATENTS.PUBLICATIONS.description_localized_html"
+              ]
+            },
+            {
+              "name": "publication_date",
+              "semantics": "Dry-run placeholder attribute support.",
+              "evidence_columns": [
+                "PATENTS.PATENTS.PUBLICATIONS.publication_date"
+              ]
+            },
+            {
+              "name": "kind_code",
+              "semantics": "Dry-run placeholder attribute support.",
+              "evidence_columns": [
+                "PATENTS.PATENTS.PUBLICATIONS.kind_code"
+              ]
+            },
+            {
+              "name": "spif_publication_number",
+              "semantics": "Dry-run placeholder attribute support.",
+              "evidence_columns": [
+                "PATENTS.PATENTS.PUBLICATIONS.spif_publication_number"
+              ]
+            },
+            {
+              "name": "ipc",
+              "semantics": "Dry-run placeholder attribute support.",
+              "evidence_columns": [
+                "PATENTS.PATENTS.PUBLICATIONS.ipc"
+              ]
+            },
+            {
+              "name": "pct_number",
+              "semantics": "Dry-run placeholder attribute support.",
+              "evidence_columns": [
+                "PATENTS.PATENTS.PUBLICATIONS.pct_number"
+              ]
+            },
+            {
+              "name": "entity_status",
+              "semantics": "Dry-run placeholder attribute support.",
+              "evidence_columns": [
+                "PATENTS.PATENTS.PUBLICATIONS.entity_status"
+              ]
+            },
+            {
+              "name": "filing_date",
+              "semantics": "Dry-run placeholder attribute support.",
+              "evidence_columns": [
+                "PATENTS.PATENTS.PUBLICATIONS.filing_date"
+              ]
+            },
+            {
+              "name": "abstract_localized",
+              "semantics": "Dry-run placeholder attribute support.",
+              "evidence_columns": [
+                "PATENTS.PATENTS.PUBLICATIONS.abstract_localized"
+              ]
+            },
+            {
+              "name": "description_localized",
+              "semantics": "Dry-run placeholder attribute support.",
+              "evidence_columns": [
+                "PATENTS.PATENTS.PUBLICATIONS.description_localized"
+              ]
+            },
+            {
+              "name": "assignee",
+              "semantics": "Dry-run placeholder attribute support.",
+              "evidence_columns": [
+                "PATENTS.PATENTS.PUBLICATIONS.assignee"
+              ]
+            },
+            {
+              "name": "citation",
+              "semantics": "Dry-run placeholder attribute support.",
+              "evidence_columns": [
+                "PATENTS.PATENTS.PUBLICATIONS.citation"
+              ]
+            },
+            {
+              "name": "fi",
+              "semantics": "Dry-run placeholder attribute support.",
+              "evidence_columns": [
+                "PATENTS.PATENTS.PUBLICATIONS.fi"
+              ]
+            },
+            {
+              "name": "claims_localized_html",
+              "semantics": "Dry-run placeholder attribute support.",
+              "evidence_columns": [
+                "PATENTS.PATENTS.PUBLICATIONS.claims_localized_html"
+              ]
+            },
+            {
+              "name": "inventor_harmonized",
+              "semantics": "Dry-run placeholder attribute support.",
+              "evidence_columns": [
+                "PATENTS.PATENTS.PUBLICATIONS.inventor_harmonized"
+              ]
+            },
+            {
+              "name": "inventor",
+              "semantics": "Dry-run placeholder attribute support.",
+              "evidence_columns": [
+                "PATENTS.PATENTS.PUBLICATIONS.inventor"
+              ]
+            },
+            {
+              "name": "claims_localized",
+              "semantics": "Dry-run placeholder attribute support.",
+              "evidence_columns": [
+                "PATENTS.PATENTS.PUBLICATIONS.claims_localized"
+              ]
+            },
+            {
+              "name": "priority_date",
+              "semantics": "Dry-run placeholder attribute support.",
+              "evidence_columns": [
+                "PATENTS.PATENTS.PUBLICATIONS.priority_date"
+              ]
+            },
+            {
+              "name": "application_kind",
+              "semantics": "Dry-run placeholder attribute support.",
+              "evidence_columns": [
+                "PATENTS.PATENTS.PUBLICATIONS.application_kind"
+              ]
+            },
+            {
+              "name": "priority_claim",
+              "semantics": "Dry-run placeholder attribute support.",
+              "evidence_columns": [
+                "PATENTS.PATENTS.PUBLICATIONS.priority_claim"
+              ]
+            },
+            {
+              "name": "assignee_harmonized",
+              "semantics": "Dry-run placeholder attribute support.",
+              "evidence_columns": [
+                "PATENTS.PATENTS.PUBLICATIONS.assignee_harmonized"
+              ]
+            },
+            {
+              "name": "title_localized",
+              "semantics": "Dry-run placeholder attribute support.",
+              "evidence_columns": [
+                "PATENTS.PATENTS.PUBLICATIONS.title_localized"
+              ]
+            },
+            {
+              "name": "art_unit",
+              "semantics": "Dry-run placeholder attribute support.",
+              "evidence_columns": [
+                "PATENTS.PATENTS.PUBLICATIONS.art_unit"
+              ]
+            },
+            {
+              "name": "child",
+              "semantics": "Dry-run placeholder attribute support.",
+              "evidence_columns": [
+                "PATENTS.PATENTS.PUBLICATIONS.child"
+              ]
+            },
+            {
+              "name": "family_id",
+              "semantics": "Dry-run placeholder attribute support.",
+              "evidence_columns": [
+                "PATENTS.PATENTS.PUBLICATIONS.family_id"
+              ]
+            },
+            {
+              "name": "spif_application_number",
+              "semantics": "Dry-run placeholder attribute support.",
+              "evidence_columns": [
+                "PATENTS.PATENTS.PUBLICATIONS.spif_application_number"
+              ]
+            },
+            {
+              "name": "uspc",
+              "semantics": "Dry-run placeholder attribute support.",
+              "evidence_columns": [
+                "PATENTS.PATENTS.PUBLICATIONS.uspc"
+              ]
+            },
+            {
+              "name": "publication_number",
+              "semantics": "Dry-run placeholder attribute support.",
+              "evidence_columns": [
+                "PATENTS.PATENTS.PUBLICATIONS.publication_number"
+              ]
+            },
+            {
+              "name": "country_code",
+              "semantics": "Dry-run placeholder attribute support.",
+              "evidence_columns": [
+                "PATENTS.PATENTS.PUBLICATIONS.country_code"
+              ]
+            },
+            {
+              "name": "parent",
+              "semantics": "Dry-run placeholder attribute support.",
+              "evidence_columns": [
+                "PATENTS.PATENTS.PUBLICATIONS.parent"
+              ]
+            }
+          ],
+          "participants": []
+        }
+      ],
+      "prompt_path": "D:\\Workspace\\Ace\\Knowdata\\tests\\_tmp\\database_table_parallel_log\\20260508-143054\\sf_bq209_20260507-120109\\group_prompts\\group_0003_PATENTS.PATENTS.PUBLICATIONS.md",
+      "response_path": "D:\\Workspace\\Ace\\Knowdata\\tests\\_tmp\\database_table_parallel_log\\20260508-143054\\sf_bq209_20260507-120109\\group_responses\\group_0003_PATENTS.PATENTS.PUBLICATIONS.json"
+    }
+  ],
+  "elapsed_seconds": 0.059348499999032356
+}

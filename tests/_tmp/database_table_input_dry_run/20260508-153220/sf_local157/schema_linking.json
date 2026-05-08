@@ -1,0 +1,1402 @@
+{
+  "question": {
+    "unit_name": "question",
+    "unit_type": "question",
+    "question_id": "sf_local157",
+    "db_id": "BANK_SALES_TRADING",
+    "question": "Using the \"bitcoin_prices\" table, please calculate the daily percentage change in trading volume for each ticker from August 1 to August 10, 2021, ensuring that any volume ending in \"K\" or \"M\" is accurately converted to thousands or millions, any \"-\" volume is treated as zero, only non-zero volumes are used to determine the previous day's volume, and the results are ordered by ticker and date.",
+    "sub_questions": "",
+    "linked_tables": [
+      "BANK_SALES_TRADING.BANK_SALES_TRADING.BITCOIN_MEMBERS",
+      "BANK_SALES_TRADING.BANK_SALES_TRADING.BITCOIN_PRICES",
+      "BANK_SALES_TRADING.BANK_SALES_TRADING.BITCOIN_TRANSACTIONS",
+      "BANK_SALES_TRADING.BANK_SALES_TRADING.CLEANED_WEEKLY_SALES",
+      "BANK_SALES_TRADING.BANK_SALES_TRADING.CUSTOMER_NODES",
+      "BANK_SALES_TRADING.BANK_SALES_TRADING.CUSTOMER_REGIONS",
+      "BANK_SALES_TRADING.BANK_SALES_TRADING.CUSTOMER_TRANSACTIONS",
+      "BANK_SALES_TRADING.BANK_SALES_TRADING.INTEREST_MAP",
+      "BANK_SALES_TRADING.BANK_SALES_TRADING.INTEREST_METRICS",
+      "BANK_SALES_TRADING.BANK_SALES_TRADING.SHOPPING_CART_CAMPAIGN_IDENTIFIER",
+      "BANK_SALES_TRADING.BANK_SALES_TRADING.SHOPPING_CART_EVENTS",
+      "BANK_SALES_TRADING.BANK_SALES_TRADING.SHOPPING_CART_EVENT_IDENTIFIER",
+      "BANK_SALES_TRADING.BANK_SALES_TRADING.SHOPPING_CART_PAGE_HIERARCHY",
+      "BANK_SALES_TRADING.BANK_SALES_TRADING.SHOPPING_CART_USERS",
+      "BANK_SALES_TRADING.BANK_SALES_TRADING.VEG_CAT",
+      "BANK_SALES_TRADING.BANK_SALES_TRADING.VEG_LOSS_RATE_DF",
+      "BANK_SALES_TRADING.BANK_SALES_TRADING.VEG_TXN_DF",
+      "BANK_SALES_TRADING.BANK_SALES_TRADING.VEG_WHSLE_DF",
+      "BANK_SALES_TRADING.BANK_SALES_TRADING.WEEKLY_SALES"
+    ],
+    "linked_columns": [
+      "BANK_SALES_TRADING.BANK_SALES_TRADING.BITCOIN_MEMBERS.first_name",
+      "BANK_SALES_TRADING.BANK_SALES_TRADING.BITCOIN_MEMBERS.member_id",
+      "BANK_SALES_TRADING.BANK_SALES_TRADING.BITCOIN_MEMBERS.region",
+      "BANK_SALES_TRADING.BANK_SALES_TRADING.BITCOIN_PRICES.low",
+      "BANK_SALES_TRADING.BANK_SALES_TRADING.BITCOIN_PRICES.change",
+      "BANK_SALES_TRADING.BANK_SALES_TRADING.BITCOIN_PRICES.price",
+      "BANK_SALES_TRADING.BANK_SALES_TRADING.BITCOIN_PRICES.open",
+      "BANK_SALES_TRADING.BANK_SALES_TRADING.BITCOIN_PRICES.volume",
+      "BANK_SALES_TRADING.BANK_SALES_TRADING.BITCOIN_PRICES.high",
+      "BANK_SALES_TRADING.BANK_SALES_TRADING.BITCOIN_PRICES.market_date",
+      "BANK_SALES_TRADING.BANK_SALES_TRADING.BITCOIN_PRICES.ticker",
+      "BANK_SALES_TRADING.BANK_SALES_TRADING.BITCOIN_TRANSACTIONS.quantity",
+      "BANK_SALES_TRADING.BANK_SALES_TRADING.BITCOIN_TRANSACTIONS.member_id",
+      "BANK_SALES_TRADING.BANK_SALES_TRADING.BITCOIN_TRANSACTIONS.txn_id",
+      "BANK_SALES_TRADING.BANK_SALES_TRADING.BITCOIN_TRANSACTIONS.ticker",
+      "BANK_SALES_TRADING.BANK_SALES_TRADING.BITCOIN_TRANSACTIONS.txn_type",
+      "BANK_SALES_TRADING.BANK_SALES_TRADING.BITCOIN_TRANSACTIONS.percentage_fee",
+      "BANK_SALES_TRADING.BANK_SALES_TRADING.BITCOIN_TRANSACTIONS.txn_time",
+      "BANK_SALES_TRADING.BANK_SALES_TRADING.BITCOIN_TRANSACTIONS.txn_date",
+      "BANK_SALES_TRADING.BANK_SALES_TRADING.CLEANED_WEEKLY_SALES.platform",
+      "BANK_SALES_TRADING.BANK_SALES_TRADING.CLEANED_WEEKLY_SALES.month_number",
+      "BANK_SALES_TRADING.BANK_SALES_TRADING.CLEANED_WEEKLY_SALES.age_band",
+      "BANK_SALES_TRADING.BANK_SALES_TRADING.CLEANED_WEEKLY_SALES.calendar_year",
+      "BANK_SALES_TRADING.BANK_SALES_TRADING.CLEANED_WEEKLY_SALES.customer_type",
+      "BANK_SALES_TRADING.BANK_SALES_TRADING.CLEANED_WEEKLY_SALES.region",
+      "BANK_SALES_TRADING.BANK_SALES_TRADING.CLEANED_WEEKLY_SALES.demographic",
+      "BANK_SALES_TRADING.BANK_SALES_TRADING.CLEANED_WEEKLY_SALES.week_number",
+      "BANK_SALES_TRADING.BANK_SALES_TRADING.CLEANED_WEEKLY_SALES.transactions",
+      "BANK_SALES_TRADING.BANK_SALES_TRADING.CLEANED_WEEKLY_SALES.avg_transaction",
+      "BANK_SALES_TRADING.BANK_SALES_TRADING.CLEANED_WEEKLY_SALES.segment",
+      "BANK_SALES_TRADING.BANK_SALES_TRADING.CLEANED_WEEKLY_SALES.week_date",
+      "BANK_SALES_TRADING.BANK_SALES_TRADING.CLEANED_WEEKLY_SALES.sales",
+      "BANK_SALES_TRADING.BANK_SALES_TRADING.CLEANED_WEEKLY_SALES.week_date_formatted",
+      "BANK_SALES_TRADING.BANK_SALES_TRADING.CUSTOMER_NODES.region_id",
+      "BANK_SALES_TRADING.BANK_SALES_TRADING.CUSTOMER_NODES.start_date",
+      "BANK_SALES_TRADING.BANK_SALES_TRADING.CUSTOMER_NODES.end_date",
+      "BANK_SALES_TRADING.BANK_SALES_TRADING.CUSTOMER_NODES.customer_id",
+      "BANK_SALES_TRADING.BANK_SALES_TRADING.CUSTOMER_NODES.node_id",
+      "BANK_SALES_TRADING.BANK_SALES_TRADING.CUSTOMER_REGIONS.region_id",
+      "BANK_SALES_TRADING.BANK_SALES_TRADING.CUSTOMER_REGIONS.region_name",
+      "BANK_SALES_TRADING.BANK_SALES_TRADING.CUSTOMER_TRANSACTIONS.customer_id",
+      "BANK_SALES_TRADING.BANK_SALES_TRADING.CUSTOMER_TRANSACTIONS.txn_date",
+      "BANK_SALES_TRADING.BANK_SALES_TRADING.CUSTOMER_TRANSACTIONS.txn_amount",
+      "BANK_SALES_TRADING.BANK_SALES_TRADING.CUSTOMER_TRANSACTIONS.txn_type",
+      "BANK_SALES_TRADING.BANK_SALES_TRADING.INTEREST_MAP.interest_summary",
+      "BANK_SALES_TRADING.BANK_SALES_TRADING.INTEREST_MAP.id",
+      "BANK_SALES_TRADING.BANK_SALES_TRADING.INTEREST_MAP.interest_name",
+      "BANK_SALES_TRADING.BANK_SALES_TRADING.INTEREST_MAP.last_modified",
+      "BANK_SALES_TRADING.BANK_SALES_TRADING.INTEREST_MAP.created_at",
+      "BANK_SALES_TRADING.BANK_SALES_TRADING.INTEREST_METRICS.ranking",
+      "BANK_SALES_TRADING.BANK_SALES_TRADING.INTEREST_METRICS.percentile_ranking",
+      "BANK_SALES_TRADING.BANK_SALES_TRADING.INTEREST_METRICS.month_year",
+      "BANK_SALES_TRADING.BANK_SALES_TRADING.INTEREST_METRICS.interest_id",
+      "BANK_SALES_TRADING.BANK_SALES_TRADING.INTEREST_METRICS.composition",
+      "BANK_SALES_TRADING.BANK_SALES_TRADING.INTEREST_METRICS._month",
+      "BANK_SALES_TRADING.BANK_SALES_TRADING.INTEREST_METRICS.index_value",
+      "BANK_SALES_TRADING.BANK_SALES_TRADING.INTEREST_METRICS._year",
+      "BANK_SALES_TRADING.BANK_SALES_TRADING.SHOPPING_CART_CAMPAIGN_IDENTIFIER.start_date",
+      "BANK_SALES_TRADING.BANK_SALES_TRADING.SHOPPING_CART_CAMPAIGN_IDENTIFIER.campaign_id",
+      "BANK_SALES_TRADING.BANK_SALES_TRADING.SHOPPING_CART_CAMPAIGN_IDENTIFIER.campaign_name",
+      "BANK_SALES_TRADING.BANK_SALES_TRADING.SHOPPING_CART_CAMPAIGN_IDENTIFIER.end_date",
+      "BANK_SALES_TRADING.BANK_SALES_TRADING.SHOPPING_CART_CAMPAIGN_IDENTIFIER.products",
+      "BANK_SALES_TRADING.BANK_SALES_TRADING.SHOPPING_CART_EVENTS.page_id",
+      "BANK_SALES_TRADING.BANK_SALES_TRADING.SHOPPING_CART_EVENTS.event_type",
+      "BANK_SALES_TRADING.BANK_SALES_TRADING.SHOPPING_CART_EVENTS.cookie_id",
+      "BANK_SALES_TRADING.BANK_SALES_TRADING.SHOPPING_CART_EVENTS.event_time",
+      "BANK_SALES_TRADING.BANK_SALES_TRADING.SHOPPING_CART_EVENTS.visit_id",
+      "BANK_SALES_TRADING.BANK_SALES_TRADING.SHOPPING_CART_EVENTS.sequence_number",
+      "BANK_SALES_TRADING.BANK_SALES_TRADING.SHOPPING_CART_EVENT_IDENTIFIER.event_name",
+      "BANK_SALES_TRADING.BANK_SALES_TRADING.SHOPPING_CART_EVENT_IDENTIFIER.event_type",
+      "BANK_SALES_TRADING.BANK_SALES_TRADING.SHOPPING_CART_PAGE_HIERARCHY.page_id",
+      "BANK_SALES_TRADING.BANK_SALES_TRADING.SHOPPING_CART_PAGE_HIERARCHY.product_id",
+      "BANK_SALES_TRADING.BANK_SALES_TRADING.SHOPPING_CART_PAGE_HIERARCHY.page_name",
+      "BANK_SALES_TRADING.BANK_SALES_TRADING.SHOPPING_CART_PAGE_HIERARCHY.product_category",
+      "BANK_SALES_TRADING.BANK_SALES_TRADING.SHOPPING_CART_USERS.user_id",
+      "BANK_SALES_TRADING.BANK_SALES_TRADING.SHOPPING_CART_USERS.cookie_id",
+      "BANK_SALES_TRADING.BANK_SALES_TRADING.SHOPPING_CART_USERS.start_date",
+      "BANK_SALES_TRADING.BANK_SALES_TRADING.VEG_CAT.category_code",
+      "BANK_SALES_TRADING.BANK_SALES_TRADING.VEG_CAT.item_code",
+      "BANK_SALES_TRADING.BANK_SALES_TRADING.VEG_CAT.category_name",
+      "BANK_SALES_TRADING.BANK_SALES_TRADING.VEG_CAT.item_name",
+      "BANK_SALES_TRADING.BANK_SALES_TRADING.VEG_CAT.index",
+      "BANK_SALES_TRADING.BANK_SALES_TRADING.VEG_LOSS_RATE_DF.item_name",
+      "BANK_SALES_TRADING.BANK_SALES_TRADING.VEG_LOSS_RATE_DF.item_code",
+      "BANK_SALES_TRADING.BANK_SALES_TRADING.VEG_LOSS_RATE_DF.index",
+      "BANK_SALES_TRADING.BANK_SALES_TRADING.VEG_LOSS_RATE_DF.loss_rate_%",
+      "BANK_SALES_TRADING.BANK_SALES_TRADING.VEG_TXN_DF.txn_date",
+      "BANK_SALES_TRADING.BANK_SALES_TRADING.VEG_TXN_DF.qty_sold(kg)",
+      "BANK_SALES_TRADING.BANK_SALES_TRADING.VEG_TXN_DF.sale/return",
+      "BANK_SALES_TRADING.BANK_SALES_TRADING.VEG_TXN_DF.txn_time",
+      "BANK_SALES_TRADING.BANK_SALES_TRADING.VEG_TXN_DF.unit_selling_px_rmb/kg",
+      "BANK_SALES_TRADING.BANK_SALES_TRADING.VEG_TXN_DF.index",
+      "BANK_SALES_TRADING.BANK_SALES_TRADING.VEG_TXN_DF.discount(%)",
+      "BANK_SALES_TRADING.BANK_SALES_TRADING.VEG_TXN_DF.item_code",
+      "BANK_SALES_TRADING.BANK_SALES_TRADING.VEG_TXN_DF.day_of_week",
+      "BANK_SALES_TRADING.BANK_SALES_TRADING.VEG_WHSLE_DF.index",
+      "BANK_SALES_TRADING.BANK_SALES_TRADING.VEG_WHSLE_DF.whsle_px_rmb-kg",
+      "BANK_SALES_TRADING.BANK_SALES_TRADING.VEG_WHSLE_DF.whsle_date",
+      "BANK_SALES_TRADING.BANK_SALES_TRADING.VEG_WHSLE_DF.item_code",
+      "BANK_SALES_TRADING.BANK_SALES_TRADING.WEEKLY_SALES.region",
+      "BANK_SALES_TRADING.BANK_SALES_TRADING.WEEKLY_SALES.week_date",
+      "BANK_SALES_TRADING.BANK_SALES_TRADING.WEEKLY_SALES.segment",
+      "BANK_SALES_TRADING.BANK_SALES_TRADING.WEEKLY_SALES.customer_type",
+      "BANK_SALES_TRADING.BANK_SALES_TRADING.WEEKLY_SALES.sales",
+      "BANK_SALES_TRADING.BANK_SALES_TRADING.WEEKLY_SALES.platform",
+      "BANK_SALES_TRADING.BANK_SALES_TRADING.WEEKLY_SALES.transactions"
+    ],
+    "schema_linking": {
+      "ok": true,
+      "source": "database_table_semantic_sketch",
+      "table_count": 19,
+      "column_count": 106
+    }
+  },
+  "linked_table_profiles": [
+    {
+      "group_id": "group_0001_BANK_SALES_TRADING.BANK_SALES_TRADING.BITCOIN_MEMBERS",
+      "grouping_method": "reforce_table_family",
+      "representative_table": "BANK_SALES_TRADING.BANK_SALES_TRADING.BITCOIN_MEMBERS",
+      "member_tables": [
+        "BANK_SALES_TRADING.BANK_SALES_TRADING.BITCOIN_MEMBERS"
+      ],
+      "family_size": 1,
+      "table_fullname": "BANK_SALES_TRADING.BANK_SALES_TRADING.BITCOIN_MEMBERS",
+      "supported_question_semantics": [
+        "Dry-run placeholder: inspect the generated prompt for intended group-level support."
+      ],
+      "is_relevant": true,
+      "semantic_units": [
+        {
+          "unit_type": "entity",
+          "unit_name": "BITCOIN_MEMBERS",
+          "desc": "Dry-run placeholder semantic unit.",
+          "grain": "Dry-run placeholder grain.",
+          "attributes": [
+            {
+              "name": "first_name",
+              "semantics": "Dry-run placeholder attribute support.",
+              "evidence_columns": [
+                "BANK_SALES_TRADING.BANK_SALES_TRADING.BITCOIN_MEMBERS.first_name"
+              ]
+            },
+            {
+              "name": "member_id",
+              "semantics": "Dry-run placeholder attribute support.",
+              "evidence_columns": [
+                "BANK_SALES_TRADING.BANK_SALES_TRADING.BITCOIN_MEMBERS.member_id"
+              ]
+            },
+            {
+              "name": "region",
+              "semantics": "Dry-run placeholder attribute support.",
+              "evidence_columns": [
+                "BANK_SALES_TRADING.BANK_SALES_TRADING.BITCOIN_MEMBERS.region"
+              ]
+            }
+          ],
+          "participants": []
+        }
+      ],
+      "prompt_path": "D:\\Workspace\\Ace\\Knowdata\\tests\\_tmp\\database_table_input_dry_run\\20260508-153220\\sf_local157\\group_prompts\\group_0001_BANK_SALES_TRADING.BANK_SALES_TRADING.BITCOIN_MEMBERS.md",
+      "response_path": "D:\\Workspace\\Ace\\Knowdata\\tests\\_tmp\\database_table_input_dry_run\\20260508-153220\\sf_local157\\group_responses\\group_0001_BANK_SALES_TRADING.BANK_SALES_TRADING.BITCOIN_MEMBERS.json"
+    },
+    {
+      "group_id": "group_0002_BANK_SALES_TRADING.BANK_SALES_TRADING.BITCOIN_PRICES",
+      "grouping_method": "reforce_table_family",
+      "representative_table": "BANK_SALES_TRADING.BANK_SALES_TRADING.BITCOIN_PRICES",
+      "member_tables": [
+        "BANK_SALES_TRADING.BANK_SALES_TRADING.BITCOIN_PRICES"
+      ],
+      "family_size": 1,
+      "table_fullname": "BANK_SALES_TRADING.BANK_SALES_TRADING.BITCOIN_PRICES",
+      "supported_question_semantics": [
+        "Dry-run placeholder: inspect the generated prompt for intended group-level support."
+      ],
+      "is_relevant": true,
+      "semantic_units": [
+        {
+          "unit_type": "entity",
+          "unit_name": "BITCOIN_PRICES",
+          "desc": "Dry-run placeholder semantic unit.",
+          "grain": "Dry-run placeholder grain.",
+          "attributes": [
+            {
+              "name": "low",
+              "semantics": "Dry-run placeholder attribute support.",
+              "evidence_columns": [
+                "BANK_SALES_TRADING.BANK_SALES_TRADING.BITCOIN_PRICES.low"
+              ]
+            },
+            {
+              "name": "change",
+              "semantics": "Dry-run placeholder attribute support.",
+              "evidence_columns": [
+                "BANK_SALES_TRADING.BANK_SALES_TRADING.BITCOIN_PRICES.change"
+              ]
+            },
+            {
+              "name": "price",
+              "semantics": "Dry-run placeholder attribute support.",
+              "evidence_columns": [
+                "BANK_SALES_TRADING.BANK_SALES_TRADING.BITCOIN_PRICES.price"
+              ]
+            },
+            {
+              "name": "open",
+              "semantics": "Dry-run placeholder attribute support.",
+              "evidence_columns": [
+                "BANK_SALES_TRADING.BANK_SALES_TRADING.BITCOIN_PRICES.open"
+              ]
+            },
+            {
+              "name": "volume",
+              "semantics": "Dry-run placeholder attribute support.",
+              "evidence_columns": [
+                "BANK_SALES_TRADING.BANK_SALES_TRADING.BITCOIN_PRICES.volume"
+              ]
+            },
+            {
+              "name": "high",
+              "semantics": "Dry-run placeholder attribute support.",
+              "evidence_columns": [
+                "BANK_SALES_TRADING.BANK_SALES_TRADING.BITCOIN_PRICES.high"
+              ]
+            },
+            {
+              "name": "market_date",
+              "semantics": "Dry-run placeholder attribute support.",
+              "evidence_columns": [
+                "BANK_SALES_TRADING.BANK_SALES_TRADING.BITCOIN_PRICES.market_date"
+              ]
+            },
+            {
+              "name": "ticker",
+              "semantics": "Dry-run placeholder attribute support.",
+              "evidence_columns": [
+                "BANK_SALES_TRADING.BANK_SALES_TRADING.BITCOIN_PRICES.ticker"
+              ]
+            }
+          ],
+          "participants": []
+        }
+      ],
+      "prompt_path": "D:\\Workspace\\Ace\\Knowdata\\tests\\_tmp\\database_table_input_dry_run\\20260508-153220\\sf_local157\\group_prompts\\group_0002_BANK_SALES_TRADING.BANK_SALES_TRADING.BITCOIN_PRICES.md",
+      "response_path": "D:\\Workspace\\Ace\\Knowdata\\tests\\_tmp\\database_table_input_dry_run\\20260508-153220\\sf_local157\\group_responses\\group_0002_BANK_SALES_TRADING.BANK_SALES_TRADING.BITCOIN_PRICES.json"
+    },
+    {
+      "group_id": "group_0003_BANK_SALES_TRADING.BANK_SALES_TRADING.BITCOIN_TRANSACTIONS",
+      "grouping_method": "reforce_table_family",
+      "representative_table": "BANK_SALES_TRADING.BANK_SALES_TRADING.BITCOIN_TRANSACTIONS",
+      "member_tables": [
+        "BANK_SALES_TRADING.BANK_SALES_TRADING.BITCOIN_TRANSACTIONS"
+      ],
+      "family_size": 1,
+      "table_fullname": "BANK_SALES_TRADING.BANK_SALES_TRADING.BITCOIN_TRANSACTIONS",
+      "supported_question_semantics": [
+        "Dry-run placeholder: inspect the generated prompt for intended group-level support."
+      ],
+      "is_relevant": true,
+      "semantic_units": [
+        {
+          "unit_type": "entity",
+          "unit_name": "BITCOIN_TRANSACTIONS",
+          "desc": "Dry-run placeholder semantic unit.",
+          "grain": "Dry-run placeholder grain.",
+          "attributes": [
+            {
+              "name": "quantity",
+              "semantics": "Dry-run placeholder attribute support.",
+              "evidence_columns": [
+                "BANK_SALES_TRADING.BANK_SALES_TRADING.BITCOIN_TRANSACTIONS.quantity"
+              ]
+            },
+            {
+              "name": "member_id",
+              "semantics": "Dry-run placeholder attribute support.",
+              "evidence_columns": [
+                "BANK_SALES_TRADING.BANK_SALES_TRADING.BITCOIN_TRANSACTIONS.member_id"
+              ]
+            },
+            {
+              "name": "txn_id",
+              "semantics": "Dry-run placeholder attribute support.",
+              "evidence_columns": [
+                "BANK_SALES_TRADING.BANK_SALES_TRADING.BITCOIN_TRANSACTIONS.txn_id"
+              ]
+            },
+            {
+              "name": "ticker",
+              "semantics": "Dry-run placeholder attribute support.",
+              "evidence_columns": [
+                "BANK_SALES_TRADING.BANK_SALES_TRADING.BITCOIN_TRANSACTIONS.ticker"
+              ]
+            },
+            {
+              "name": "txn_type",
+              "semantics": "Dry-run placeholder attribute support.",
+              "evidence_columns": [
+                "BANK_SALES_TRADING.BANK_SALES_TRADING.BITCOIN_TRANSACTIONS.txn_type"
+              ]
+            },
+            {
+              "name": "percentage_fee",
+              "semantics": "Dry-run placeholder attribute support.",
+              "evidence_columns": [
+                "BANK_SALES_TRADING.BANK_SALES_TRADING.BITCOIN_TRANSACTIONS.percentage_fee"
+              ]
+            },
+            {
+              "name": "txn_time",
+              "semantics": "Dry-run placeholder attribute support.",
+              "evidence_columns": [
+                "BANK_SALES_TRADING.BANK_SALES_TRADING.BITCOIN_TRANSACTIONS.txn_time"
+              ]
+            },
+            {
+              "name": "txn_date",
+              "semantics": "Dry-run placeholder attribute support.",
+              "evidence_columns": [
+                "BANK_SALES_TRADING.BANK_SALES_TRADING.BITCOIN_TRANSACTIONS.txn_date"
+              ]
+            }
+          ],
+          "participants": []
+        }
+      ],
+      "prompt_path": "D:\\Workspace\\Ace\\Knowdata\\tests\\_tmp\\database_table_input_dry_run\\20260508-153220\\sf_local157\\group_prompts\\group_0003_BANK_SALES_TRADING.BANK_SALES_TRADING.BITCOIN_TRANSACTIONS.md",
+      "response_path": "D:\\Workspace\\Ace\\Knowdata\\tests\\_tmp\\database_table_input_dry_run\\20260508-153220\\sf_local157\\group_responses\\group_0003_BANK_SALES_TRADING.BANK_SALES_TRADING.BITCOIN_TRANSACTIONS.json"
+    },
+    {
+      "group_id": "group_0004_BANK_SALES_TRADING.BANK_SALES_TRADING.CLEANED_WEEKLY_SALES",
+      "grouping_method": "reforce_table_family",
+      "representative_table": "BANK_SALES_TRADING.BANK_SALES_TRADING.CLEANED_WEEKLY_SALES",
+      "member_tables": [
+        "BANK_SALES_TRADING.BANK_SALES_TRADING.CLEANED_WEEKLY_SALES"
+      ],
+      "family_size": 1,
+      "table_fullname": "BANK_SALES_TRADING.BANK_SALES_TRADING.CLEANED_WEEKLY_SALES",
+      "supported_question_semantics": [
+        "Dry-run placeholder: inspect the generated prompt for intended group-level support."
+      ],
+      "is_relevant": true,
+      "semantic_units": [
+        {
+          "unit_type": "entity",
+          "unit_name": "CLEANED_WEEKLY_SALES",
+          "desc": "Dry-run placeholder semantic unit.",
+          "grain": "Dry-run placeholder grain.",
+          "attributes": [
+            {
+              "name": "platform",
+              "semantics": "Dry-run placeholder attribute support.",
+              "evidence_columns": [
+                "BANK_SALES_TRADING.BANK_SALES_TRADING.CLEANED_WEEKLY_SALES.platform"
+              ]
+            },
+            {
+              "name": "month_number",
+              "semantics": "Dry-run placeholder attribute support.",
+              "evidence_columns": [
+                "BANK_SALES_TRADING.BANK_SALES_TRADING.CLEANED_WEEKLY_SALES.month_number"
+              ]
+            },
+            {
+              "name": "age_band",
+              "semantics": "Dry-run placeholder attribute support.",
+              "evidence_columns": [
+                "BANK_SALES_TRADING.BANK_SALES_TRADING.CLEANED_WEEKLY_SALES.age_band"
+              ]
+            },
+            {
+              "name": "calendar_year",
+              "semantics": "Dry-run placeholder attribute support.",
+              "evidence_columns": [
+                "BANK_SALES_TRADING.BANK_SALES_TRADING.CLEANED_WEEKLY_SALES.calendar_year"
+              ]
+            },
+            {
+              "name": "customer_type",
+              "semantics": "Dry-run placeholder attribute support.",
+              "evidence_columns": [
+                "BANK_SALES_TRADING.BANK_SALES_TRADING.CLEANED_WEEKLY_SALES.customer_type"
+              ]
+            },
+            {
+              "name": "region",
+              "semantics": "Dry-run placeholder attribute support.",
+              "evidence_columns": [
+                "BANK_SALES_TRADING.BANK_SALES_TRADING.CLEANED_WEEKLY_SALES.region"
+              ]
+            },
+            {
+              "name": "demographic",
+              "semantics": "Dry-run placeholder attribute support.",
+              "evidence_columns": [
+                "BANK_SALES_TRADING.BANK_SALES_TRADING.CLEANED_WEEKLY_SALES.demographic"
+              ]
+            },
+            {
+              "name": "week_number",
+              "semantics": "Dry-run placeholder attribute support.",
+              "evidence_columns": [
+                "BANK_SALES_TRADING.BANK_SALES_TRADING.CLEANED_WEEKLY_SALES.week_number"
+              ]
+            },
+            {
+              "name": "transactions",
+              "semantics": "Dry-run placeholder attribute support.",
+              "evidence_columns": [
+                "BANK_SALES_TRADING.BANK_SALES_TRADING.CLEANED_WEEKLY_SALES.transactions"
+              ]
+            },
+            {
+              "name": "avg_transaction",
+              "semantics": "Dry-run placeholder attribute support.",
+              "evidence_columns": [
+                "BANK_SALES_TRADING.BANK_SALES_TRADING.CLEANED_WEEKLY_SALES.avg_transaction"
+              ]
+            },
+            {
+              "name": "segment",
+              "semantics": "Dry-run placeholder attribute support.",
+              "evidence_columns": [
+                "BANK_SALES_TRADING.BANK_SALES_TRADING.CLEANED_WEEKLY_SALES.segment"
+              ]
+            },
+            {
+              "name": "week_date",
+              "semantics": "Dry-run placeholder attribute support.",
+              "evidence_columns": [
+                "BANK_SALES_TRADING.BANK_SALES_TRADING.CLEANED_WEEKLY_SALES.week_date"
+              ]
+            },
+            {
+              "name": "sales",
+              "semantics": "Dry-run placeholder attribute support.",
+              "evidence_columns": [
+                "BANK_SALES_TRADING.BANK_SALES_TRADING.CLEANED_WEEKLY_SALES.sales"
+              ]
+            },
+            {
+              "name": "week_date_formatted",
+              "semantics": "Dry-run placeholder attribute support.",
+              "evidence_columns": [
+                "BANK_SALES_TRADING.BANK_SALES_TRADING.CLEANED_WEEKLY_SALES.week_date_formatted"
+              ]
+            }
+          ],
+          "participants": []
+        }
+      ],
+      "prompt_path": "D:\\Workspace\\Ace\\Knowdata\\tests\\_tmp\\database_table_input_dry_run\\20260508-153220\\sf_local157\\group_prompts\\group_0004_BANK_SALES_TRADING.BANK_SALES_TRADING.CLEANED_WEEKLY_SALES.md",
+      "response_path": "D:\\Workspace\\Ace\\Knowdata\\tests\\_tmp\\database_table_input_dry_run\\20260508-153220\\sf_local157\\group_responses\\group_0004_BANK_SALES_TRADING.BANK_SALES_TRADING.CLEANED_WEEKLY_SALES.json"
+    },
+    {
+      "group_id": "group_0005_BANK_SALES_TRADING.BANK_SALES_TRADING.CUSTOMER_NODES",
+      "grouping_method": "reforce_table_family",
+      "representative_table": "BANK_SALES_TRADING.BANK_SALES_TRADING.CUSTOMER_NODES",
+      "member_tables": [
+        "BANK_SALES_TRADING.BANK_SALES_TRADING.CUSTOMER_NODES"
+      ],
+      "family_size": 1,
+      "table_fullname": "BANK_SALES_TRADING.BANK_SALES_TRADING.CUSTOMER_NODES",
+      "supported_question_semantics": [
+        "Dry-run placeholder: inspect the generated prompt for intended group-level support."
+      ],
+      "is_relevant": true,
+      "semantic_units": [
+        {
+          "unit_type": "entity",
+          "unit_name": "CUSTOMER_NODES",
+          "desc": "Dry-run placeholder semantic unit.",
+          "grain": "Dry-run placeholder grain.",
+          "attributes": [
+            {
+              "name": "region_id",
+              "semantics": "Dry-run placeholder attribute support.",
+              "evidence_columns": [
+                "BANK_SALES_TRADING.BANK_SALES_TRADING.CUSTOMER_NODES.region_id"
+              ]
+            },
+            {
+              "name": "start_date",
+              "semantics": "Dry-run placeholder attribute support.",
+              "evidence_columns": [
+                "BANK_SALES_TRADING.BANK_SALES_TRADING.CUSTOMER_NODES.start_date"
+              ]
+            },
+            {
+              "name": "end_date",
+              "semantics": "Dry-run placeholder attribute support.",
+              "evidence_columns": [
+                "BANK_SALES_TRADING.BANK_SALES_TRADING.CUSTOMER_NODES.end_date"
+              ]
+            },
+            {
+              "name": "customer_id",
+              "semantics": "Dry-run placeholder attribute support.",
+              "evidence_columns": [
+                "BANK_SALES_TRADING.BANK_SALES_TRADING.CUSTOMER_NODES.customer_id"
+              ]
+            },
+            {
+              "name": "node_id",
+              "semantics": "Dry-run placeholder attribute support.",
+              "evidence_columns": [
+                "BANK_SALES_TRADING.BANK_SALES_TRADING.CUSTOMER_NODES.node_id"
+              ]
+            }
+          ],
+          "participants": []
+        }
+      ],
+      "prompt_path": "D:\\Workspace\\Ace\\Knowdata\\tests\\_tmp\\database_table_input_dry_run\\20260508-153220\\sf_local157\\group_prompts\\group_0005_BANK_SALES_TRADING.BANK_SALES_TRADING.CUSTOMER_NODES.md",
+      "response_path": "D:\\Workspace\\Ace\\Knowdata\\tests\\_tmp\\database_table_input_dry_run\\20260508-153220\\sf_local157\\group_responses\\group_0005_BANK_SALES_TRADING.BANK_SALES_TRADING.CUSTOMER_NODES.json"
+    },
+    {
+      "group_id": "group_0006_BANK_SALES_TRADING.BANK_SALES_TRADING.CUSTOMER_REGIONS",
+      "grouping_method": "reforce_table_family",
+      "representative_table": "BANK_SALES_TRADING.BANK_SALES_TRADING.CUSTOMER_REGIONS",
+      "member_tables": [
+        "BANK_SALES_TRADING.BANK_SALES_TRADING.CUSTOMER_REGIONS"
+      ],
+      "family_size": 1,
+      "table_fullname": "BANK_SALES_TRADING.BANK_SALES_TRADING.CUSTOMER_REGIONS",
+      "supported_question_semantics": [
+        "Dry-run placeholder: inspect the generated prompt for intended group-level support."
+      ],
+      "is_relevant": true,
+      "semantic_units": [
+        {
+          "unit_type": "entity",
+          "unit_name": "CUSTOMER_REGIONS",
+          "desc": "Dry-run placeholder semantic unit.",
+          "grain": "Dry-run placeholder grain.",
+          "attributes": [
+            {
+              "name": "region_id",
+              "semantics": "Dry-run placeholder attribute support.",
+              "evidence_columns": [
+                "BANK_SALES_TRADING.BANK_SALES_TRADING.CUSTOMER_REGIONS.region_id"
+              ]
+            },
+            {
+              "name": "region_name",
+              "semantics": "Dry-run placeholder attribute support.",
+              "evidence_columns": [
+                "BANK_SALES_TRADING.BANK_SALES_TRADING.CUSTOMER_REGIONS.region_name"
+              ]
+            }
+          ],
+          "participants": []
+        }
+      ],
+      "prompt_path": "D:\\Workspace\\Ace\\Knowdata\\tests\\_tmp\\database_table_input_dry_run\\20260508-153220\\sf_local157\\group_prompts\\group_0006_BANK_SALES_TRADING.BANK_SALES_TRADING.CUSTOMER_REGIONS.md",
+      "response_path": "D:\\Workspace\\Ace\\Knowdata\\tests\\_tmp\\database_table_input_dry_run\\20260508-153220\\sf_local157\\group_responses\\group_0006_BANK_SALES_TRADING.BANK_SALES_TRADING.CUSTOMER_REGIONS.json"
+    },
+    {
+      "group_id": "group_0007_BANK_SALES_TRADING.BANK_SALES_TRADING.CUSTOMER_TRANSACTIONS",
+      "grouping_method": "reforce_table_family",
+      "representative_table": "BANK_SALES_TRADING.BANK_SALES_TRADING.CUSTOMER_TRANSACTIONS",
+      "member_tables": [
+        "BANK_SALES_TRADING.BANK_SALES_TRADING.CUSTOMER_TRANSACTIONS"
+      ],
+      "family_size": 1,
+      "table_fullname": "BANK_SALES_TRADING.BANK_SALES_TRADING.CUSTOMER_TRANSACTIONS",
+      "supported_question_semantics": [
+        "Dry-run placeholder: inspect the generated prompt for intended group-level support."
+      ],
+      "is_relevant": true,
+      "semantic_units": [
+        {
+          "unit_type": "entity",
+          "unit_name": "CUSTOMER_TRANSACTIONS",
+          "desc": "Dry-run placeholder semantic unit.",
+          "grain": "Dry-run placeholder grain.",
+          "attributes": [
+            {
+              "name": "customer_id",
+              "semantics": "Dry-run placeholder attribute support.",
+              "evidence_columns": [
+                "BANK_SALES_TRADING.BANK_SALES_TRADING.CUSTOMER_TRANSACTIONS.customer_id"
+              ]
+            },
+            {
+              "name": "txn_date",
+              "semantics": "Dry-run placeholder attribute support.",
+              "evidence_columns": [
+                "BANK_SALES_TRADING.BANK_SALES_TRADING.CUSTOMER_TRANSACTIONS.txn_date"
+              ]
+            },
+            {
+              "name": "txn_amount",
+              "semantics": "Dry-run placeholder attribute support.",
+              "evidence_columns": [
+                "BANK_SALES_TRADING.BANK_SALES_TRADING.CUSTOMER_TRANSACTIONS.txn_amount"
+              ]
+            },
+            {
+              "name": "txn_type",
+              "semantics": "Dry-run placeholder attribute support.",
+              "evidence_columns": [
+                "BANK_SALES_TRADING.BANK_SALES_TRADING.CUSTOMER_TRANSACTIONS.txn_type"
+              ]
+            }
+          ],
+          "participants": []
+        }
+      ],
+      "prompt_path": "D:\\Workspace\\Ace\\Knowdata\\tests\\_tmp\\database_table_input_dry_run\\20260508-153220\\sf_local157\\group_prompts\\group_0007_BANK_SALES_TRADING.BANK_SALES_TRADING.CUSTOMER_TRANSACTIONS.md",
+      "response_path": "D:\\Workspace\\Ace\\Knowdata\\tests\\_tmp\\database_table_input_dry_run\\20260508-153220\\sf_local157\\group_responses\\group_0007_BANK_SALES_TRADING.BANK_SALES_TRADING.CUSTOMER_TRANSACTIONS.json"
+    },
+    {
+      "group_id": "group_0008_BANK_SALES_TRADING.BANK_SALES_TRADING.INTEREST_MAP",
+      "grouping_method": "reforce_table_family",
+      "representative_table": "BANK_SALES_TRADING.BANK_SALES_TRADING.INTEREST_MAP",
+      "member_tables": [
+        "BANK_SALES_TRADING.BANK_SALES_TRADING.INTEREST_MAP"
+      ],
+      "family_size": 1,
+      "table_fullname": "BANK_SALES_TRADING.BANK_SALES_TRADING.INTEREST_MAP",
+      "supported_question_semantics": [
+        "Dry-run placeholder: inspect the generated prompt for intended group-level support."
+      ],
+      "is_relevant": true,
+      "semantic_units": [
+        {
+          "unit_type": "entity",
+          "unit_name": "INTEREST_MAP",
+          "desc": "Dry-run placeholder semantic unit.",
+          "grain": "Dry-run placeholder grain.",
+          "attributes": [
+            {
+              "name": "interest_summary",
+              "semantics": "Dry-run placeholder attribute support.",
+              "evidence_columns": [
+                "BANK_SALES_TRADING.BANK_SALES_TRADING.INTEREST_MAP.interest_summary"
+              ]
+            },
+            {
+              "name": "id",
+              "semantics": "Dry-run placeholder attribute support.",
+              "evidence_columns": [
+                "BANK_SALES_TRADING.BANK_SALES_TRADING.INTEREST_MAP.id"
+              ]
+            },
+            {
+              "name": "interest_name",
+              "semantics": "Dry-run placeholder attribute support.",
+              "evidence_columns": [
+                "BANK_SALES_TRADING.BANK_SALES_TRADING.INTEREST_MAP.interest_name"
+              ]
+            },
+            {
+              "name": "last_modified",
+              "semantics": "Dry-run placeholder attribute support.",
+              "evidence_columns": [
+                "BANK_SALES_TRADING.BANK_SALES_TRADING.INTEREST_MAP.last_modified"
+              ]
+            },
+            {
+              "name": "created_at",
+              "semantics": "Dry-run placeholder attribute support.",
+              "evidence_columns": [
+                "BANK_SALES_TRADING.BANK_SALES_TRADING.INTEREST_MAP.created_at"
+              ]
+            }
+          ],
+          "participants": []
+        }
+      ],
+      "prompt_path": "D:\\Workspace\\Ace\\Knowdata\\tests\\_tmp\\database_table_input_dry_run\\20260508-153220\\sf_local157\\group_prompts\\group_0008_BANK_SALES_TRADING.BANK_SALES_TRADING.INTEREST_MAP.md",
+      "response_path": "D:\\Workspace\\Ace\\Knowdata\\tests\\_tmp\\database_table_input_dry_run\\20260508-153220\\sf_local157\\group_responses\\group_0008_BANK_SALES_TRADING.BANK_SALES_TRADING.INTEREST_MAP.json"
+    },
+    {
+      "group_id": "group_0009_BANK_SALES_TRADING.BANK_SALES_TRADING.INTEREST_METRICS",
+      "grouping_method": "reforce_table_family",
+      "representative_table": "BANK_SALES_TRADING.BANK_SALES_TRADING.INTEREST_METRICS",
+      "member_tables": [
+        "BANK_SALES_TRADING.BANK_SALES_TRADING.INTEREST_METRICS"
+      ],
+      "family_size": 1,
+      "table_fullname": "BANK_SALES_TRADING.BANK_SALES_TRADING.INTEREST_METRICS",
+      "supported_question_semantics": [
+        "Dry-run placeholder: inspect the generated prompt for intended group-level support."
+      ],
+      "is_relevant": true,
+      "semantic_units": [
+        {
+          "unit_type": "entity",
+          "unit_name": "INTEREST_METRICS",
+          "desc": "Dry-run placeholder semantic unit.",
+          "grain": "Dry-run placeholder grain.",
+          "attributes": [
+            {
+              "name": "ranking",
+              "semantics": "Dry-run placeholder attribute support.",
+              "evidence_columns": [
+                "BANK_SALES_TRADING.BANK_SALES_TRADING.INTEREST_METRICS.ranking"
+              ]
+            },
+            {
+              "name": "percentile_ranking",
+              "semantics": "Dry-run placeholder attribute support.",
+              "evidence_columns": [
+                "BANK_SALES_TRADING.BANK_SALES_TRADING.INTEREST_METRICS.percentile_ranking"
+              ]
+            },
+            {
+              "name": "month_year",
+              "semantics": "Dry-run placeholder attribute support.",
+              "evidence_columns": [
+                "BANK_SALES_TRADING.BANK_SALES_TRADING.INTEREST_METRICS.month_year"
+              ]
+            },
+            {
+              "name": "interest_id",
+              "semantics": "Dry-run placeholder attribute support.",
+              "evidence_columns": [
+                "BANK_SALES_TRADING.BANK_SALES_TRADING.INTEREST_METRICS.interest_id"
+              ]
+            },
+            {
+              "name": "composition",
+              "semantics": "Dry-run placeholder attribute support.",
+              "evidence_columns": [
+                "BANK_SALES_TRADING.BANK_SALES_TRADING.INTEREST_METRICS.composition"
+              ]
+            },
+            {
+              "name": "_month",
+              "semantics": "Dry-run placeholder attribute support.",
+              "evidence_columns": [
+                "BANK_SALES_TRADING.BANK_SALES_TRADING.INTEREST_METRICS._month"
+              ]
+            },
+            {
+              "name": "index_value",
+              "semantics": "Dry-run placeholder attribute support.",
+              "evidence_columns": [
+                "BANK_SALES_TRADING.BANK_SALES_TRADING.INTEREST_METRICS.index_value"
+              ]
+            },
+            {
+              "name": "_year",
+              "semantics": "Dry-run placeholder attribute support.",
+              "evidence_columns": [
+                "BANK_SALES_TRADING.BANK_SALES_TRADING.INTEREST_METRICS._year"
+              ]
+            }
+          ],
+          "participants": []
+        }
+      ],
+      "prompt_path": "D:\\Workspace\\Ace\\Knowdata\\tests\\_tmp\\database_table_input_dry_run\\20260508-153220\\sf_local157\\group_prompts\\group_0009_BANK_SALES_TRADING.BANK_SALES_TRADING.INTEREST_METRICS.md",
+      "response_path": "D:\\Workspace\\Ace\\Knowdata\\tests\\_tmp\\database_table_input_dry_run\\20260508-153220\\sf_local157\\group_responses\\group_0009_BANK_SALES_TRADING.BANK_SALES_TRADING.INTEREST_METRICS.json"
+    },
+    {
+      "group_id": "group_0010_BANK_SALES_TRADING.BANK_SALES_TRADING.SHOPPING_CART_CAMPAIGN_IDENTIFIER",
+      "grouping_method": "reforce_table_family",
+      "representative_table": "BANK_SALES_TRADING.BANK_SALES_TRADING.SHOPPING_CART_CAMPAIGN_IDENTIFIER",
+      "member_tables": [
+        "BANK_SALES_TRADING.BANK_SALES_TRADING.SHOPPING_CART_CAMPAIGN_IDENTIFIER"
+      ],
+      "family_size": 1,
+      "table_fullname": "BANK_SALES_TRADING.BANK_SALES_TRADING.SHOPPING_CART_CAMPAIGN_IDENTIFIER",
+      "supported_question_semantics": [
+        "Dry-run placeholder: inspect the generated prompt for intended group-level support."
+      ],
+      "is_relevant": true,
+      "semantic_units": [
+        {
+          "unit_type": "entity",
+          "unit_name": "SHOPPING_CART_CAMPAIGN_IDENTIFIER",
+          "desc": "Dry-run placeholder semantic unit.",
+          "grain": "Dry-run placeholder grain.",
+          "attributes": [
+            {
+              "name": "start_date",
+              "semantics": "Dry-run placeholder attribute support.",
+              "evidence_columns": [
+                "BANK_SALES_TRADING.BANK_SALES_TRADING.SHOPPING_CART_CAMPAIGN_IDENTIFIER.start_date"
+              ]
+            },
+            {
+              "name": "campaign_id",
+              "semantics": "Dry-run placeholder attribute support.",
+              "evidence_columns": [
+                "BANK_SALES_TRADING.BANK_SALES_TRADING.SHOPPING_CART_CAMPAIGN_IDENTIFIER.campaign_id"
+              ]
+            },
+            {
+              "name": "campaign_name",
+              "semantics": "Dry-run placeholder attribute support.",
+              "evidence_columns": [
+                "BANK_SALES_TRADING.BANK_SALES_TRADING.SHOPPING_CART_CAMPAIGN_IDENTIFIER.campaign_name"
+              ]
+            },
+            {
+              "name": "end_date",
+              "semantics": "Dry-run placeholder attribute support.",
+              "evidence_columns": [
+                "BANK_SALES_TRADING.BANK_SALES_TRADING.SHOPPING_CART_CAMPAIGN_IDENTIFIER.end_date"
+              ]
+            },
+            {
+              "name": "products",
+              "semantics": "Dry-run placeholder attribute support.",
+              "evidence_columns": [
+                "BANK_SALES_TRADING.BANK_SALES_TRADING.SHOPPING_CART_CAMPAIGN_IDENTIFIER.products"
+              ]
+            }
+          ],
+          "participants": []
+        }
+      ],
+      "prompt_path": "D:\\Workspace\\Ace\\Knowdata\\tests\\_tmp\\database_table_input_dry_run\\20260508-153220\\sf_local157\\group_prompts\\group_0010_BANK_SALES_TRADING.BANK_SALES_TRADING.SHOPPING_CART_CAMPAIGN_IDENTIFIER.md",
+      "response_path": "D:\\Workspace\\Ace\\Knowdata\\tests\\_tmp\\database_table_input_dry_run\\20260508-153220\\sf_local157\\group_responses\\group_0010_BANK_SALES_TRADING.BANK_SALES_TRADING.SHOPPING_CART_CAMPAIGN_IDENTIFIER.json"
+    },
+    {
+      "group_id": "group_0011_BANK_SALES_TRADING.BANK_SALES_TRADING.SHOPPING_CART_EVENTS",
+      "grouping_method": "reforce_table_family",
+      "representative_table": "BANK_SALES_TRADING.BANK_SALES_TRADING.SHOPPING_CART_EVENTS",
+      "member_tables": [
+        "BANK_SALES_TRADING.BANK_SALES_TRADING.SHOPPING_CART_EVENTS"
+      ],
+      "family_size": 1,
+      "table_fullname": "BANK_SALES_TRADING.BANK_SALES_TRADING.SHOPPING_CART_EVENTS",
+      "supported_question_semantics": [
+        "Dry-run placeholder: inspect the generated prompt for intended group-level support."
+      ],
+      "is_relevant": true,
+      "semantic_units": [
+        {
+          "unit_type": "entity",
+          "unit_name": "SHOPPING_CART_EVENTS",
+          "desc": "Dry-run placeholder semantic unit.",
+          "grain": "Dry-run placeholder grain.",
+          "attributes": [
+            {
+              "name": "page_id",
+              "semantics": "Dry-run placeholder attribute support.",
+              "evidence_columns": [
+                "BANK_SALES_TRADING.BANK_SALES_TRADING.SHOPPING_CART_EVENTS.page_id"
+              ]
+            },
+            {
+              "name": "event_type",
+              "semantics": "Dry-run placeholder attribute support.",
+              "evidence_columns": [
+                "BANK_SALES_TRADING.BANK_SALES_TRADING.SHOPPING_CART_EVENTS.event_type"
+              ]
+            },
+            {
+              "name": "cookie_id",
+              "semantics": "Dry-run placeholder attribute support.",
+              "evidence_columns": [
+                "BANK_SALES_TRADING.BANK_SALES_TRADING.SHOPPING_CART_EVENTS.cookie_id"
+              ]
+            },
+            {
+              "name": "event_time",
+              "semantics": "Dry-run placeholder attribute support.",
+              "evidence_columns": [
+                "BANK_SALES_TRADING.BANK_SALES_TRADING.SHOPPING_CART_EVENTS.event_time"
+              ]
+            },
+            {
+              "name": "visit_id",
+              "semantics": "Dry-run placeholder attribute support.",
+              "evidence_columns": [
+                "BANK_SALES_TRADING.BANK_SALES_TRADING.SHOPPING_CART_EVENTS.visit_id"
+              ]
+            },
+            {
+              "name": "sequence_number",
+              "semantics": "Dry-run placeholder attribute support.",
+              "evidence_columns": [
+                "BANK_SALES_TRADING.BANK_SALES_TRADING.SHOPPING_CART_EVENTS.sequence_number"
+              ]
+            }
+          ],
+          "participants": []
+        }
+      ],
+      "prompt_path": "D:\\Workspace\\Ace\\Knowdata\\tests\\_tmp\\database_table_input_dry_run\\20260508-153220\\sf_local157\\group_prompts\\group_0011_BANK_SALES_TRADING.BANK_SALES_TRADING.SHOPPING_CART_EVENTS.md",
+      "response_path": "D:\\Workspace\\Ace\\Knowdata\\tests\\_tmp\\database_table_input_dry_run\\20260508-153220\\sf_local157\\group_responses\\group_0011_BANK_SALES_TRADING.BANK_SALES_TRADING.SHOPPING_CART_EVENTS.json"
+    },
+    {
+      "group_id": "group_0012_BANK_SALES_TRADING.BANK_SALES_TRADING.SHOPPING_CART_EVENT_IDENTIFIER",
+      "grouping_method": "reforce_table_family",
+      "representative_table": "BANK_SALES_TRADING.BANK_SALES_TRADING.SHOPPING_CART_EVENT_IDENTIFIER",
+      "member_tables": [
+        "BANK_SALES_TRADING.BANK_SALES_TRADING.SHOPPING_CART_EVENT_IDENTIFIER"
+      ],
+      "family_size": 1,
+      "table_fullname": "BANK_SALES_TRADING.BANK_SALES_TRADING.SHOPPING_CART_EVENT_IDENTIFIER",
+      "supported_question_semantics": [
+        "Dry-run placeholder: inspect the generated prompt for intended group-level support."
+      ],
+      "is_relevant": true,
+      "semantic_units": [
+        {
+          "unit_type": "entity",
+          "unit_name": "SHOPPING_CART_EVENT_IDENTIFIER",
+          "desc": "Dry-run placeholder semantic unit.",
+          "grain": "Dry-run placeholder grain.",
+          "attributes": [
+            {
+              "name": "event_name",
+              "semantics": "Dry-run placeholder attribute support.",
+              "evidence_columns": [
+                "BANK_SALES_TRADING.BANK_SALES_TRADING.SHOPPING_CART_EVENT_IDENTIFIER.event_name"
+              ]
+            },
+            {
+              "name": "event_type",
+              "semantics": "Dry-run placeholder attribute support.",
+              "evidence_columns": [
+                "BANK_SALES_TRADING.BANK_SALES_TRADING.SHOPPING_CART_EVENT_IDENTIFIER.event_type"
+              ]
+            }
+          ],
+          "participants": []
+        }
+      ],
+      "prompt_path": "D:\\Workspace\\Ace\\Knowdata\\tests\\_tmp\\database_table_input_dry_run\\20260508-153220\\sf_local157\\group_prompts\\group_0012_BANK_SALES_TRADING.BANK_SALES_TRADING.SHOPPING_CART_EVENT_IDENTIFIER.md",
+      "response_path": "D:\\Workspace\\Ace\\Knowdata\\tests\\_tmp\\database_table_input_dry_run\\20260508-153220\\sf_local157\\group_responses\\group_0012_BANK_SALES_TRADING.BANK_SALES_TRADING.SHOPPING_CART_EVENT_IDENTIFIER.json"
+    },
+    {
+      "group_id": "group_0013_BANK_SALES_TRADING.BANK_SALES_TRADING.SHOPPING_CART_PAGE_HIERARCHY",
+      "grouping_method": "reforce_table_family",
+      "representative_table": "BANK_SALES_TRADING.BANK_SALES_TRADING.SHOPPING_CART_PAGE_HIERARCHY",
+      "member_tables": [
+        "BANK_SALES_TRADING.BANK_SALES_TRADING.SHOPPING_CART_PAGE_HIERARCHY"
+      ],
+      "family_size": 1,
+      "table_fullname": "BANK_SALES_TRADING.BANK_SALES_TRADING.SHOPPING_CART_PAGE_HIERARCHY",
+      "supported_question_semantics": [
+        "Dry-run placeholder: inspect the generated prompt for intended group-level support."
+      ],
+      "is_relevant": true,
+      "semantic_units": [
+        {
+          "unit_type": "entity",
+          "unit_name": "SHOPPING_CART_PAGE_HIERARCHY",
+          "desc": "Dry-run placeholder semantic unit.",
+          "grain": "Dry-run placeholder grain.",
+          "attributes": [
+            {
+              "name": "page_id",
+              "semantics": "Dry-run placeholder attribute support.",
+              "evidence_columns": [
+                "BANK_SALES_TRADING.BANK_SALES_TRADING.SHOPPING_CART_PAGE_HIERARCHY.page_id"
+              ]
+            },
+            {
+              "name": "product_id",
+              "semantics": "Dry-run placeholder attribute support.",
+              "evidence_columns": [
+                "BANK_SALES_TRADING.BANK_SALES_TRADING.SHOPPING_CART_PAGE_HIERARCHY.product_id"
+              ]
+            },
+            {
+              "name": "page_name",
+              "semantics": "Dry-run placeholder attribute support.",
+              "evidence_columns": [
+                "BANK_SALES_TRADING.BANK_SALES_TRADING.SHOPPING_CART_PAGE_HIERARCHY.page_name"
+              ]
+            },
+            {
+              "name": "product_category",
+              "semantics": "Dry-run placeholder attribute support.",
+              "evidence_columns": [
+                "BANK_SALES_TRADING.BANK_SALES_TRADING.SHOPPING_CART_PAGE_HIERARCHY.product_category"
+              ]
+            }
+          ],
+          "participants": []
+        }
+      ],
+      "prompt_path": "D:\\Workspace\\Ace\\Knowdata\\tests\\_tmp\\database_table_input_dry_run\\20260508-153220\\sf_local157\\group_prompts\\group_0013_BANK_SALES_TRADING.BANK_SALES_TRADING.SHOPPING_CART_PAGE_HIERARCHY.md",
+      "response_path": "D:\\Workspace\\Ace\\Knowdata\\tests\\_tmp\\database_table_input_dry_run\\20260508-153220\\sf_local157\\group_responses\\group_0013_BANK_SALES_TRADING.BANK_SALES_TRADING.SHOPPING_CART_PAGE_HIERARCHY.json"
+    },
+    {
+      "group_id": "group_0014_BANK_SALES_TRADING.BANK_SALES_TRADING.SHOPPING_CART_USERS",
+      "grouping_method": "reforce_table_family",
+      "representative_table": "BANK_SALES_TRADING.BANK_SALES_TRADING.SHOPPING_CART_USERS",
+      "member_tables": [
+        "BANK_SALES_TRADING.BANK_SALES_TRADING.SHOPPING_CART_USERS"
+      ],
+      "family_size": 1,
+      "table_fullname": "BANK_SALES_TRADING.BANK_SALES_TRADING.SHOPPING_CART_USERS",
+      "supported_question_semantics": [
+        "Dry-run placeholder: inspect the generated prompt for intended group-level support."
+      ],
+      "is_relevant": true,
+      "semantic_units": [
+        {
+          "unit_type": "entity",
+          "unit_name": "SHOPPING_CART_USERS",
+          "desc": "Dry-run placeholder semantic unit.",
+          "grain": "Dry-run placeholder grain.",
+          "attributes": [
+            {
+              "name": "user_id",
+              "semantics": "Dry-run placeholder attribute support.",
+              "evidence_columns": [
+                "BANK_SALES_TRADING.BANK_SALES_TRADING.SHOPPING_CART_USERS.user_id"
+              ]
+            },
+            {
+              "name": "cookie_id",
+              "semantics": "Dry-run placeholder attribute support.",
+              "evidence_columns": [
+                "BANK_SALES_TRADING.BANK_SALES_TRADING.SHOPPING_CART_USERS.cookie_id"
+              ]
+            },
+            {
+              "name": "start_date",
+              "semantics": "Dry-run placeholder attribute support.",
+              "evidence_columns": [
+                "BANK_SALES_TRADING.BANK_SALES_TRADING.SHOPPING_CART_USERS.start_date"
+              ]
+            }
+          ],
+          "participants": []
+        }
+      ],
+      "prompt_path": "D:\\Workspace\\Ace\\Knowdata\\tests\\_tmp\\database_table_input_dry_run\\20260508-153220\\sf_local157\\group_prompts\\group_0014_BANK_SALES_TRADING.BANK_SALES_TRADING.SHOPPING_CART_USERS.md",
+      "response_path": "D:\\Workspace\\Ace\\Knowdata\\tests\\_tmp\\database_table_input_dry_run\\20260508-153220\\sf_local157\\group_responses\\group_0014_BANK_SALES_TRADING.BANK_SALES_TRADING.SHOPPING_CART_USERS.json"
+    },
+    {
+      "group_id": "group_0015_BANK_SALES_TRADING.BANK_SALES_TRADING.VEG_CAT",
+      "grouping_method": "reforce_table_family",
+      "representative_table": "BANK_SALES_TRADING.BANK_SALES_TRADING.VEG_CAT",
+      "member_tables": [
+        "BANK_SALES_TRADING.BANK_SALES_TRADING.VEG_CAT"
+      ],
+      "family_size": 1,
+      "table_fullname": "BANK_SALES_TRADING.BANK_SALES_TRADING.VEG_CAT",
+      "supported_question_semantics": [
+        "Dry-run placeholder: inspect the generated prompt for intended group-level support."
+      ],
+      "is_relevant": true,
+      "semantic_units": [
+        {
+          "unit_type": "entity",
+          "unit_name": "VEG_CAT",
+          "desc": "Dry-run placeholder semantic unit.",
+          "grain": "Dry-run placeholder grain.",
+          "attributes": [
+            {
+              "name": "category_code",
+              "semantics": "Dry-run placeholder attribute support.",
+              "evidence_columns": [
+                "BANK_SALES_TRADING.BANK_SALES_TRADING.VEG_CAT.category_code"
+              ]
+            },
+            {
+              "name": "item_code",
+              "semantics": "Dry-run placeholder attribute support.",
+              "evidence_columns": [
+                "BANK_SALES_TRADING.BANK_SALES_TRADING.VEG_CAT.item_code"
+              ]
+            },
+            {
+              "name": "category_name",
+              "semantics": "Dry-run placeholder attribute support.",
+              "evidence_columns": [
+                "BANK_SALES_TRADING.BANK_SALES_TRADING.VEG_CAT.category_name"
+              ]
+            },
+            {
+              "name": "item_name",
+              "semantics": "Dry-run placeholder attribute support.",
+              "evidence_columns": [
+                "BANK_SALES_TRADING.BANK_SALES_TRADING.VEG_CAT.item_name"
+              ]
+            },
+            {
+              "name": "index",
+              "semantics": "Dry-run placeholder attribute support.",
+              "evidence_columns": [
+                "BANK_SALES_TRADING.BANK_SALES_TRADING.VEG_CAT.index"
+              ]
+            }
+          ],
+          "participants": []
+        }
+      ],
+      "prompt_path": "D:\\Workspace\\Ace\\Knowdata\\tests\\_tmp\\database_table_input_dry_run\\20260508-153220\\sf_local157\\group_prompts\\group_0015_BANK_SALES_TRADING.BANK_SALES_TRADING.VEG_CAT.md",
+      "response_path": "D:\\Workspace\\Ace\\Knowdata\\tests\\_tmp\\database_table_input_dry_run\\20260508-153220\\sf_local157\\group_responses\\group_0015_BANK_SALES_TRADING.BANK_SALES_TRADING.VEG_CAT.json"
+    },
+    {
+      "group_id": "group_0016_BANK_SALES_TRADING.BANK_SALES_TRADING.VEG_LOSS_RATE_DF",
+      "grouping_method": "reforce_table_family",
+      "representative_table": "BANK_SALES_TRADING.BANK_SALES_TRADING.VEG_LOSS_RATE_DF",
+      "member_tables": [
+        "BANK_SALES_TRADING.BANK_SALES_TRADING.VEG_LOSS_RATE_DF"
+      ],
+      "family_size": 1,
+      "table_fullname": "BANK_SALES_TRADING.BANK_SALES_TRADING.VEG_LOSS_RATE_DF",
+      "supported_question_semantics": [
+        "Dry-run placeholder: inspect the generated prompt for intended group-level support."
+      ],
+      "is_relevant": true,
+      "semantic_units": [
+        {
+          "unit_type": "entity",
+          "unit_name": "VEG_LOSS_RATE_DF",
+          "desc": "Dry-run placeholder semantic unit.",
+          "grain": "Dry-run placeholder grain.",
+          "attributes": [
+            {
+              "name": "item_name",
+              "semantics": "Dry-run placeholder attribute support.",
+              "evidence_columns": [
+                "BANK_SALES_TRADING.BANK_SALES_TRADING.VEG_LOSS_RATE_DF.item_name"
+              ]
+            },
+            {
+              "name": "item_code",
+              "semantics": "Dry-run placeholder attribute support.",
+              "evidence_columns": [
+                "BANK_SALES_TRADING.BANK_SALES_TRADING.VEG_LOSS_RATE_DF.item_code"
+              ]
+            },
+            {
+              "name": "index",
+              "semantics": "Dry-run placeholder attribute support.",
+              "evidence_columns": [
+                "BANK_SALES_TRADING.BANK_SALES_TRADING.VEG_LOSS_RATE_DF.index"
+              ]
+            },
+            {
+              "name": "loss_rate_%",
+              "semantics": "Dry-run placeholder attribute support.",
+              "evidence_columns": [
+                "BANK_SALES_TRADING.BANK_SALES_TRADING.VEG_LOSS_RATE_DF.loss_rate_%"
+              ]
+            }
+          ],
+          "participants": []
+        }
+      ],
+      "prompt_path": "D:\\Workspace\\Ace\\Knowdata\\tests\\_tmp\\database_table_input_dry_run\\20260508-153220\\sf_local157\\group_prompts\\group_0016_BANK_SALES_TRADING.BANK_SALES_TRADING.VEG_LOSS_RATE_DF.md",
+      "response_path": "D:\\Workspace\\Ace\\Knowdata\\tests\\_tmp\\database_table_input_dry_run\\20260508-153220\\sf_local157\\group_responses\\group_0016_BANK_SALES_TRADING.BANK_SALES_TRADING.VEG_LOSS_RATE_DF.json"
+    },
+    {
+      "group_id": "group_0017_BANK_SALES_TRADING.BANK_SALES_TRADING.VEG_TXN_DF",
+      "grouping_method": "reforce_table_family",
+      "representative_table": "BANK_SALES_TRADING.BANK_SALES_TRADING.VEG_TXN_DF",
+      "member_tables": [
+        "BANK_SALES_TRADING.BANK_SALES_TRADING.VEG_TXN_DF"
+      ],
+      "family_size": 1,
+      "table_fullname": "BANK_SALES_TRADING.BANK_SALES_TRADING.VEG_TXN_DF",
+      "supported_question_semantics": [
+        "Dry-run placeholder: inspect the generated prompt for intended group-level support."
+      ],
+      "is_relevant": true,
+      "semantic_units": [
+        {
+          "unit_type": "entity",
+          "unit_name": "VEG_TXN_DF",
+          "desc": "Dry-run placeholder semantic unit.",
+          "grain": "Dry-run placeholder grain.",
+          "attributes": [
+            {
+              "name": "txn_date",
+              "semantics": "Dry-run placeholder attribute support.",
+              "evidence_columns": [
+                "BANK_SALES_TRADING.BANK_SALES_TRADING.VEG_TXN_DF.txn_date"
+              ]
+            },
+            {
+              "name": "qty_sold(kg)",
+              "semantics": "Dry-run placeholder attribute support.",
+              "evidence_columns": [
+                "BANK_SALES_TRADING.BANK_SALES_TRADING.VEG_TXN_DF.qty_sold(kg)"
+              ]
+            },
+            {
+              "name": "sale/return",
+              "semantics": "Dry-run placeholder attribute support.",
+              "evidence_columns": [
+                "BANK_SALES_TRADING.BANK_SALES_TRADING.VEG_TXN_DF.sale/return"
+              ]
+            },
+            {
+              "name": "txn_time",
+              "semantics": "Dry-run placeholder attribute support.",
+              "evidence_columns": [
+                "BANK_SALES_TRADING.BANK_SALES_TRADING.VEG_TXN_DF.txn_time"
+              ]
+            },
+            {
+              "name": "unit_selling_px_rmb/kg",
+              "semantics": "Dry-run placeholder attribute support.",
+              "evidence_columns": [
+                "BANK_SALES_TRADING.BANK_SALES_TRADING.VEG_TXN_DF.unit_selling_px_rmb/kg"
+              ]
+            },
+            {
+              "name": "index",
+              "semantics": "Dry-run placeholder attribute support.",
+              "evidence_columns": [
+                "BANK_SALES_TRADING.BANK_SALES_TRADING.VEG_TXN_DF.index"
+              ]
+            },
+            {
+              "name": "discount(%)",
+              "semantics": "Dry-run placeholder attribute support.",
+              "evidence_columns": [
+                "BANK_SALES_TRADING.BANK_SALES_TRADING.VEG_TXN_DF.discount(%)"
+              ]
+            },
+            {
+              "name": "item_code",
+              "semantics": "Dry-run placeholder attribute support.",
+              "evidence_columns": [
+                "BANK_SALES_TRADING.BANK_SALES_TRADING.VEG_TXN_DF.item_code"
+              ]
+            },
+            {
+              "name": "day_of_week",
+              "semantics": "Dry-run placeholder attribute support.",
+              "evidence_columns": [
+                "BANK_SALES_TRADING.BANK_SALES_TRADING.VEG_TXN_DF.day_of_week"
+              ]
+            }
+          ],
+          "participants": []
+        }
+      ],
+      "prompt_path": "D:\\Workspace\\Ace\\Knowdata\\tests\\_tmp\\database_table_input_dry_run\\20260508-153220\\sf_local157\\group_prompts\\group_0017_BANK_SALES_TRADING.BANK_SALES_TRADING.VEG_TXN_DF.md",
+      "response_path": "D:\\Workspace\\Ace\\Knowdata\\tests\\_tmp\\database_table_input_dry_run\\20260508-153220\\sf_local157\\group_responses\\group_0017_BANK_SALES_TRADING.BANK_SALES_TRADING.VEG_TXN_DF.json"
+    },
+    {
+      "group_id": "group_0018_BANK_SALES_TRADING.BANK_SALES_TRADING.VEG_WHSLE_DF",
+      "grouping_method": "reforce_table_family",
+      "representative_table": "BANK_SALES_TRADING.BANK_SALES_TRADING.VEG_WHSLE_DF",
+      "member_tables": [
+        "BANK_SALES_TRADING.BANK_SALES_TRADING.VEG_WHSLE_DF"
+      ],
+      "family_size": 1,
+      "table_fullname": "BANK_SALES_TRADING.BANK_SALES_TRADING.VEG_WHSLE_DF",
+      "supported_question_semantics": [
+        "Dry-run placeholder: inspect the generated prompt for intended group-level support."
+      ],
+      "is_relevant": true,
+      "semantic_units": [
+        {
+          "unit_type": "entity",
+          "unit_name": "VEG_WHSLE_DF",
+          "desc": "Dry-run placeholder semantic unit.",
+          "grain": "Dry-run placeholder grain.",
+          "attributes": [
+            {
+              "name": "index",
+              "semantics": "Dry-run placeholder attribute support.",
+              "evidence_columns": [
+                "BANK_SALES_TRADING.BANK_SALES_TRADING.VEG_WHSLE_DF.index"
+              ]
+            },
+            {
+              "name": "whsle_px_rmb-kg",
+              "semantics": "Dry-run placeholder attribute support.",
+              "evidence_columns": [
+                "BANK_SALES_TRADING.BANK_SALES_TRADING.VEG_WHSLE_DF.whsle_px_rmb-kg"
+              ]
+            },
+            {
+              "name": "whsle_date",
+              "semantics": "Dry-run placeholder attribute support.",
+              "evidence_columns": [
+                "BANK_SALES_TRADING.BANK_SALES_TRADING.VEG_WHSLE_DF.whsle_date"
+              ]
+            },
+            {
+              "name": "item_code",
+              "semantics": "Dry-run placeholder attribute support.",
+              "evidence_columns": [
+                "BANK_SALES_TRADING.BANK_SALES_TRADING.VEG_WHSLE_DF.item_code"
+              ]
+            }
+          ],
+          "participants": []
+        }
+      ],
+      "prompt_path": "D:\\Workspace\\Ace\\Knowdata\\tests\\_tmp\\database_table_input_dry_run\\20260508-153220\\sf_local157\\group_prompts\\group_0018_BANK_SALES_TRADING.BANK_SALES_TRADING.VEG_WHSLE_DF.md",
+      "response_path": "D:\\Workspace\\Ace\\Knowdata\\tests\\_tmp\\database_table_input_dry_run\\20260508-153220\\sf_local157\\group_responses\\group_0018_BANK_SALES_TRADING.BANK_SALES_TRADING.VEG_WHSLE_DF.json"
+    },
+    {
+      "group_id": "group_0019_BANK_SALES_TRADING.BANK_SALES_TRADING.WEEKLY_SALES",
+      "grouping_method": "reforce_table_family",
+      "representative_table": "BANK_SALES_TRADING.BANK_SALES_TRADING.WEEKLY_SALES",
+      "member_tables": [
+        "BANK_SALES_TRADING.BANK_SALES_TRADING.WEEKLY_SALES"
+      ],
+      "family_size": 1,
+      "table_fullname": "BANK_SALES_TRADING.BANK_SALES_TRADING.WEEKLY_SALES",
+      "supported_question_semantics": [
+        "Dry-run placeholder: inspect the generated prompt for intended group-level support."
+      ],
+      "is_relevant": true,
+      "semantic_units": [
+        {
+          "unit_type": "entity",
+          "unit_name": "WEEKLY_SALES",
+          "desc": "Dry-run placeholder semantic unit.",
+          "grain": "Dry-run placeholder grain.",
+          "attributes": [
+            {
+              "name": "region",
+              "semantics": "Dry-run placeholder attribute support.",
+              "evidence_columns": [
+                "BANK_SALES_TRADING.BANK_SALES_TRADING.WEEKLY_SALES.region"
+              ]
+            },
+            {
+              "name": "week_date",
+              "semantics": "Dry-run placeholder attribute support.",
+              "evidence_columns": [
+                "BANK_SALES_TRADING.BANK_SALES_TRADING.WEEKLY_SALES.week_date"
+              ]
+            },
+            {
+              "name": "segment",
+              "semantics": "Dry-run placeholder attribute support.",
+              "evidence_columns": [
+                "BANK_SALES_TRADING.BANK_SALES_TRADING.WEEKLY_SALES.segment"
+              ]
+            },
+            {
+              "name": "customer_type",
+              "semantics": "Dry-run placeholder attribute support.",
+              "evidence_columns": [
+                "BANK_SALES_TRADING.BANK_SALES_TRADING.WEEKLY_SALES.customer_type"
+              ]
+            },
+            {
+              "name": "sales",
+              "semantics": "Dry-run placeholder attribute support.",
+              "evidence_columns": [
+                "BANK_SALES_TRADING.BANK_SALES_TRADING.WEEKLY_SALES.sales"
+              ]
+            },
+            {
+              "name": "platform",
+              "semantics": "Dry-run placeholder attribute support.",
+              "evidence_columns": [
+                "BANK_SALES_TRADING.BANK_SALES_TRADING.WEEKLY_SALES.platform"
+              ]
+            },
+            {
+              "name": "transactions",
+              "semantics": "Dry-run placeholder attribute support.",
+              "evidence_columns": [
+                "BANK_SALES_TRADING.BANK_SALES_TRADING.WEEKLY_SALES.transactions"
+              ]
+            }
+          ],
+          "participants": []
+        }
+      ],
+      "prompt_path": "D:\\Workspace\\Ace\\Knowdata\\tests\\_tmp\\database_table_input_dry_run\\20260508-153220\\sf_local157\\group_prompts\\group_0019_BANK_SALES_TRADING.BANK_SALES_TRADING.WEEKLY_SALES.md",
+      "response_path": "D:\\Workspace\\Ace\\Knowdata\\tests\\_tmp\\database_table_input_dry_run\\20260508-153220\\sf_local157\\group_responses\\group_0019_BANK_SALES_TRADING.BANK_SALES_TRADING.WEEKLY_SALES.json"
+    }
+  ]
+}

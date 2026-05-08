@@ -1,0 +1,411 @@
+{
+  "db_id": "NEW_YORK_CITIBIKE_1",
+  "grouping_method": "reforce_table_family",
+  "raw_table_count": 117,
+  "group_count": 22,
+  "groups": [
+    {
+      "group_id": "group_0001_NEW_YORK_CITIBIKE_1.CYCLISTIC.STATE_FIPS",
+      "grouping_method": "reforce_table_family",
+      "group_key": {
+        "namespace": "NEW_YORK_CITIBIKE_1.CYCLISTIC",
+        "normalized_table_name": "STATE_FIPS",
+        "column_signature_hash": "9f0d55045373"
+      },
+      "representative_table": "NEW_YORK_CITIBIKE_1.CYCLISTIC.STATE_FIPS",
+      "member_tables": [
+        "NEW_YORK_CITIBIKE_1.CYCLISTIC.STATE_FIPS"
+      ],
+      "family_size": 1
+    },
+    {
+      "group_id": "group_0002_NEW_YORK_CITIBIKE_1.CYCLISTIC.ZIP_CODES",
+      "grouping_method": "reforce_table_family",
+      "group_key": {
+        "namespace": "NEW_YORK_CITIBIKE_1.CYCLISTIC",
+        "normalized_table_name": "ZIP_CODES",
+        "column_signature_hash": "addf2c2f881a"
+      },
+      "representative_table": "NEW_YORK_CITIBIKE_1.CYCLISTIC.ZIP_CODES",
+      "member_tables": [
+        "NEW_YORK_CITIBIKE_1.CYCLISTIC.ZIP_CODES"
+      ],
+      "family_size": 1
+    },
+    {
+      "group_id": "group_0003_NEW_YORK_CITIBIKE_1.GEO_US_BOUNDARIES.ADJACENT_COUNTIES",
+      "grouping_method": "reforce_table_family",
+      "group_key": {
+        "namespace": "NEW_YORK_CITIBIKE_1.GEO_US_BOUNDARIES",
+        "normalized_table_name": "ADJACENT_COUNTIES",
+        "column_signature_hash": "f37e76277c10"
+      },
+      "representative_table": "NEW_YORK_CITIBIKE_1.GEO_US_BOUNDARIES.ADJACENT_COUNTIES",
+      "member_tables": [
+        "NEW_YORK_CITIBIKE_1.GEO_US_BOUNDARIES.ADJACENT_COUNTIES"
+      ],
+      "family_size": 1
+    },
+    {
+      "group_id": "group_0004_NEW_YORK_CITIBIKE_1.GEO_US_BOUNDARIES.ADJACENT_STATES",
+      "grouping_method": "reforce_table_family",
+      "group_key": {
+        "namespace": "NEW_YORK_CITIBIKE_1.GEO_US_BOUNDARIES",
+        "normalized_table_name": "ADJACENT_STATES",
+        "column_signature_hash": "bac2b5249abd"
+      },
+      "representative_table": "NEW_YORK_CITIBIKE_1.GEO_US_BOUNDARIES.ADJACENT_STATES",
+      "member_tables": [
+        "NEW_YORK_CITIBIKE_1.GEO_US_BOUNDARIES.ADJACENT_STATES"
+      ],
+      "family_size": 1
+    },
+    {
+      "group_id": "group_0005_NEW_YORK_CITIBIKE_1.GEO_US_BOUNDARIES.CBSA",
+      "grouping_method": "reforce_table_family",
+      "group_key": {
+        "namespace": "NEW_YORK_CITIBIKE_1.GEO_US_BOUNDARIES",
+        "normalized_table_name": "CBSA",
+        "column_signature_hash": "ec3e90cfd282"
+      },
+      "representative_table": "NEW_YORK_CITIBIKE_1.GEO_US_BOUNDARIES.CBSA",
+      "member_tables": [
+        "NEW_YORK_CITIBIKE_1.GEO_US_BOUNDARIES.CBSA"
+      ],
+      "family_size": 1
+    },
+    {
+      "group_id": "group_0006_NEW_YORK_CITIBIKE_1.GEO_US_BOUNDARIES.CNECTA",
+      "grouping_method": "reforce_table_family",
+      "group_key": {
+        "namespace": "NEW_YORK_CITIBIKE_1.GEO_US_BOUNDARIES",
+        "normalized_table_name": "CNECTA",
+        "column_signature_hash": "7d8d1c8fd7c6"
+      },
+      "representative_table": "NEW_YORK_CITIBIKE_1.GEO_US_BOUNDARIES.CNECTA",
+      "member_tables": [
+        "NEW_YORK_CITIBIKE_1.GEO_US_BOUNDARIES.CNECTA"
+      ],
+      "family_size": 1
+    },
+    {
+      "group_id": "group_0007_NEW_YORK_CITIBIKE_1.GEO_US_BOUNDARIES.COASTLINE",
+      "grouping_method": "reforce_table_family",
+      "group_key": {
+        "namespace": "NEW_YORK_CITIBIKE_1.GEO_US_BOUNDARIES",
+        "normalized_table_name": "COASTLINE",
+        "column_signature_hash": "d0c70ffd828d"
+      },
+      "representative_table": "NEW_YORK_CITIBIKE_1.GEO_US_BOUNDARIES.COASTLINE",
+      "member_tables": [
+        "NEW_YORK_CITIBIKE_1.GEO_US_BOUNDARIES.COASTLINE"
+      ],
+      "family_size": 1
+    },
+    {
+      "group_id": "group_0008_NEW_YORK_CITIBIKE_1.GEO_US_BOUNDARIES.CONGRESS_DISTRICT_115",
+      "grouping_method": "reforce_table_family",
+      "group_key": {
+        "namespace": "NEW_YORK_CITIBIKE_1.GEO_US_BOUNDARIES",
+        "normalized_table_name": "CONGRESS_DISTRICT_",
+        "column_signature_hash": "ddf3a569fbf8"
+      },
+      "representative_table": "NEW_YORK_CITIBIKE_1.GEO_US_BOUNDARIES.CONGRESS_DISTRICT_115",
+      "member_tables": [
+        "NEW_YORK_CITIBIKE_1.GEO_US_BOUNDARIES.CONGRESS_DISTRICT_115",
+        "NEW_YORK_CITIBIKE_1.GEO_US_BOUNDARIES.CONGRESS_DISTRICT_116"
+      ],
+      "family_size": 2
+    },
+    {
+      "group_id": "group_0009_NEW_YORK_CITIBIKE_1.GEO_US_BOUNDARIES.COUNTIES",
+      "grouping_method": "reforce_table_family",
+      "group_key": {
+        "namespace": "NEW_YORK_CITIBIKE_1.GEO_US_BOUNDARIES",
+        "normalized_table_name": "COUNTIES",
+        "column_signature_hash": "902efdaefcf4"
+      },
+      "representative_table": "NEW_YORK_CITIBIKE_1.GEO_US_BOUNDARIES.COUNTIES",
+      "member_tables": [
+        "NEW_YORK_CITIBIKE_1.GEO_US_BOUNDARIES.COUNTIES"
+      ],
+      "family_size": 1
+    },
+    {
+      "group_id": "group_0010_NEW_YORK_CITIBIKE_1.GEO_US_BOUNDARIES.CSA",
+      "grouping_method": "reforce_table_family",
+      "group_key": {
+        "namespace": "NEW_YORK_CITIBIKE_1.GEO_US_BOUNDARIES",
+        "normalized_table_name": "CSA",
+        "column_signature_hash": "2a0ebb21a52c"
+      },
+      "representative_table": "NEW_YORK_CITIBIKE_1.GEO_US_BOUNDARIES.CSA",
+      "member_tables": [
+        "NEW_YORK_CITIBIKE_1.GEO_US_BOUNDARIES.CSA"
+      ],
+      "family_size": 1
+    },
+    {
+      "group_id": "group_0011_NEW_YORK_CITIBIKE_1.GEO_US_BOUNDARIES.METROPOLITAN_DIVISIONS",
+      "grouping_method": "reforce_table_family",
+      "group_key": {
+        "namespace": "NEW_YORK_CITIBIKE_1.GEO_US_BOUNDARIES",
+        "normalized_table_name": "METROPOLITAN_DIVISIONS",
+        "column_signature_hash": "6ddeae2b20a3"
+      },
+      "representative_table": "NEW_YORK_CITIBIKE_1.GEO_US_BOUNDARIES.METROPOLITAN_DIVISIONS",
+      "member_tables": [
+        "NEW_YORK_CITIBIKE_1.GEO_US_BOUNDARIES.METROPOLITAN_DIVISIONS"
+      ],
+      "family_size": 1
+    },
+    {
+      "group_id": "group_0012_NEW_YORK_CITIBIKE_1.GEO_US_BOUNDARIES.NATIONAL_OUTLINE",
+      "grouping_method": "reforce_table_family",
+      "group_key": {
+        "namespace": "NEW_YORK_CITIBIKE_1.GEO_US_BOUNDARIES",
+        "normalized_table_name": "NATIONAL_OUTLINE",
+        "column_signature_hash": "68117bafdc4e"
+      },
+      "representative_table": "NEW_YORK_CITIBIKE_1.GEO_US_BOUNDARIES.NATIONAL_OUTLINE",
+      "member_tables": [
+        "NEW_YORK_CITIBIKE_1.GEO_US_BOUNDARIES.NATIONAL_OUTLINE"
+      ],
+      "family_size": 1
+    },
+    {
+      "group_id": "group_0013_NEW_YORK_CITIBIKE_1.GEO_US_BOUNDARIES.NWS_FORECAST_REGIONS",
+      "grouping_method": "reforce_table_family",
+      "group_key": {
+        "namespace": "NEW_YORK_CITIBIKE_1.GEO_US_BOUNDARIES",
+        "normalized_table_name": "NWS_FORECAST_REGIONS",
+        "column_signature_hash": "6c3e55c305c4"
+      },
+      "representative_table": "NEW_YORK_CITIBIKE_1.GEO_US_BOUNDARIES.NWS_FORECAST_REGIONS",
+      "member_tables": [
+        "NEW_YORK_CITIBIKE_1.GEO_US_BOUNDARIES.NWS_FORECAST_REGIONS"
+      ],
+      "family_size": 1
+    },
+    {
+      "group_id": "group_0014_NEW_YORK_CITIBIKE_1.GEO_US_BOUNDARIES.RAILWAYS",
+      "grouping_method": "reforce_table_family",
+      "group_key": {
+        "namespace": "NEW_YORK_CITIBIKE_1.GEO_US_BOUNDARIES",
+        "normalized_table_name": "RAILWAYS",
+        "column_signature_hash": "01a1be3451c5"
+      },
+      "representative_table": "NEW_YORK_CITIBIKE_1.GEO_US_BOUNDARIES.RAILWAYS",
+      "member_tables": [
+        "NEW_YORK_CITIBIKE_1.GEO_US_BOUNDARIES.RAILWAYS"
+      ],
+      "family_size": 1
+    },
+    {
+      "group_id": "group_0015_NEW_YORK_CITIBIKE_1.GEO_US_BOUNDARIES.STATES",
+      "grouping_method": "reforce_table_family",
+      "group_key": {
+        "namespace": "NEW_YORK_CITIBIKE_1.GEO_US_BOUNDARIES",
+        "normalized_table_name": "STATES",
+        "column_signature_hash": "81b1ed5b1c9e"
+      },
+      "representative_table": "NEW_YORK_CITIBIKE_1.GEO_US_BOUNDARIES.STATES",
+      "member_tables": [
+        "NEW_YORK_CITIBIKE_1.GEO_US_BOUNDARIES.STATES"
+      ],
+      "family_size": 1
+    },
+    {
+      "group_id": "group_0016_NEW_YORK_CITIBIKE_1.GEO_US_BOUNDARIES.URBAN_AREAS",
+      "grouping_method": "reforce_table_family",
+      "group_key": {
+        "namespace": "NEW_YORK_CITIBIKE_1.GEO_US_BOUNDARIES",
+        "normalized_table_name": "URBAN_AREAS",
+        "column_signature_hash": "69fce367b89f"
+      },
+      "representative_table": "NEW_YORK_CITIBIKE_1.GEO_US_BOUNDARIES.URBAN_AREAS",
+      "member_tables": [
+        "NEW_YORK_CITIBIKE_1.GEO_US_BOUNDARIES.URBAN_AREAS"
+      ],
+      "family_size": 1
+    },
+    {
+      "group_id": "group_0017_NEW_YORK_CITIBIKE_1.GEO_US_BOUNDARIES.ZIP_CODES",
+      "grouping_method": "reforce_table_family",
+      "group_key": {
+        "namespace": "NEW_YORK_CITIBIKE_1.GEO_US_BOUNDARIES",
+        "normalized_table_name": "ZIP_CODES",
+        "column_signature_hash": "3f2d1d0442cd"
+      },
+      "representative_table": "NEW_YORK_CITIBIKE_1.GEO_US_BOUNDARIES.ZIP_CODES",
+      "member_tables": [
+        "NEW_YORK_CITIBIKE_1.GEO_US_BOUNDARIES.ZIP_CODES"
+      ],
+      "family_size": 1
+    },
+    {
+      "group_id": "group_0018_NEW_YORK_CITIBIKE_1.NEW_YORK_CITIBIKE.CITIBIKE_STATIONS",
+      "grouping_method": "reforce_table_family",
+      "group_key": {
+        "namespace": "NEW_YORK_CITIBIKE_1.NEW_YORK_CITIBIKE",
+        "normalized_table_name": "CITIBIKE_STATIONS",
+        "column_signature_hash": "565e14914651"
+      },
+      "representative_table": "NEW_YORK_CITIBIKE_1.NEW_YORK_CITIBIKE.CITIBIKE_STATIONS",
+      "member_tables": [
+        "NEW_YORK_CITIBIKE_1.NEW_YORK_CITIBIKE.CITIBIKE_STATIONS"
+      ],
+      "family_size": 1
+    },
+    {
+      "group_id": "group_0019_NEW_YORK_CITIBIKE_1.NEW_YORK_CITIBIKE.CITIBIKE_TRIPS",
+      "grouping_method": "reforce_table_family",
+      "group_key": {
+        "namespace": "NEW_YORK_CITIBIKE_1.NEW_YORK_CITIBIKE",
+        "normalized_table_name": "CITIBIKE_TRIPS",
+        "column_signature_hash": "d05094679191"
+      },
+      "representative_table": "NEW_YORK_CITIBIKE_1.NEW_YORK_CITIBIKE.CITIBIKE_TRIPS",
+      "member_tables": [
+        "NEW_YORK_CITIBIKE_1.NEW_YORK_CITIBIKE.CITIBIKE_TRIPS"
+      ],
+      "family_size": 1
+    },
+    {
+      "group_id": "group_0020_NEW_YORK_CITIBIKE_1.NOAA_GSOD.GSOD1929",
+      "grouping_method": "reforce_table_family",
+      "group_key": {
+        "namespace": "NEW_YORK_CITIBIKE_1.NOAA_GSOD",
+        "normalized_table_name": "GSOD",
+        "column_signature_hash": "6d3e94e3c762"
+      },
+      "representative_table": "NEW_YORK_CITIBIKE_1.NOAA_GSOD.GSOD1929",
+      "member_tables": [
+        "NEW_YORK_CITIBIKE_1.NOAA_GSOD.GSOD1929",
+        "NEW_YORK_CITIBIKE_1.NOAA_GSOD.GSOD1930",
+        "NEW_YORK_CITIBIKE_1.NOAA_GSOD.GSOD1931",
+        "NEW_YORK_CITIBIKE_1.NOAA_GSOD.GSOD1932",
+        "NEW_YORK_CITIBIKE_1.NOAA_GSOD.GSOD1933",
+        "NEW_YORK_CITIBIKE_1.NOAA_GSOD.GSOD1934",
+        "NEW_YORK_CITIBIKE_1.NOAA_GSOD.GSOD1935",
+        "NEW_YORK_CITIBIKE_1.NOAA_GSOD.GSOD1936",
+        "NEW_YORK_CITIBIKE_1.NOAA_GSOD.GSOD1937",
+        "NEW_YORK_CITIBIKE_1.NOAA_GSOD.GSOD1938",
+        "NEW_YORK_CITIBIKE_1.NOAA_GSOD.GSOD1939",
+        "NEW_YORK_CITIBIKE_1.NOAA_GSOD.GSOD1940",
+        "NEW_YORK_CITIBIKE_1.NOAA_GSOD.GSOD1941",
+        "NEW_YORK_CITIBIKE_1.NOAA_GSOD.GSOD1942",
+        "NEW_YORK_CITIBIKE_1.NOAA_GSOD.GSOD1943",
+        "NEW_YORK_CITIBIKE_1.NOAA_GSOD.GSOD1944",
+        "NEW_YORK_CITIBIKE_1.NOAA_GSOD.GSOD1945",
+        "NEW_YORK_CITIBIKE_1.NOAA_GSOD.GSOD1946",
+        "NEW_YORK_CITIBIKE_1.NOAA_GSOD.GSOD1947",
+        "NEW_YORK_CITIBIKE_1.NOAA_GSOD.GSOD1948",
+        "NEW_YORK_CITIBIKE_1.NOAA_GSOD.GSOD1949",
+        "NEW_YORK_CITIBIKE_1.NOAA_GSOD.GSOD1950",
+        "NEW_YORK_CITIBIKE_1.NOAA_GSOD.GSOD1951",
+        "NEW_YORK_CITIBIKE_1.NOAA_GSOD.GSOD1952",
+        "NEW_YORK_CITIBIKE_1.NOAA_GSOD.GSOD1953",
+        "NEW_YORK_CITIBIKE_1.NOAA_GSOD.GSOD1954",
+        "NEW_YORK_CITIBIKE_1.NOAA_GSOD.GSOD1955",
+        "NEW_YORK_CITIBIKE_1.NOAA_GSOD.GSOD1956",
+        "NEW_YORK_CITIBIKE_1.NOAA_GSOD.GSOD1957",
+        "NEW_YORK_CITIBIKE_1.NOAA_GSOD.GSOD1958",
+        "NEW_YORK_CITIBIKE_1.NOAA_GSOD.GSOD1959",
+        "NEW_YORK_CITIBIKE_1.NOAA_GSOD.GSOD1960",
+        "NEW_YORK_CITIBIKE_1.NOAA_GSOD.GSOD1961",
+        "NEW_YORK_CITIBIKE_1.NOAA_GSOD.GSOD1962",
+        "NEW_YORK_CITIBIKE_1.NOAA_GSOD.GSOD1963",
+        "NEW_YORK_CITIBIKE_1.NOAA_GSOD.GSOD1964",
+        "NEW_YORK_CITIBIKE_1.NOAA_GSOD.GSOD1965",
+        "NEW_YORK_CITIBIKE_1.NOAA_GSOD.GSOD1966",
+        "NEW_YORK_CITIBIKE_1.NOAA_GSOD.GSOD1967",
+        "NEW_YORK_CITIBIKE_1.NOAA_GSOD.GSOD1968",
+        "NEW_YORK_CITIBIKE_1.NOAA_GSOD.GSOD1969",
+        "NEW_YORK_CITIBIKE_1.NOAA_GSOD.GSOD1970",
+        "NEW_YORK_CITIBIKE_1.NOAA_GSOD.GSOD1971",
+        "NEW_YORK_CITIBIKE_1.NOAA_GSOD.GSOD1972",
+        "NEW_YORK_CITIBIKE_1.NOAA_GSOD.GSOD1973",
+        "NEW_YORK_CITIBIKE_1.NOAA_GSOD.GSOD1974",
+        "NEW_YORK_CITIBIKE_1.NOAA_GSOD.GSOD1975",
+        "NEW_YORK_CITIBIKE_1.NOAA_GSOD.GSOD1976",
+        "NEW_YORK_CITIBIKE_1.NOAA_GSOD.GSOD1977",
+        "NEW_YORK_CITIBIKE_1.NOAA_GSOD.GSOD1978",
+        "NEW_YORK_CITIBIKE_1.NOAA_GSOD.GSOD1979",
+        "NEW_YORK_CITIBIKE_1.NOAA_GSOD.GSOD1980",
+        "NEW_YORK_CITIBIKE_1.NOAA_GSOD.GSOD1981",
+        "NEW_YORK_CITIBIKE_1.NOAA_GSOD.GSOD1982",
+        "NEW_YORK_CITIBIKE_1.NOAA_GSOD.GSOD1983",
+        "NEW_YORK_CITIBIKE_1.NOAA_GSOD.GSOD1984",
+        "NEW_YORK_CITIBIKE_1.NOAA_GSOD.GSOD1985",
+        "NEW_YORK_CITIBIKE_1.NOAA_GSOD.GSOD1986",
+        "NEW_YORK_CITIBIKE_1.NOAA_GSOD.GSOD1987",
+        "NEW_YORK_CITIBIKE_1.NOAA_GSOD.GSOD1988",
+        "NEW_YORK_CITIBIKE_1.NOAA_GSOD.GSOD1989",
+        "NEW_YORK_CITIBIKE_1.NOAA_GSOD.GSOD1990",
+        "NEW_YORK_CITIBIKE_1.NOAA_GSOD.GSOD1991",
+        "NEW_YORK_CITIBIKE_1.NOAA_GSOD.GSOD1992",
+        "NEW_YORK_CITIBIKE_1.NOAA_GSOD.GSOD1993",
+        "NEW_YORK_CITIBIKE_1.NOAA_GSOD.GSOD1994",
+        "NEW_YORK_CITIBIKE_1.NOAA_GSOD.GSOD1995",
+        "NEW_YORK_CITIBIKE_1.NOAA_GSOD.GSOD1996",
+        "NEW_YORK_CITIBIKE_1.NOAA_GSOD.GSOD1997",
+        "NEW_YORK_CITIBIKE_1.NOAA_GSOD.GSOD1998",
+        "NEW_YORK_CITIBIKE_1.NOAA_GSOD.GSOD1999",
+        "NEW_YORK_CITIBIKE_1.NOAA_GSOD.GSOD2000",
+        "NEW_YORK_CITIBIKE_1.NOAA_GSOD.GSOD2001",
+        "NEW_YORK_CITIBIKE_1.NOAA_GSOD.GSOD2002",
+        "NEW_YORK_CITIBIKE_1.NOAA_GSOD.GSOD2003",
+        "NEW_YORK_CITIBIKE_1.NOAA_GSOD.GSOD2004",
+        "NEW_YORK_CITIBIKE_1.NOAA_GSOD.GSOD2005",
+        "NEW_YORK_CITIBIKE_1.NOAA_GSOD.GSOD2006",
+        "NEW_YORK_CITIBIKE_1.NOAA_GSOD.GSOD2007",
+        "NEW_YORK_CITIBIKE_1.NOAA_GSOD.GSOD2008",
+        "NEW_YORK_CITIBIKE_1.NOAA_GSOD.GSOD2009",
+        "NEW_YORK_CITIBIKE_1.NOAA_GSOD.GSOD2010",
+        "NEW_YORK_CITIBIKE_1.NOAA_GSOD.GSOD2011",
+        "NEW_YORK_CITIBIKE_1.NOAA_GSOD.GSOD2012",
+        "NEW_YORK_CITIBIKE_1.NOAA_GSOD.GSOD2013",
+        "NEW_YORK_CITIBIKE_1.NOAA_GSOD.GSOD2014",
+        "NEW_YORK_CITIBIKE_1.NOAA_GSOD.GSOD2015",
+        "NEW_YORK_CITIBIKE_1.NOAA_GSOD.GSOD2016",
+        "NEW_YORK_CITIBIKE_1.NOAA_GSOD.GSOD2017",
+        "NEW_YORK_CITIBIKE_1.NOAA_GSOD.GSOD2018",
+        "NEW_YORK_CITIBIKE_1.NOAA_GSOD.GSOD2019"
+      ],
+      "family_size": 91
+    },
+    {
+      "group_id": "group_0021_NEW_YORK_CITIBIKE_1.NOAA_GSOD.GSOD2020",
+      "grouping_method": "reforce_table_family",
+      "group_key": {
+        "namespace": "NEW_YORK_CITIBIKE_1.NOAA_GSOD",
+        "normalized_table_name": "GSOD",
+        "column_signature_hash": "021a2e421465"
+      },
+      "representative_table": "NEW_YORK_CITIBIKE_1.NOAA_GSOD.GSOD2020",
+      "member_tables": [
+        "NEW_YORK_CITIBIKE_1.NOAA_GSOD.GSOD2020",
+        "NEW_YORK_CITIBIKE_1.NOAA_GSOD.GSOD2021",
+        "NEW_YORK_CITIBIKE_1.NOAA_GSOD.GSOD2022",
+        "NEW_YORK_CITIBIKE_1.NOAA_GSOD.GSOD2023",
+        "NEW_YORK_CITIBIKE_1.NOAA_GSOD.GSOD2024"
+      ],
+      "family_size": 5
+    },
+    {
+      "group_id": "group_0022_NEW_YORK_CITIBIKE_1.NOAA_GSOD.STATIONS",
+      "grouping_method": "reforce_table_family",
+      "group_key": {
+        "namespace": "NEW_YORK_CITIBIKE_1.NOAA_GSOD",
+        "normalized_table_name": "STATIONS",
+        "column_signature_hash": "afb96843082a"
+      },
+      "representative_table": "NEW_YORK_CITIBIKE_1.NOAA_GSOD.STATIONS",
+      "member_tables": [
+        "NEW_YORK_CITIBIKE_1.NOAA_GSOD.STATIONS"
+      ],
+      "family_size": 1
+    }
+  ]
+}

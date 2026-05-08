@@ -1,0 +1,13 @@
+{
+  "run_id": "sf_bq050_20260507-160821",
+  "question_id": "sf_bq050",
+  "db_id": "NEW_YORK_CITIBIKE_1",
+  "timestamp": "20260507-160821",
+  "mode": "schema_linking_only",
+  "metadata_dir": "D:\\Workspace\\Ace\\Knowdata\\metadata\\20260507-120109\\sf_bq050_20260507-120109",
+  "log_dir": "D:\\Workspace\\Ace\\Knowdata\\log\\schema_linking\\20260507-160821\\sf_bq050_20260507-120109",
+  "output_path": "D:\\Workspace\\Ace\\Knowdata\\metadata\\20260507-120109\\sf_bq050_20260507-120109\\schema_linking_2.json",
+  "status": "succeeded",
+  "elapsed_seconds": 32.064863600000535,
+  "snapshot_mode": "linked_columns"
+}

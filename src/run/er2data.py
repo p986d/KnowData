@@ -15,7 +15,7 @@ from typing import Any, Callable
 
 from src.config import load_settings
 from src.llm.llm_client import LLMClient
-from src.llm.reasoning import apply_reasoning_mode
+from src.llm.reasoning import REASONING_MODE_MAP, apply_reasoning_mode
 from src.nl2sql.base import NL2SQLRequest, SchemaLinkingRequest
 from src.nl2sql.defaults import (
     DEFAULT_ENGINE_SCRIPT,
@@ -2832,6 +2832,11 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--schema-link-model-config", default=None)
     parser.add_argument("--nl2sql-model-config", default=None)
     parser.add_argument(
+        "--reasoning-mode",
+        choices=sorted(REASONING_MODE_MAP.keys()),
+        default=None,
+    )
+    parser.add_argument(
         "--enable-db-hint",
         type=parse_cli_bool,
         default=True,
@@ -2969,6 +2974,7 @@ def main() -> None:
             "include_desc_in_er2query": not args.exclude_desc_in_er2query,
             "include_conditions_in_er2query": args.include_conditions_in_er2query,
             "include_conditions_in_sql2nl": args.include_conditions_in_sql2nl,
+            "reasoning_mode": args.reasoning_mode,
             "merge_connections_into_relationships": args.merge_connections_into_relationships,
         },
     )
@@ -2978,6 +2984,8 @@ def main() -> None:
     print(f"[ER2Data] db_id={db_id}")
     print(f"[ER2Data] enable_db_hint={args.enable_db_hint}")
     print(f"[ER2Data] enable_er2query_db_hint={resolved_enable_er2query_db_hint}")
+    if args.reasoning_mode:
+        print(f"[ER2Data] reasoning_mode={args.reasoning_mode}")
     if database_source and database_root:
         print(f"[ER2Data] database_source={database_source}")
         print(f"[ER2Data] database_root={database_root}")
@@ -2991,6 +2999,7 @@ def main() -> None:
         question_model_config=args.question_model_config,
         schema_link_model_config=args.schema_link_model_config,
         nl2sql_model_config=args.nl2sql_model_config,
+        reasoning_mode=args.reasoning_mode,
         include_desc_in_er2query=not args.exclude_desc_in_er2query,
         include_conditions_in_er2query=args.include_conditions_in_er2query,
         include_conditions_in_sql2nl=args.include_conditions_in_sql2nl,
@@ -3046,6 +3055,7 @@ def main() -> None:
             "include_desc_in_er2query": not args.exclude_desc_in_er2query,
             "include_conditions_in_er2query": args.include_conditions_in_er2query,
             "include_conditions_in_sql2nl": args.include_conditions_in_sql2nl,
+            "reasoning_mode": args.reasoning_mode,
             "merge_connections_into_relationships": args.merge_connections_into_relationships,
             "er2data_summary": payload,
         },

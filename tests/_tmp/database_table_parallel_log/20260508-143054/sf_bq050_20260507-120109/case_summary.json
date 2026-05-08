@@ -1,0 +1,12 @@
+{
+  "ok": true,
+  "question_id": "sf_bq050",
+  "db_id": "NEW_YORK_CITIBIKE_1",
+  "case_dir": "D:\\Workspace\\Ace\\Knowdata\\tests\\_tmp\\database_table_parallel_check_01\\sf_bq050_20260507-120109",
+  "relative_case_dir": "sf_bq050_20260507-120109",
+  "output_path": "D:\\Workspace\\Ace\\Knowdata\\tests\\_tmp\\database_table_parallel_check_01\\sf_bq050_20260507-120109\\database_table_profile.json",
+  "log_dir": "D:\\Workspace\\Ace\\Knowdata\\tests\\_tmp\\database_table_parallel_log\\20260508-143054\\sf_bq050_20260507-120109",
+  "group_count": 22,
+  "relevant_group_count": 22,
+  "dry_run": true
+}

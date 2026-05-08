@@ -1,0 +1,46 @@
+{
+  "ok": true,
+  "question_id": "q1",
+  "db_id": "db1",
+  "question": "show orders",
+  "sub_questions": "Subquery 1: Find orders.\nSubquery 2: Group orders by customer.",
+  "schema_linking_path": "tests\\_tmp\\table_semantic_8d476b3dcddb4dbeb0af72b1bf58d780\\q1_case\\schema_linking.json",
+  "output_path": "tests\\_tmp\\table_semantic_8d476b3dcddb4dbeb0af72b1bf58d780\\q1_case\\linked_table_profile.json",
+  "log_dir": "D:\\Workspace\\Ace\\Knowdata\\tests\\_tmp\\table_semantic_8d476b3dcddb4dbeb0af72b1bf58d780\\log",
+  "table_count": 1,
+  "linked_table_profiles": [
+    {
+      "table_fullname": "db1.public.orders",
+      "supported_question_semantics": [
+        "Dry-run placeholder: inspect the generated prompt for the intended logical support."
+      ],
+      "is_relevant": true,
+      "semantic_units": [
+        {
+          "unit_type": "entity",
+          "unit_name": "orders",
+          "desc": "Dry-run placeholder semantic unit.",
+          "grain": "Dry-run placeholder grain.",
+          "attributes": [
+            {
+              "name": "order_id",
+              "semantics": "Dry-run placeholder attribute support.",
+              "evidence_columns": [
+                "db1.public.orders.customer_id"
+              ]
+            },
+            {
+              "name": "customer_id",
+              "semantics": "Dry-run placeholder attribute support.",
+              "evidence_columns": [
+                "db1.public.orders.order_id"
+              ]
+            }
+          ],
+          "participants": []
+        }
+      ]
+    }
+  ],
+  "elapsed_seconds": 0.0036627999998017913
+}

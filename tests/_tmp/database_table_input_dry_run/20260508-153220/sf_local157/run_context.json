@@ -1,0 +1,8 @@
+{
+  "question_id": "sf_local157",
+  "user_intent": "Using the \"bitcoin_prices\" table, please calculate the daily percentage change in trading volume for each ticker from August 1 to August 10, 2021, ensuring that any volume ending in \"K\" or \"M\" is accurately converted to thousands or millions, any \"-\" volume is treated as zero, only non-zero volumes are used to determine the previous day's volume, and the results are ordered by ticker and date.",
+  "db_id": "BANK_SALES_TRADING",
+  "db_hint": "",
+  "external_knowledge": "",
+  "sub_questions": ""
+}
