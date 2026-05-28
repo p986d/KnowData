@@ -1,0 +1,1 @@
+select COUNT(distinct hr.person_id) as household_count from ads_household_registration hr inner join ads_house_basic_info h on hr.house_id = h.house_id and h.delete_flag = 0 where hr.delete_flag = 0 and h.street = '310110018';

@@ -198,6 +198,35 @@ JOIN sales.analytics.customers AS c
     assert "SALES.ANALYTICS.ORDERS.CUSTOMER_ID" in result.resolved_column_coverage.missing
 
 
+def test_evaluate_schema_linking_coverage_ignores_select_alias_references() -> None:
+    schema_linking_payload = {
+        "linked_tables": ["demo.analytics.metrics"],
+        "linked_columns": [
+            "demo.analytics.metrics.created_at",
+            "demo.analytics.metrics.user_id",
+        ],
+    }
+    ground_truth_sql = """
+SELECT
+    DATE_TRUNC('day', m.created_at) AS day_bucket,
+    COUNT(DISTINCT m.user_id) AS user_count
+FROM demo.analytics.metrics AS m
+GROUP BY day_bucket
+ORDER BY user_count DESC
+"""
+
+    result = evaluate_schema_linking_coverage(
+        schema_linking_payload=schema_linking_payload,
+        ground_truth_sql=ground_truth_sql,
+        dialect="snowflake",
+    )
+
+    assert result.fully_covered is True
+    assert result.resolved_column_coverage.missing == []
+    assert "DEMO.ANALYTICS.METRICS.DAY_BUCKET" not in result.gold.resolved_columns
+    assert "DEMO.ANALYTICS.METRICS.USER_COUNT" not in result.gold.resolved_columns
+
+
 def test_fully_covered_uses_displayed_table_and_table_column_recall() -> None:
     schema_linking_payload = {
         "linked_tables": [

@@ -129,10 +129,57 @@ def normalize_qualified_name(value: str) -> str:
     return ".".join(part for part in parts if part)
 
 
+def split_qualified_parts(value: str) -> tuple[str, ...]:
+    normalized = normalize_qualified_name(value)
+    if not normalized:
+        return ()
+    return tuple(part for part in normalized.split(".") if part)
+
+
+def names_match_by_suffix(left: str, right: str) -> bool:
+    left_parts = split_qualified_parts(left)
+    right_parts = split_qualified_parts(right)
+    if not left_parts or not right_parts:
+        return False
+    shorter, longer = (
+        (left_parts, right_parts)
+        if len(left_parts) <= len(right_parts)
+        else (right_parts, left_parts)
+    )
+    return tuple(longer[-len(shorter) :]) == tuple(shorter)
+
+
 def compute_metrics(predicted: set[str], gold: set[str]) -> tuple[float, float]:
     recall = len(predicted & gold) / len(gold) if gold else 0.0
     precision = len(predicted & gold) / len(predicted) if predicted else 0.0
     return recall, precision
+
+
+def build_fuzzy_coverage_summary(predicted: set[str], gold: set[str]) -> CoverageSummary:
+    covered_gold = {
+        gold_name
+        for gold_name in gold
+        if any(names_match_by_suffix(pred_name, gold_name) for pred_name in predicted)
+    }
+    covered_pred = {
+        pred_name
+        for pred_name in predicted
+        if any(names_match_by_suffix(pred_name, gold_name) for gold_name in gold)
+    }
+    missing = sorted(gold - covered_gold)
+    extra = sorted(predicted - covered_pred)
+    recall = len(covered_gold) / len(gold) if gold else 0.0
+    precision = len(covered_pred) / len(predicted) if predicted else 0.0
+    return CoverageSummary(
+        gold=sorted(gold),
+        predicted=sorted(predicted),
+        covered=sorted(covered_gold),
+        missing=missing,
+        extra=extra,
+        recall=recall,
+        precision=precision,
+        fully_covered=not missing,
+    )
 
 
 def build_coverage_summary(predicted: set[str], gold: set[str]) -> CoverageSummary:
@@ -269,8 +316,8 @@ def evaluate_schema_linking_coverage(
     gold_resolved_columns = set(gold.resolved_columns)
     gold_column_names = set(gold.column_names)
 
-    table_coverage = build_coverage_summary(predicted_tables, gold_tables)
-    resolved_column_coverage = build_coverage_summary(
+    table_coverage = build_fuzzy_coverage_summary(predicted_tables, gold_tables)
+    resolved_column_coverage = build_fuzzy_coverage_summary(
         predicted_columns,
         gold_resolved_columns,
     )

@@ -14,7 +14,42 @@ from typing import Any
 from src.config import load_settings
 from src.llm.llm_client import LLMClient
 from src.llm.reasoning import REASONING_MODE_MAP, apply_reasoning_mode
-from src.run.nl2er_refine_0 import (
+from src.er2data.physical_schema import (
+    TableMetadata as ComponentTableMetadata,
+    load_database_tables as component_load_database_tables,
+    table_metadata_to_prompt_snapshot as component_table_metadata_to_prompt_snapshot,
+)
+from src.er2data.table_grouping import (
+    GROUPING_METHOD as COMPONENT_GROUPING_METHOD,
+    TableGroup as ComponentTableGroup,
+    build_group_key as component_build_group_key,
+    build_group_prompt_snapshot as component_build_group_prompt_snapshot,
+    build_table_groups as component_build_table_groups,
+    clear_tb as component_clear_tb,
+    column_signature_hash as component_column_signature_hash,
+    filter_groups_by_table_fullname as component_filter_groups_by_table_fullname,
+    group_payloads_from_groups as component_group_payloads_from_groups,
+    normalize_casefold_set as component_normalize_casefold_set,
+    normalize_selected_member_tables as component_normalize_selected_member_tables,
+    normalized_column_signature as component_normalized_column_signature,
+    remove_digits as component_remove_digits,
+    resolve_group_column_fullnames as component_resolve_group_column_fullnames,
+    serialize_group as component_serialize_group,
+    serialize_table_member as component_serialize_table_member,
+)
+from src.nl2er.table_semantic_sketch import (
+    build_compact_semantic_output as component_build_compact_semantic_output,
+    collect_column_references as component_collect_column_references,
+    collect_group_schema_selection as component_collect_group_schema_selection,
+    collect_response_strings as component_collect_response_strings,
+    extract_group_response_payload as component_extract_group_response_payload,
+    first_nonempty_string as component_first_nonempty_string,
+    nested_dict as component_nested_dict,
+    normalize_bool as component_normalize_bool,
+    normalize_database_group_profile as component_normalize_database_group_profile,
+    profile_is_relevant_supportive as component_profile_is_relevant_supportive,
+)
+from src.er2data.schema_utils import (
     DEFAULT_SAMPLE_VALUES_PER_COLUMN,
     column_name_from_fullname,
     ensure_dict_list,
@@ -27,9 +62,8 @@ from src.run.nl2er_refine_0 import (
     table_fullname_from_column,
     table_name_from_fullname,
 )
-from src.run.nl2er_only import positive_int
-from src.run.nl2er_only import read_inputs, select_inputs
-from src.run.schema_linking_table_semantic_sketch import (
+from src.nl2er.input_payloads import positive_int, read_inputs, select_inputs
+from src.nl2er.schema_linking_semantic import (
     DEFAULT_NL2ER_OUTPUT_FILENAME,
     DEFAULT_PROMPT_DIR,
     DEFAULT_SAMPLE_ROW_LIMIT,
@@ -54,10 +88,10 @@ DEFAULT_METADATA_DIR = Path("metadata")
 DEFAULT_LOG_ROOT = Path("log/database_table_semantic_sketch")
 DEFAULT_OUTPUT_FILENAME = "database_table_semantic_sketch.json"
 DEFAULT_SCHEMA_LINKING_OUTPUT_FILENAME = "schema_linking.json"
-GROUPING_METHOD = "reforce_table_family"
+GROUPING_METHOD = COMPONENT_GROUPING_METHOD
 OUTPUT_SOURCE = "database_table_semantic_sketch"
 TEMPLATE_KEY = "database_table_semantic_sketch"
-TEMPLATE_NAME = "Database_table_semantic_sketch.md"
+TEMPLATE_NAME = "Database_table_semantic_sketch_v0.1.md"
 
 
 @dataclass(slots=True)
@@ -720,7 +754,7 @@ def collect_group_schema_selection(
             add_table(table_fullname)
 
     for group_payload, profile in zip(group_payloads, group_profiles):
-        if not bool(profile.get("is_relevant")):
+        if not profile_is_relevant_supportive(profile):
             continue
         selected_member_tables = normalize_selected_member_tables(profile, group_payload)
         for table_fullname in selected_member_tables:
@@ -728,6 +762,7 @@ def collect_group_schema_selection(
 
         evidence_columns: list[str] = []
         evidence_columns.extend(unique_nonempty_strings(profile.get("linked_columns")))
+        evidence_columns.extend(unique_nonempty_strings(profile.get("other_columns")))
         for unit in ensure_dict_list(profile.get("semantic_units")):
             evidence_columns.extend(collect_evidence_columns_from_unit(unit))
         for column_fullname in resolve_group_column_fullnames(
@@ -738,6 +773,98 @@ def collect_group_schema_selection(
             add_column(column_fullname)
 
     return linked_tables, linked_columns
+
+
+def normalize_sy_schema_linking_name(value: str, db_id: str) -> str:
+    text = str(value or "").strip()
+    normalized_db_id = str(db_id or "").strip()
+    if not normalized_db_id.casefold().startswith("sy_"):
+        return text
+
+    prefix = f"{normalized_db_id}."
+    if text.casefold().startswith(prefix.casefold()):
+        return text[len(prefix):]
+    return text
+
+
+def normalize_schema_linking_names_for_output(
+    values: list[str],
+    *,
+    db_id: str,
+) -> list[str]:
+    normalized_values: list[str] = []
+    seen: set[str] = set()
+    for value in values:
+        normalized_value = normalize_sy_schema_linking_name(value, db_id)
+        key = normalized_value.casefold()
+        if not normalized_value or key in seen:
+            continue
+        normalized_values.append(normalized_value)
+        seen.add(key)
+    return normalized_values
+
+
+def profile_is_relevant_supportive(profile: dict[str, Any]) -> bool:
+    value = profile.get("is_relevant_supportive")
+    if isinstance(value, bool):
+        return value
+    return bool(profile.get("is_relevant"))
+
+
+def build_compact_semantic_output(group_profiles: list[dict[str, Any]]) -> dict[str, Any]:
+    semantics_units: list[dict[str, Any]] = []
+    relevant_table_entities: list[dict[str, Any]] = []
+    table_other_columns: list[dict[str, Any]] = []
+    seen_unit_signatures: set[str] = set()
+
+    for profile in group_profiles:
+        if not profile_is_relevant_supportive(profile):
+            continue
+        representative_table = str(profile.get("representative_table") or "").strip()
+        profile_units = ensure_dict_list(profile.get("semantic_units"))
+        other_columns = unique_nonempty_strings(profile.get("other_columns"))
+        entity_units = [
+            unit
+            for unit in profile_units
+            if str(unit.get("unit_type") or "").strip().casefold() == "entity"
+        ]
+        relevant_table_entities.append(
+            {
+                "table_fullname": representative_table,
+                "entity_definitions": entity_units,
+                "other_columns": other_columns,
+            }
+        )
+        if other_columns:
+            table_other_columns.append(
+                {
+                    "table_fullname": representative_table,
+                    "other_columns": other_columns,
+                }
+            )
+        for unit in profile_units:
+            compact_unit = {
+                "unit_name": str(unit.get("unit_name") or "").strip(),
+                "unit_type": str(unit.get("unit_type") or "").strip(),
+                "desc": str(unit.get("desc") or "").strip(),
+                "grain": str(unit.get("grain") or "").strip(),
+            }
+            if compact_unit["unit_type"].casefold() == "relationship":
+                compact_unit["participants"] = ensure_dict_list(unit.get("participants"))
+            try:
+                signature = json.dumps(compact_unit, ensure_ascii=False, sort_keys=True)
+            except Exception:
+                signature = str(compact_unit)
+            if signature in seen_unit_signatures:
+                continue
+            semantics_units.append(compact_unit)
+            seen_unit_signatures.add(signature)
+
+    return {
+        "semantics_units": semantics_units,
+        "relevant_table_entities": relevant_table_entities,
+        "table_other_columns": table_other_columns,
+    }
 
 
 def first_nonempty_string(*values: Any) -> str:
@@ -780,9 +907,12 @@ def extract_group_response_payload(parsed: dict[str, Any]) -> dict[str, Any]:
             for metadata_key in (
                 "group_id",
                 "representative_table",
+                "is_relevant_supportive",
+                "is_relevant",
                 "member_table_scope",
                 "selected_member_tables",
                 "linked_member_tables",
+                "other_columns",
             ):
                 if metadata_key in parsed and metadata_key not in merged:
                     merged[metadata_key] = parsed[metadata_key]
@@ -795,6 +925,35 @@ def collect_response_strings(payload: dict[str, Any], *keys: str) -> list[str]:
     for key in keys:
         values.extend(unique_nonempty_strings(payload.get(key)))
     return unique_nonempty_strings(values)
+
+
+def collect_column_references(value: Any) -> list[str]:
+    if value is None:
+        return []
+    if isinstance(value, str):
+        return unique_nonempty_strings(value)
+    if not isinstance(value, list):
+        return []
+
+    columns: list[str] = []
+    for item in value:
+        if isinstance(item, str):
+            columns.append(item)
+            continue
+        if not isinstance(item, dict):
+            continue
+        columns.extend(
+            unique_nonempty_strings(
+                [
+                    item.get("column_fullname"),
+                    item.get("column_name"),
+                    item.get("name"),
+                    item.get("field_name"),
+                ]
+            )
+        )
+        columns.extend(unique_nonempty_strings(item.get("evidence_columns")))
+    return unique_nonempty_strings(columns)
 
 
 def normalize_database_group_profile(
@@ -813,8 +972,12 @@ def normalize_database_group_profile(
     table_group_payload = nested_dict(payload, "table_group")
 
     profile_input = dict(payload)
-    normalized_relevance = normalize_bool(payload.get("is_relevant"))
+    raw_relevance = payload.get("is_relevant_supportive")
+    if raw_relevance is None:
+        raw_relevance = payload.get("is_relevant")
+    normalized_relevance = normalize_bool(raw_relevance)
     if normalized_relevance is not None:
+        profile_input["is_relevant_supportive"] = normalized_relevance
         profile_input["is_relevant"] = normalized_relevance
 
     profile = normalize_model_profile(
@@ -851,11 +1014,15 @@ def normalize_database_group_profile(
             "columns",
         )
     )
+    other_columns = collect_column_references(payload.get("other_columns"))
 
-    if member_table_scope.casefold() == "none":
+    if member_table_scope.casefold() == "none" or not bool(profile.get("is_relevant_supportive")):
+        member_table_scope = "none"
+        profile["is_relevant_supportive"] = False
         profile["is_relevant"] = False
         selected_member_tables = []
         linked_columns = []
+        other_columns = []
         profile["semantic_units"] = []
 
     profile.update(
@@ -877,6 +1044,7 @@ def normalize_database_group_profile(
             "member_table_scope": member_table_scope,
             "selected_member_tables": unique_nonempty_strings(selected_member_tables),
             "linked_columns": unique_nonempty_strings(linked_columns),
+            "other_columns": unique_nonempty_strings(other_columns),
             "prompt_path": item.get("prompt_path"),
             "response_path": item.get("response_path"),
         }
@@ -1013,7 +1181,9 @@ class DatabaseTableSemanticSketchRunner:
             "supported_question_semantics": [
                 "Dry-run placeholder: inspect the generated prompt for intended group-level support."
             ] if attributes else [],
+            "is_relevant_supportive": bool(attributes),
             "is_relevant": bool(attributes),
+            "other_columns": [],
             "semantic_units": [
                 {
                     "unit_type": "entity",
@@ -1082,7 +1252,9 @@ class DatabaseTableSemanticSketchRunner:
             "family_size": int(group.get("family_size") or len(member_tables)),
             "table_fullname": representative_table,
             "supported_question_semantics": [],
+            "is_relevant_supportive": False,
             "is_relevant": False,
+            "other_columns": [],
             "semantic_units": [],
             "error": error,
             "prompt_path": item.get("prompt_path"),
@@ -1146,18 +1318,6 @@ class DatabaseTableSemanticSketchRunner:
             sample_values_per_column=self.sample_values_per_column,
             sample_value_max_chars=args.sample_value_max_chars,
         )
-
-        write_json(self.log_dir / "run_context.json", context)
-        write_json(
-            self.log_dir / "database_table_groups.json",
-            {
-                "db_id": context["db_id"],
-                "grouping_method": GROUPING_METHOD,
-                "raw_table_count": len(tables),
-                "group_count": len(table_groups),
-                "groups": [serialize_group(group) for group in table_groups],
-            },
-        )
         return PreparedDatabaseCase(
             case_input=case_input,
             runner=self,
@@ -1184,47 +1344,45 @@ class DatabaseTableSemanticSketchRunner:
             output_filename=args.output_filename,
         )
         ok = all(not profile.get("error") for profile in group_profiles)
-        output_payload = {
-            "ok": ok,
-            "method": OUTPUT_SOURCE,
-            "grouping_method": GROUPING_METHOD,
-            "question_id": prepared.context.get("question_id", ""),
-            "db_id": prepared.context.get("db_id", ""),
-            "question": prepared.context.get("user_intent", ""),
-            "sub_questions": prepared.context.get("sub_questions", ""),
-            "output_path": str(output_path),
-            "log_dir": str(self.log_dir),
-            "raw_table_count": sum(len(group.members) for group in prepared.table_groups),
-            "group_count": len(prepared.table_groups),
-            "relevant_group_count": sum(1 for profile in group_profiles if bool(profile.get("is_relevant"))),
-            "linked_tables": linked_tables,
-            "linked_columns": linked_columns,
-            "group_profiles": group_profiles,
-            "elapsed_seconds": time.perf_counter() - prepared.started_at,
-        }
+        compact_output = build_compact_semantic_output(group_profiles)
+        output_payload = dict(compact_output)
         write_json(output_path, output_payload)
         write_json(self.log_dir / "output.json", output_payload)
 
         if bool(getattr(args, "write_schema_linking", False)):
+            output_linked_tables = normalize_schema_linking_names_for_output(
+                linked_tables,
+                db_id=prepared.context.get("db_id", ""),
+            )
+            output_linked_columns = normalize_schema_linking_names_for_output(
+                linked_columns,
+                db_id=prepared.context.get("db_id", ""),
+            )
             schema_linking_payload = build_schema_linking_with_overall_result(
                 schema_linking_payload={},
                 context=prepared.context,
-                linked_tables=linked_tables,
-                linked_columns=linked_columns,
+                linked_tables=output_linked_tables,
+                linked_columns=output_linked_columns,
                 source=OUTPUT_SOURCE,
             )
-            schema_linking_payload["linked_table_profiles"] = group_profiles
             schema_linking_output_path = (
                 output_path.parent
                 / str(getattr(args, "schema_linking_output_filename", DEFAULT_SCHEMA_LINKING_OUTPUT_FILENAME))
             ).resolve()
             write_json(schema_linking_output_path, schema_linking_payload)
             write_json(self.log_dir / "schema_linking.json", schema_linking_payload)
-            output_payload["schema_linking_output_path"] = str(schema_linking_output_path)
-            write_json(output_path, output_payload)
-            write_json(self.log_dir / "output.json", output_payload)
 
-        return output_payload
+        return {
+            "ok": ok,
+            "question_id": prepared.context.get("question_id", ""),
+            "db_id": prepared.context.get("db_id", ""),
+            "group_count": len(prepared.table_groups),
+            "relevant_group_count": sum(
+                1 for profile in group_profiles if profile_is_relevant_supportive(profile)
+            ),
+            "output_path": str(output_path),
+            "log_dir": str(self.log_dir),
+        }
 
     def run_case(
         self,
@@ -1289,7 +1447,6 @@ def run_single_case(
         "relevant_group_count": int(payload.get("relevant_group_count") or 0),
         "dry_run": bool(args.dry_run),
     }
-    write_json(log_dir / "case_summary.json", summary)
     return summary
 
 
@@ -1396,7 +1553,6 @@ def summarize_database_case_payload(
         "relevant_group_count": int(payload.get("relevant_group_count") or 0),
         "dry_run": bool(args.dry_run),
     }
-    write_json(log_dir / "case_summary.json", summary)
     return summary
 
 
@@ -1425,6 +1581,38 @@ def finalize_prepared_database_case(
         log_dir=prepared.runner.log_dir,
         args=args,
     )
+
+
+# Compatibility exports for callers that still import algorithm helpers from
+# this run module. Implementations live in er2data/nl2er modules.
+TableMetadata = ComponentTableMetadata
+TableGroup = ComponentTableGroup
+clear_tb = component_clear_tb
+remove_digits = component_remove_digits
+normalize_casefold_set = component_normalize_casefold_set
+normalized_column_signature = component_normalized_column_signature
+column_signature_hash = component_column_signature_hash
+build_group_key = component_build_group_key
+load_database_tables = component_load_database_tables
+table_metadata_to_prompt_snapshot = component_table_metadata_to_prompt_snapshot
+build_table_groups = component_build_table_groups
+serialize_table_member = component_serialize_table_member
+build_group_prompt_snapshot = component_build_group_prompt_snapshot
+serialize_group = component_serialize_group
+group_payloads_from_groups = component_group_payloads_from_groups
+filter_groups_by_table_fullname = component_filter_groups_by_table_fullname
+normalize_selected_member_tables = component_normalize_selected_member_tables
+resolve_group_column_fullnames = component_resolve_group_column_fullnames
+collect_group_schema_selection = component_collect_group_schema_selection
+profile_is_relevant_supportive = component_profile_is_relevant_supportive
+build_compact_semantic_output = component_build_compact_semantic_output
+first_nonempty_string = component_first_nonempty_string
+normalize_bool = component_normalize_bool
+nested_dict = component_nested_dict
+extract_group_response_payload = component_extract_group_response_payload
+collect_response_strings = component_collect_response_strings
+collect_column_references = component_collect_column_references
+normalize_database_group_profile = component_normalize_database_group_profile
 
 
 def main() -> None:

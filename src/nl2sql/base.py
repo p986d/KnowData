@@ -48,6 +48,11 @@ class NL2SQLRequest:
     output_path: str | None = None
     temperature: float = 0.7
     schema_link_temperature: float = 0.0
+    shortlist_trigger: int = 18
+    max_shortlist_tables: int = 24
+    sample_row_limit: int = 2
+    sample_value_max_chars: int = 300
+    similar_tables_hint_limit: int = 12
     num_votes: int = 4
     max_workers: int = 4
     max_iter: int = 5
@@ -55,6 +60,7 @@ class NL2SQLRequest:
     generation_model: str | None = None
     column_exploration_model: str | None = None
     vote_model: str | None = None
+    return_candidates_only: bool = False
 
 
 @dataclass(slots=True)
@@ -102,6 +108,7 @@ class NL2SQLResult:
     stderr: str
     exit_code: int | None
     sql: str = ""
+    sql_candidates: list[str] = field(default_factory=list)
     error: str | None = None
     raw_result: dict[str, Any] | None = None
     tables: list[dict[str, str]] = field(default_factory=list)
@@ -119,6 +126,7 @@ class NL2SQLResult:
             "stderr": self.stderr,
             "exit_code": self.exit_code,
             "sql": self.sql,
+            "sql_candidates": self.sql_candidates,
             "error": self.error,
             "result": self.raw_result,
             "raw_result": self.raw_result,

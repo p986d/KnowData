@@ -52,18 +52,6 @@ llm:
       max_concurrency: 8
       default_system_prompt: ""  
 
-    deepseek_chat_2:
-      api_key_env: "API_KEY_Comp_DashScope"
-      base_url_env: "BASE_URL_Comp_DashScope"
-      model: "deepseek-v3.2"
-      temperature: 0.1
-      top_p: 0.95
-      timeout: 600.0
-      max_retries: 2
-      max_completion_tokens: 65535
-      max_concurrency: 8
-      default_system_prompt: "" 
-
     deepseek_chat_personal:
       api_key_env: "API_KEY_Personal_Volces"
       base_url_env: "BASE_URL_Personal_Volces"
@@ -75,42 +63,7 @@ llm:
       max_completion_tokens: 65535
       max_concurrency: 8
       default_system_prompt: ""  
-
-    qwen3_30B_instruct:
-      api_key_env: "API_KEY_Comp_DashScope"
-      base_url_env: "BASE_URL_Comp_DashScope"
-      model: "qwen3-30b-a3b-instruct-2507"
-      temperature: 0.1
-      top_p: 0.95
-      timeout: 600.0
-      max_retries: 2
-      max_completion_tokens: 65535
-      max_concurrency: 8
-      default_system_prompt: "" 
-
-    qwen3_30B_thinking:
-      api_key_env: "API_KEY_Comp_DashScope"
-      base_url_env: "BASE_URL_Comp_DashScope"
-      model: "qwen3-30b-a3b-thinking-2507"
-      temperature: 0.5
-      top_p: 0.95
-      timeout: 60.0
-      max_retries: 2
-      max_completion_tokens: 65535
-      max_concurrency: 8
-      default_system_prompt: "" 
-
-    qwen_max:
-      api_key_env: "API_KEY_Comp_DashScope"
-      base_url_env: "BASE_URL_Comp_DashScope"
-      model: "qwen-max"
-      temperature: 0.5
-      top_p: 0.95
-      timeout: 60.0
-      max_retries: 2
-      max_completion_tokens: 65535
-      max_concurrency: 8
-      default_system_prompt: ""     
+   
 
 
 engine:

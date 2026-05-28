@@ -102,6 +102,7 @@ def _should_echo_stdout_line(line: str) -> bool:
     summary_markers = (
         "question=",
         "sql_generation_ok=",
+        "candidate_generation_ok=",
         "error=",
         "stage=",
     )
@@ -206,6 +207,16 @@ def _extract_schema_linking_payload(payload: dict[str, Any]) -> dict[str, Any]:
     return payload
 
 
+def _infer_schema_linking_artifact_path(fallback_result_path: str | None) -> str | None:
+    if not fallback_result_path:
+        return None
+    result_path = Path(fallback_result_path)
+    schema_linking_path = (
+        result_path.parent / f"{result_path.stem}_artifacts" / "schema_linking.json"
+    )
+    return str(schema_linking_path) if schema_linking_path.exists() else None
+
+
 def _extract_schema_linking_from_nl2sql_result(
     engine_result: dict[str, Any],
     *,
@@ -217,18 +228,26 @@ def _extract_schema_linking_from_nl2sql_result(
         artifact_path = artifacts.get("schema_linking_path")
         if isinstance(artifact_path, str) and artifact_path.strip():
             schema_linking_artifact_path = artifact_path.strip()
+    if not schema_linking_artifact_path:
+        schema_linking_artifact_path = _infer_schema_linking_artifact_path(
+            fallback_result_path
+        )
 
     schema_linking_payload = _extract_schema_linking_payload(engine_result)
-    if not schema_linking_payload and schema_linking_artifact_path:
+    linked_tables = _extract_items(schema_linking_payload, "linked_tables", "gen_tb")
+    linked_columns = _extract_items(schema_linking_payload, "linked_columns", "gen_col")
+    if not (linked_tables or linked_columns) and schema_linking_artifact_path:
         try:
             schema_linking_payload = _extract_schema_linking_payload(
                 _load_json(schema_linking_artifact_path)
             )
+            linked_tables = _extract_items(schema_linking_payload, "linked_tables", "gen_tb")
+            linked_columns = _extract_items(schema_linking_payload, "linked_columns", "gen_col")
         except Exception:
             schema_linking_payload = {}
+            linked_tables = []
+            linked_columns = []
 
-    linked_tables = _extract_items(schema_linking_payload, "linked_tables", "gen_tb")
-    linked_columns = _extract_items(schema_linking_payload, "linked_columns", "gen_col")
     tables = [_parse_table_fqn(fullname) for fullname in linked_tables]
     columns = [_parse_column_fqn(fullname) for fullname in linked_columns]
     return tables, columns, schema_linking_artifact_path or fallback_result_path
@@ -243,6 +262,20 @@ def _extract_engine_error(engine_result: dict[str, Any] | None) -> str | None:
         if text:
             return text
     return None
+
+
+def _extract_sql_candidates(engine_result: dict[str, Any] | None) -> list[str]:
+    if not isinstance(engine_result, dict):
+        return []
+    raw_candidates = engine_result.get("sql_candidates")
+    if not isinstance(raw_candidates, list):
+        return []
+    candidates: list[str] = []
+    for candidate in raw_candidates:
+        sql = str(candidate or "").strip()
+        if sql:
+            candidates.append(sql)
+    return candidates
 
 
 def _normalize_runtime(runtime: EngineRuntimeConfig | None) -> EngineRuntimeConfig:
@@ -532,6 +565,16 @@ class ReforceEngineProvider:
             str(request.temperature),
             "--schema_link_temperature",
             str(request.schema_link_temperature),
+            "--shortlist_trigger",
+            str(request.shortlist_trigger),
+            "--max_shortlist_tables",
+            str(request.max_shortlist_tables),
+            "--sample_row_limit",
+            str(request.sample_row_limit),
+            "--sample_value_max_chars",
+            str(request.sample_value_max_chars),
+            "--similar_tables_hint_limit",
+            str(request.similar_tables_hint_limit),
             "--num_votes",
             str(request.num_votes),
             "--max_workers",
@@ -549,50 +592,54 @@ class ReforceEngineProvider:
             "--dialect",
             db_profile.dialect,
         ]
-        if db_profile.backend == "snowflake":
-            snowflake_config = settings.snowflake
-            command.extend(
-                [
-                    "--snowflake_account",
-                    snowflake_config.account,
-                    "--snowflake_user",
-                    snowflake_config.user,
-                    "--snowflake_password",
-                    snowflake_config.password,
-                ]
-            )
-            if snowflake_config.role:
-                command.extend(["--snowflake_role", snowflake_config.role])
-            if snowflake_config.warehouse:
-                command.extend(["--snowflake_warehouse", snowflake_config.warehouse])
-        elif db_profile.backend == "mysql":
-            mysql_connection = getattr(settings, db_profile.connection_name or "", None)
-            if mysql_connection is None:
-                raise KeyError(
-                    f"MySQL connection config not found: {db_profile.connection_name or '(missing)'}"
+        if request.return_candidates_only:
+            command.append("--return_candidates_only")
+
+        if not request.return_candidates_only:
+            if db_profile.backend == "snowflake":
+                snowflake_config = settings.snowflake
+                command.extend(
+                    [
+                        "--snowflake_account",
+                        snowflake_config.account,
+                        "--snowflake_user",
+                        snowflake_config.user,
+                        "--snowflake_password",
+                        snowflake_config.password,
+                    ]
                 )
-            missing_fields = mysql_connection.missing_fields()
-            if missing_fields:
-                raise ValueError(
-                    "MySQL config is incomplete for "
-                    f"{db_profile.connection_name}: {', '.join(missing_fields)}"
+                if snowflake_config.role:
+                    command.extend(["--snowflake_role", snowflake_config.role])
+                if snowflake_config.warehouse:
+                    command.extend(["--snowflake_warehouse", snowflake_config.warehouse])
+            elif db_profile.backend == "mysql":
+                mysql_connection = getattr(settings, db_profile.connection_name or "", None)
+                if mysql_connection is None:
+                    raise KeyError(
+                        f"MySQL connection config not found: {db_profile.connection_name or '(missing)'}"
+                    )
+                missing_fields = mysql_connection.missing_fields()
+                if missing_fields:
+                    raise ValueError(
+                        "MySQL config is incomplete for "
+                        f"{db_profile.connection_name}: {', '.join(missing_fields)}"
+                    )
+                command.extend(
+                    [
+                        "--mysql_host",
+                        mysql_connection.host,
+                        "--mysql_port",
+                        str(mysql_connection.port),
+                        "--mysql_user",
+                        mysql_connection.user,
+                        "--mysql_password",
+                        mysql_connection.password,
+                        "--mysql_database",
+                        mysql_connection.database,
+                    ]
                 )
-            command.extend(
-                [
-                    "--mysql_host",
-                    mysql_connection.host,
-                    "--mysql_port",
-                    str(mysql_connection.port),
-                    "--mysql_user",
-                    mysql_connection.user,
-                    "--mysql_password",
-                    mysql_connection.password,
-                    "--mysql_database",
-                    mysql_connection.database,
-                ]
-            )
-        else:
-            raise ValueError(f"Unsupported backend for ReFoRCE provider: {db_profile.backend}")
+            else:
+                raise ValueError(f"Unsupported backend for ReFoRCE provider: {db_profile.backend}")
         if request.generation_model:
             command.extend(["--generation_model", request.generation_model])
         if request.column_exploration_model:
@@ -601,19 +648,6 @@ class ReforceEngineProvider:
             command.extend(["--vote_model", request.vote_model])
 
         _configure_stdio_utf8()
-        print(
-            f"[NL2SQL API] starting request db_id={request.db_id} "
-            f"engine_script={runtime.nl2sql_script} "
-            f"db_source={database_source} "
-            f"backend={db_profile.backend}",
-            flush=True,
-        )
-        print(
-            f"[NL2SQL API] output_path={resolved_output_path} "
-            f"temporary_output={is_temporary_output}",
-            flush=True,
-        )
-
         try:
             child_env = os.environ.copy()
             child_env.setdefault("PYTHONIOENCODING", "utf-8")
@@ -629,7 +663,6 @@ class ReforceEngineProvider:
                 errors="replace",
                 bufsize=1,
             )
-            print(f"[NL2SQL API] subprocess started pid={process.pid}", flush=True)
 
             stdout_chunks: list[str] = []
             stderr_chunks: list[str] = []
@@ -658,7 +691,6 @@ class ReforceEngineProvider:
             stderr_thread.join()
             completed_stdout = "".join(stdout_chunks)
             completed_stderr = "".join(stderr_chunks)
-            print(f"[NL2SQL API] subprocess finished exit_code={returncode}", flush=True)
         except subprocess.TimeoutExpired as exc:
             result = NL2SQLResult(
                 ok=False,
@@ -694,6 +726,37 @@ class ReforceEngineProvider:
             except Exception:
                 engine_result = None
             else:
+                if request.return_candidates_only:
+                    sql_candidates = _extract_sql_candidates(engine_result)
+                    engine_error = _extract_engine_error(engine_result)
+                    tables, columns, schema_linking_result_path = _extract_schema_linking_from_nl2sql_result(
+                        engine_result,
+                        fallback_result_path=resolved_output_path,
+                    )
+                    return NL2SQLResult(
+                        ok=bool(sql_candidates),
+                        engine=NL2SQL_ENGINE_NAME,
+                        result_path=resolved_output_path,
+                        temporary_output=is_temporary_output,
+                        stdout=completed_stdout,
+                        stderr=completed_stderr,
+                        exit_code=returncode,
+                        sql_candidates=sql_candidates,
+                        error=(
+                            None
+                            if sql_candidates
+                            else engine_error or "NL2SQL did not produce SQL candidates."
+                        ),
+                        raw_result=engine_result,
+                        tables=tables,
+                        columns=columns,
+                        schema_linking_result_path=schema_linking_result_path,
+                        warning=(
+                            "NL2SQL process exited with a non-zero code, "
+                            "but readable SQL candidates were recovered from disk."
+                        ),
+                    )
+
                 final_result = (
                     engine_result.get("final", {})
                     if isinstance(engine_result, dict)
@@ -773,6 +836,33 @@ class ReforceEngineProvider:
             if raise_on_error:
                 raise RuntimeError(result.error or "NL2SQL output unreadable.") from exc
             return result
+
+        if request.return_candidates_only:
+            sql_candidates = _extract_sql_candidates(engine_result)
+            engine_error = _extract_engine_error(engine_result)
+            tables, columns, schema_linking_result_path = _extract_schema_linking_from_nl2sql_result(
+                engine_result,
+                fallback_result_path=resolved_output_path,
+            )
+            return NL2SQLResult(
+                ok=bool(sql_candidates),
+                engine=NL2SQL_ENGINE_NAME,
+                result_path=resolved_output_path,
+                temporary_output=is_temporary_output,
+                stdout=completed_stdout,
+                stderr=completed_stderr,
+                exit_code=returncode,
+                sql_candidates=sql_candidates,
+                error=(
+                    None
+                    if sql_candidates
+                    else engine_error or "NL2SQL did not produce SQL candidates."
+                ),
+                raw_result=engine_result,
+                tables=tables,
+                columns=columns,
+                schema_linking_result_path=schema_linking_result_path,
+            )
 
         final_result = engine_result.get("final", {}) if isinstance(engine_result, dict) else {}
         sql = str(final_result.get("sql") or "")

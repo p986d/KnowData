@@ -59,6 +59,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--disable_random_vote_for_tie", action="store_true")
     parser.add_argument("--disable_final_choose", action="store_true")
     parser.add_argument("--disable_early_stop", action="store_true")
+    parser.add_argument("--return_candidates_only", action="store_true")
     parser.add_argument("--backend", default="snowflake")
     parser.add_argument("--dialect", default=None)
     parser.add_argument("--snowflake_account", default=None)
@@ -96,6 +97,11 @@ def resolve_upstream_runner(
 def validate_backend_args(args: argparse.Namespace) -> tuple[str, str]:
     backend = str(args.backend or "snowflake").strip().lower()
     dialect = str(args.dialect or backend).strip().lower()
+    if bool(getattr(args, "return_candidates_only", False)):
+        if backend not in {"snowflake", "mysql"}:
+            raise ValueError(f"Unsupported backend: {backend}")
+        return backend, dialect
+
     if backend == "snowflake":
         required = {
             "snowflake_account": args.snowflake_account,
@@ -137,7 +143,7 @@ def main() -> None:
         )
 
     mysql_credentials = None
-    if backend == "mysql":
+    if backend == "mysql" and not args.return_candidates_only:
         mysql_credentials = {
             "host": args.mysql_host,
             "port": args.mysql_port,
@@ -197,6 +203,7 @@ def main() -> None:
         do_vote=not args.skip_vote,
         random_vote_for_tie=not args.disable_random_vote_for_tie,
         final_choose=not args.disable_final_choose,
+        return_candidates_only=args.return_candidates_only,
         generation_model=args.generation_model,
         column_exploration_model=args.column_exploration_model,
         vote_model=args.vote_model,

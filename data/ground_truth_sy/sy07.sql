@@ -1,0 +1,1 @@
+SELECT d.dept_name, COUNT(house_id) AS house_count FROM ads_house_basic_info h JOIN sys_dept d ON h.dept_id = d.dept_id WHERE h.delete_flag = 0 AND d.delete_flag = 0 AND street = '310110018' GROUP BY d.dept_name,d.dept_id ORDER BY house_count DESC LIMIT 10;

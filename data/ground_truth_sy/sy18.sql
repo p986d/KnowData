@@ -1,0 +1,1 @@
+SELECT COUNT(DISTINCT p.person_id) AS total_count FROM ads_person_basic_info p INNER JOIN ads_residence_relation rr ON p.person_id = rr.person_id AND rr.delete_flag = 0 INNER JOIN ads_house_basic_info h ON rr.house_id = h.house_id AND h.delete_flag = 0 WHERE p.delete_flag = 0 and h.dept_id = 310110018004 AND h.road = 480894;

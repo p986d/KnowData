@@ -150,6 +150,8 @@ class SqlglotParser:
                 table_indexes_by_name=table_indexes_by_name,
                 cache=select_scope_cache,
             )
+            if cls._is_explicit_select_alias_reference(column=column, scope_info=scope_info):
+                continue
             target_index = cls._resolve_column_table_index(
                 column=column,
                 scope_info=scope_info,
@@ -245,6 +247,7 @@ class SqlglotParser:
             "table_index_by_alias": local_alias_map,
             "table_indexes_by_name": local_name_map,
             "single_table_index": local_table_indexes[0] if len(local_table_indexes) == 1 else None,
+            "explicit_select_aliases": cls._extract_explicit_select_aliases(select_expression),
         }
         cache[cache_key] = scope_info
         return scope_info
@@ -366,6 +369,49 @@ class SqlglotParser:
 
         single_table_index = scope_info.get("single_table_index")
         return single_table_index if isinstance(single_table_index, int) else None
+
+    @staticmethod
+    def _extract_explicit_select_aliases(select_expression: exp.Select) -> set[str]:
+        aliases: set[str] = set()
+        for select_item in select_expression.args.get("expressions") or []:
+            alias = str(getattr(select_item, "alias", "") or "").strip()
+            if alias:
+                aliases.add(alias.casefold())
+        return aliases
+
+    @staticmethod
+    def _is_explicit_select_alias_reference(
+        *,
+        column: exp.Column,
+        scope_info: dict[str, Any],
+    ) -> bool:
+        if SqlglotParser._is_column_inside_alias_definition(column):
+            return False
+
+        # Only unqualified names can refer to SELECT output aliases.
+        if str(column.table or "").strip():
+            return False
+        column_name = str(column.name or "").strip()
+        if not column_name:
+            return False
+        explicit_aliases = scope_info.get("explicit_select_aliases") or set()
+        return column_name.casefold() in explicit_aliases
+
+    @staticmethod
+    def _is_column_inside_alias_definition(column: exp.Column) -> bool:
+        current = column
+        while current is not None:
+            parent = current.parent
+            if parent is None:
+                return False
+            if isinstance(parent, exp.Alias):
+                # The column is part of the alias expression itself (e.g. SELECT dept_id AS dept_id),
+                # so it should still be counted as a source column.
+                return parent.this is not None and current is not parent
+            if isinstance(parent, exp.Select):
+                return False
+            current = parent
+        return False
 
     @staticmethod
     def _extract_join_condition(join: exp.Join) -> str | None:

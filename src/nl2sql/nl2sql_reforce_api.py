@@ -33,12 +33,18 @@ def run_nl2sql(
     output_path: str | None = None,
     temperature: float = 0.7,
     schema_link_temperature: float = 0.0,
+    shortlist_trigger: int = 18,
+    max_shortlist_tables: int = 24,
+    sample_row_limit: int = 2,
+    sample_value_max_chars: int = 300,
+    similar_tables_hint_limit: int = 12,
     num_votes: int = 4,
     max_workers: int = 4,
     max_iter: int = 5,
     timeout_seconds: float = 600.0,
     generation_model: str | None = None,
     column_exploration_model: str | None = None,
+    return_candidates_only: bool = False,
     raise_on_error: bool = False,
 ) -> dict[str, object]:
     provider = get_engine_provider("reforce")
@@ -58,12 +64,18 @@ def run_nl2sql(
             output_path=output_path,
             temperature=temperature,
             schema_link_temperature=schema_link_temperature,
+            shortlist_trigger=shortlist_trigger,
+            max_shortlist_tables=max_shortlist_tables,
+            sample_row_limit=sample_row_limit,
+            sample_value_max_chars=sample_value_max_chars,
+            similar_tables_hint_limit=similar_tables_hint_limit,
             num_votes=num_votes,
             max_workers=max_workers,
             max_iter=max_iter,
             timeout_seconds=timeout_seconds,
             generation_model=generation_model,
             column_exploration_model=column_exploration_model,
+            return_candidates_only=return_candidates_only,
         ),
         runtime=runtime,
         raise_on_error=raise_on_error,
@@ -96,12 +108,18 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--output_path", default=None)
     parser.add_argument("--temperature", type=float, default=0.7)
     parser.add_argument("--schema_link_temperature", type=float, default=0.0)
+    parser.add_argument("--shortlist_trigger", type=int, default=18)
+    parser.add_argument("--max_shortlist_tables", type=int, default=24)
+    parser.add_argument("--sample_row_limit", type=int, default=2)
+    parser.add_argument("--sample_value_max_chars", type=int, default=300)
+    parser.add_argument("--similar_tables_hint_limit", type=int, default=12)
     parser.add_argument("--num_votes", type=int, default=4)
     parser.add_argument("--max_workers", type=int, default=4)
     parser.add_argument("--max_iter", type=int, default=5)
     parser.add_argument("--timeout_seconds", type=float, default=600.0)
     parser.add_argument("--generation_model", default=None)
     parser.add_argument("--column_exploration_model", default=None)
+    parser.add_argument("--return_candidates_only", action="store_true")
     parser.add_argument("--raise_on_error", action="store_true")
     return parser.parse_args()
 
@@ -122,12 +140,18 @@ def main() -> None:
         output_path=args.output_path,
         temperature=args.temperature,
         schema_link_temperature=args.schema_link_temperature,
+        shortlist_trigger=args.shortlist_trigger,
+        max_shortlist_tables=args.max_shortlist_tables,
+        sample_row_limit=args.sample_row_limit,
+        sample_value_max_chars=args.sample_value_max_chars,
+        similar_tables_hint_limit=args.similar_tables_hint_limit,
         num_votes=args.num_votes,
         max_workers=args.max_workers,
         max_iter=args.max_iter,
         timeout_seconds=args.timeout_seconds,
         generation_model=args.generation_model,
         column_exploration_model=args.column_exploration_model,
+        return_candidates_only=args.return_candidates_only,
         raise_on_error=args.raise_on_error,
     )
     print(json.dumps(response, ensure_ascii=False, indent=2))
