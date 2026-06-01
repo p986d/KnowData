@@ -49,6 +49,80 @@ def _normalize_er_extractor_template_name(prompt_template_name: str | None) -> s
     return normalized
 
 
+def _ambiguity_types_from_item(item: dict[str, Any]) -> list[Any]:
+    ambiguity_types = item.get("ambiguity_types")
+    if isinstance(ambiguity_types, list):
+        return ambiguity_types
+    ambiguity = item.get("ambiguity")
+    return ambiguity if isinstance(ambiguity, list) else []
+
+
+def _sanitize_subproblem_item(
+    item: dict[str, Any],
+    *,
+    include_question_ambiguity: bool,
+) -> dict[str, Any]:
+    cleaned: dict[str, Any] = {}
+    item_id = str(item.get("id") or "").strip()
+    if item_id:
+        cleaned["id"] = item_id
+    question = str(item.get("question") or "").strip()
+    if question:
+        cleaned["question"] = question
+
+    logic_branches = item.get("logic_branches")
+    if isinstance(logic_branches, list):
+        cleaned["logic_branches"] = _sanitize_logic_branches(
+            logic_branches,
+            include_question_ambiguity=include_question_ambiguity,
+        )
+    return cleaned
+
+
+def _sanitize_logic_branches(
+    logic_branches: list[Any],
+    *,
+    include_question_ambiguity: bool,
+) -> list[Any]:
+    sanitized_branches: list[Any] = []
+    for branch in logic_branches:
+        if not isinstance(branch, dict):
+            sanitized_branches.append(branch)
+            continue
+        cleaned_branch: dict[str, Any] = {}
+        branch_id = str(branch.get("branch_id") or "").strip()
+        if branch_id:
+            cleaned_branch["branch_id"] = branch_id
+        sub_questions = branch.get("sub_questions")
+        if isinstance(sub_questions, list):
+            cleaned_sub_questions: list[Any] = []
+            for sub_question in sub_questions:
+                if isinstance(sub_question, dict):
+                    cleaned_sub_questions.append(
+                        _sanitize_subproblem_item(
+                            sub_question,
+                            include_question_ambiguity=include_question_ambiguity,
+                        )
+                    )
+                else:
+                    cleaned_sub_questions.append(sub_question)
+            cleaned_branch["sub_questions"] = cleaned_sub_questions
+        sanitized_branches.append(cleaned_branch)
+    return sanitized_branches
+
+
+def _drop_implementation_fields(value: Any) -> Any:
+    if isinstance(value, dict):
+        return {
+            key: _drop_implementation_fields(item)
+            for key, item in value.items()
+            if key not in {"data_implemention", "data_implementation"}
+        }
+    if isinstance(value, list):
+        return [_drop_implementation_fields(item) for item in value]
+    return value
+
+
 class NL2ERSinglePromptRunner:
     def __init__(
         self,
@@ -261,7 +335,6 @@ class QuestionResolverDiff:
     def _format_payload(payload: dict[str, Any]) -> str:
         return json.dumps(payload, ensure_ascii=False, indent=2)
 
-    @staticmethod
     def _question_ambiguity_units(subproblem_analysis: dict[str, Any]) -> list[dict[str, Any]]:
         raw_items = subproblem_analysis.get("resolve_process")
         if not isinstance(raw_items, list):
@@ -272,14 +345,14 @@ class QuestionResolverDiff:
             if not isinstance(item, dict):
                 continue
             question = str(item.get("question") or "").strip()
-            ambiguity = item.get("ambiguity")
-            if not question and not ambiguity:
+            ambiguity_types = _ambiguity_types_from_item(item)
+            if not question and not ambiguity_types:
                 continue
             units.append(
                 {
                     "id": str(item.get("id") or f"SQ{index}").strip() or f"SQ{index}",
                     "question": question,
-                    "ambiguity": ambiguity if isinstance(ambiguity, list) else [],
+                    "ambiguity_types": ambiguity_types,
                 }
             )
         return units
@@ -422,9 +495,6 @@ class ERExtractor:
         include_question_ambiguity: bool = False,
     ) -> dict[str, Any]:
         sanitized = dict(subproblem_analysis)
-        if include_question_ambiguity:
-            return sanitized
-
         raw_items = subproblem_analysis.get("resolve_process")
         if not isinstance(raw_items, list):
             return sanitized
@@ -434,11 +504,10 @@ class ERExtractor:
             if not isinstance(item, dict):
                 resolve_process.append(item)
                 continue
-            cleaned = {
-                key: value
-                for key, value in item.items()
-                if key != "ambiguity"
-            }
+            cleaned = _sanitize_subproblem_item(
+                item,
+                include_question_ambiguity=include_question_ambiguity,
+            )
             resolve_process.append(cleaned)
         sanitized["resolve_process"] = resolve_process
         return sanitized
@@ -455,13 +524,17 @@ class ERExtractor:
         for index, item in enumerate(raw_items, start=1):
             if isinstance(item, dict):
                 question = str(item.get("question") or "").strip()
-                ambiguity = item.get("ambiguity")
                 payload = {
                     "id": str(item.get("id") or f"SQ{index}").strip() or f"SQ{index}",
                     "question": question,
-                    "ambiguity": ambiguity if isinstance(ambiguity, list) else [],
                 }
-                if question or payload["ambiguity"]:
+                logic_branches = item.get("logic_branches")
+                if isinstance(logic_branches, list):
+                    payload["logic_branches"] = _sanitize_logic_branches(
+                        logic_branches,
+                        include_question_ambiguity=False,
+                    )
+                if question:
                     resolve_process.append(payload)
                     continue
 
@@ -478,7 +551,6 @@ class ERExtractor:
                     {
                         "id": f"SQ{index}",
                         "question": text,
-                        "ambiguity": [],
                     }
                 )
             elif isinstance(item, dict):
@@ -486,7 +558,6 @@ class ERExtractor:
                     {
                         "id": f"SQ{index}",
                         "question": f"sub_question_{index}",
-                        "ambiguity": [],
                     }
                 )
         return resolve_process
@@ -499,16 +570,12 @@ class ERExtractor:
         self.build_prompt.register_template(
             name="step_2_extract_er",
             template_name=self.prompt_template_name,
-            required_vars=["user_intent", "subproblem_analysis"],
-            default_vars={"db_hint": "", "external_knowledge": ""},
+            required_vars=["subproblem_analysis"],
             description="Extract base logical ER units from the resolved subproblem sequence.",
         )
         prompt = self.build_prompt.build_text(
             "step_2_extract_er",
             vars={
-                "user_intent": self.input_payload.user_intent,
-                "db_hint": self.input_payload.db_hint,
-                "external_knowledge": self.input_payload.external_knowledge,
                 "subproblem_analysis": self._format_subproblem_analysis(
                     er_subproblem_analysis
                 ),
@@ -531,11 +598,34 @@ class ERExtractor:
 
     def extract(self, subproblem_analysis: dict[str, Any]) -> dict[str, Any]:
         raw_response = self.run_prompt(subproblem_analysis)
-        result = json_parse(raw_response)
+        result = _drop_implementation_fields(json_parse(raw_response))
+        source_resolve_process = self._resolve_process_from_subproblem_analysis(
+            subproblem_analysis
+        )
         if not result.get("resolve_process"):
-            resolve_process = self._resolve_process_from_subproblem_analysis(subproblem_analysis)
-            if resolve_process:
-                result["resolve_process"] = resolve_process
+            if source_resolve_process:
+                result["resolve_process"] = source_resolve_process
+        elif source_resolve_process and isinstance(result.get("resolve_process"), list):
+            source_by_id = {
+                str(item.get("id") or ""): item
+                for item in source_resolve_process
+                if isinstance(item, dict)
+            }
+            merged_resolve_process: list[Any] = []
+            for item in result["resolve_process"]:
+                if not isinstance(item, dict):
+                    merged_resolve_process.append(item)
+                    continue
+                source_item = source_by_id.get(str(item.get("id") or ""))
+                if (
+                    source_item
+                    and "logic_branches" not in item
+                    and isinstance(source_item.get("logic_branches"), list)
+                ):
+                    item = dict(item)
+                    item["logic_branches"] = source_item["logic_branches"]
+                merged_resolve_process.append(item)
+            result["resolve_process"] = merged_resolve_process
         write_json(self.log_dir / "er_extraction.json", result)
         return {
             "result": result,

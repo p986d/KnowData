@@ -4,11 +4,11 @@ setlocal EnableExtensions
 pushd "%~dp0" || exit /b 1
 
 @REM Choose `single` to run specified question_id values, or `all` to traverse every question in INPUT_PATH.
-set "RUN_MODE=single"
+set "RUN_MODE=all"
 
 set "INPUT_PATH=%CD%\data\input.json"
 @REM set "INPUT_PATH=%CD%\data\sy_input.json"
-@REM set "INPUT_PATH=%CD%\data\sy_input_with_hint.json"
+set "INPUT_PATH=%CD%\data\sy_input_with_hint.json"
 @REM Multiple values can be comma-separated.
 set "QUESTION_IDS=sf_bq248"
 
@@ -20,11 +20,11 @@ set "PYTHON_EXE=D:\Tools\MiniConda\envs\spider2\python.exe"
 set "LLM=deepseek_v4_flash"
 @REM Supported values: non_think, think_high, think_max
 set "REASONING_MODE=non_think"
-set "QUESTION_RESOLVER_TEMPLATE_NAME=NL2ER_ERA_question_resolve_st1_v0.7.md"
-set "NL2ER_PROMPT_TEMPLATE_NAME=NL2ER_ERA_er_extract_st2_v0.6.md"
+set "QUESTION_RESOLVER_TEMPLATE_NAME=NL2ER_ERA_question_resolve_st1_v0.75.md"
+set "NL2ER_PROMPT_TEMPLATE_NAME=NL2ER_ERA_er_extract_st2_v0.7.md"
 set "DIFF_IDEA_COUNT=4"
 set "DIFF_MAX_RETRY=2"
-set "INCLUDE_QUESTION_AMBIGUITY_IN_ER_EXTRACT=1"
+set "INCLUDE_QUESTION_AMBIGUITY_IN_ER_EXTRACT=0"
 set "INCLUDE_RESOLVE_PROCESS=1"
 set "STRATEGY_FOCUS="
 
