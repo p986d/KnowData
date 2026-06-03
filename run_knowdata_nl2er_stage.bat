@@ -21,15 +21,19 @@ set "LLM=deepseek_v4_flash"
 @REM Supported values: non_think, think_high, think_max
 set "REASONING_MODE=non_think"
 set "QUESTION_RESOLVER_TEMPLATE_NAME=NL2ER_ERA_question_resolve_st1_v0.75.md"
-set "NL2ER_PROMPT_TEMPLATE_NAME=NL2ER_ERA_er_extract_st2_v0.7.md"
+set "NL2ER_PROMPT_TEMPLATE_NAME=NL2ER_ERA_er_extract_st2_v0.75.md"
 set "DIFF_IDEA_COUNT=4"
 set "DIFF_MAX_RETRY=2"
 set "INCLUDE_QUESTION_AMBIGUITY_IN_ER_EXTRACT=0"
+set "INCLUDE_EXTERNAL_KNOWLEDGE_IN_ER_EXTRACT=1"
 set "INCLUDE_RESOLVE_PROCESS=1"
 set "STRATEGY_FOCUS="
 
 set "QUESTION_AMBIGUITY_ARG="
 if "%INCLUDE_QUESTION_AMBIGUITY_IN_ER_EXTRACT%"=="1" set "QUESTION_AMBIGUITY_ARG=--include-question-ambiguity-in-er-extract"
+
+set "EXTERNAL_KNOWLEDGE_ARG="
+if "%INCLUDE_EXTERNAL_KNOWLEDGE_IN_ER_EXTRACT%"=="1" set "EXTERNAL_KNOWLEDGE_ARG=--include-external-knowledge-in-er-extract"
 
 set "RESOLVE_PROCESS_ARG="
 if "%INCLUDE_RESOLVE_PROCESS%"=="1" set "RESOLVE_PROCESS_ARG=--include-resolve-process"
@@ -48,6 +52,7 @@ if /I "%RUN_MODE%"=="all" (
     --diff-max-retry %DIFF_MAX_RETRY% ^
     --strategy-focus "%STRATEGY_FOCUS%" ^
     %QUESTION_AMBIGUITY_ARG% ^
+    %EXTERNAL_KNOWLEDGE_ARG% ^
     %RESOLVE_PROCESS_ARG%
   if errorlevel 1 (
     echo [run_knowdata_nl2er_stage.bat] nl2er+diff stage all run failed.
@@ -74,6 +79,7 @@ if /I "%RUN_MODE%"=="single" (
     --diff-max-retry %DIFF_MAX_RETRY% ^
     --strategy-focus "%STRATEGY_FOCUS%" ^
     %QUESTION_AMBIGUITY_ARG% ^
+    %EXTERNAL_KNOWLEDGE_ARG% ^
     %RESOLVE_PROCESS_ARG%
   if errorlevel 1 (
     echo [run_knowdata_nl2er_stage.bat] nl2er+diff stage single run failed.

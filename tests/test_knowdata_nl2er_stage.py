@@ -87,8 +87,11 @@ def test_knowdata_nl2er_stage_writes_nl2er_and_diff_metadata(monkeypatch):
             str(log_root),
             "--timestamp",
             "stage_test",
+            "--include-external-knowledge-in-er-extract",
         ]
     )
+
+    assert args.include_external_knowledge_in_er_extract is True
 
     summary = knowdata_nl2er_stage.run_nl2er_stage(args)
 

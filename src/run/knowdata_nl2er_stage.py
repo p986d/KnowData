@@ -68,6 +68,11 @@ def build_arg_parser() -> argparse.ArgumentParser:
         action="store_true",
         help="Pass question_resolve ambiguity fields into the NL2ER ER extraction prompt.",
     )
+    parser.add_argument(
+        "--include-external-knowledge-in-er-extract",
+        action="store_true",
+        help="Pass input external_knowledge into the NL2ER ER extraction prompt.",
+    )
     parser.add_argument("--nl2er-model-config", default="deepseek_v4_flash")
     parser.add_argument("--nl2er-diff-prompt-dir", type=Path, default=DEFAULT_NL2ER_DIFF_PROMPT_DIR)
     parser.add_argument("--diff-idea-count", type=positive_int, default=4)

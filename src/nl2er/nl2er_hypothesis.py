@@ -40,6 +40,12 @@ QUESTION_RESOLVER_TEMPLATE_NAME = "NL2ER_ERA_question_resolve_st1_v0.6.md"
 QUESTION_RESOLVER_DIFF_CONSTRUCT_TEMPLATE_NAME = "NL2ER_QuestionResolve_Diff_Construct_v0.1.md"
 ER_EXTRACTOR_TEMPLATE_NAME = "NL2ER_ERA_er_extract_st2_v0.6.md"
 PROMPT_TEMPLATE_NAME = ER_EXTRACTOR_TEMPLATE_NAME
+STRICT_SUBPROBLEM_MODELING_NOTE = ""
+ER_EXTRACTION_EXCLUDED_SUBPROBLEM_FIELDS = {
+    "logic_branch",
+    "logic_branches",
+    "interpretation_and_ambiguity",
+}
 
 
 def _normalize_er_extractor_template_name(prompt_template_name: str | None) -> str:
@@ -57,25 +63,42 @@ def _ambiguity_types_from_item(item: dict[str, Any]) -> list[Any]:
     return ambiguity if isinstance(ambiguity, list) else []
 
 
+def _has_non_empty_value(value: Any) -> bool:
+    if value is None:
+        return False
+    if isinstance(value, str):
+        return bool(value.strip())
+    if isinstance(value, (list, tuple, set)):
+        return any(_has_non_empty_value(item) for item in value)
+    if isinstance(value, dict):
+        return any(_has_non_empty_value(item) for item in value.values())
+    return True
+
+
+def _has_ambiguity_type(item: dict[str, Any]) -> bool:
+    return _has_non_empty_value(item.get("ambiguity_type")) or _has_non_empty_value(
+        item.get("ambiguity_types")
+    )
+
+
+def _is_question_ambiguity_field(key: str) -> bool:
+    return key in {"ambiguity", "ambiguity_type", "ambiguity_types"}
+
+
 def _sanitize_subproblem_item(
     item: dict[str, Any],
     *,
     include_question_ambiguity: bool,
 ) -> dict[str, Any]:
     cleaned: dict[str, Any] = {}
-    item_id = str(item.get("id") or "").strip()
-    if item_id:
-        cleaned["id"] = item_id
-    question = str(item.get("question") or "").strip()
-    if question:
-        cleaned["question"] = question
-
-    logic_branches = item.get("logic_branches")
-    if isinstance(logic_branches, list):
-        cleaned["logic_branches"] = _sanitize_logic_branches(
-            logic_branches,
-            include_question_ambiguity=include_question_ambiguity,
-        )
+    for key, value in item.items():
+        if key in ER_EXTRACTION_EXCLUDED_SUBPROBLEM_FIELDS:
+            continue
+        if not include_question_ambiguity and _is_question_ambiguity_field(key):
+            continue
+        cleaned[key] = value
+    if _has_ambiguity_type(item):
+        cleaned["modeling_note"] = STRICT_SUBPROBLEM_MODELING_NOTE
     return cleaned
 
 
@@ -120,6 +143,18 @@ def _drop_implementation_fields(value: Any) -> Any:
         }
     if isinstance(value, list):
         return [_drop_implementation_fields(item) for item in value]
+    return value
+
+
+def _drop_er_extraction_excluded_fields(value: Any) -> Any:
+    if isinstance(value, dict):
+        return {
+            key: _drop_er_extraction_excluded_fields(item)
+            for key, item in value.items()
+            if key not in ER_EXTRACTION_EXCLUDED_SUBPROBLEM_FIELDS
+        }
+    if isinstance(value, list):
+        return [_drop_er_extraction_excluded_fields(item) for item in value]
     return value
 
 
@@ -458,6 +493,7 @@ class ERExtractor:
         reasoning_mode: str | None = None,
         prompt_template_name: str = ER_EXTRACTOR_TEMPLATE_NAME,
         include_question_ambiguity: bool = False,
+        include_external_knowledge: bool = False,
         llm: LLMClient | None = None,
         prompt_builder: PromptBuilder | None = None,
     ) -> None:
@@ -468,6 +504,7 @@ class ERExtractor:
         self.reasoning_mode = reasoning_mode
         self.prompt_template_name = _normalize_er_extractor_template_name(prompt_template_name)
         self.include_question_ambiguity = bool(include_question_ambiguity)
+        self.include_external_knowledge = bool(include_external_knowledge)
         if not self.prompt_template_name:
             raise ValueError("`prompt_template_name` must not be empty.")
 
@@ -494,7 +531,7 @@ class ERExtractor:
         *,
         include_question_ambiguity: bool = False,
     ) -> dict[str, Any]:
-        sanitized = dict(subproblem_analysis)
+        sanitized = _drop_er_extraction_excluded_fields(subproblem_analysis)
         raw_items = subproblem_analysis.get("resolve_process")
         if not isinstance(raw_items, list):
             return sanitized
@@ -528,6 +565,9 @@ class ERExtractor:
                     "id": str(item.get("id") or f"SQ{index}").strip() or f"SQ{index}",
                     "question": question,
                 }
+                for ambiguity_key in ("ambiguity", "ambiguity_type", "ambiguity_types"):
+                    if ambiguity_key in item:
+                        payload[ambiguity_key] = item[ambiguity_key]
                 logic_branches = item.get("logic_branches")
                 if isinstance(logic_branches, list):
                     payload["logic_branches"] = _sanitize_logic_branches(
@@ -570,12 +610,20 @@ class ERExtractor:
         self.build_prompt.register_template(
             name="step_2_extract_er",
             template_name=self.prompt_template_name,
-            required_vars=["subproblem_analysis"],
+            required_vars=["user_intent", "subproblem_analysis"],
+            default_vars={"external_knowledge": ""},
             description="Extract base logical ER units from the resolved subproblem sequence.",
+        )
+        external_knowledge = (
+            self.input_payload.external_knowledge
+            if self.include_external_knowledge
+            else ""
         )
         prompt = self.build_prompt.build_text(
             "step_2_extract_er",
             vars={
+                "user_intent": self.input_payload.user_intent,
+                "external_knowledge": external_knowledge,
                 "subproblem_analysis": self._format_subproblem_analysis(
                     er_subproblem_analysis
                 ),
@@ -645,6 +693,7 @@ class NL2ERHypothesisRunner_2:
         prompt_template_name: str = PROMPT_TEMPLATE_NAME,
         question_resolver_template_name: str = QUESTION_RESOLVER_TEMPLATE_NAME,
         include_question_ambiguity_in_er_extract: bool = False,
+        include_external_knowledge_in_er_extract: bool = False,
     ) -> None:
         self.prompt_dir = Path(prompt_dir)
         self.log_dir = Path(log_dir)
@@ -656,6 +705,9 @@ class NL2ERHypothesisRunner_2:
         self.question_resolver_template_name = str(question_resolver_template_name).strip()
         self.include_question_ambiguity_in_er_extract = bool(
             include_question_ambiguity_in_er_extract
+        )
+        self.include_external_knowledge_in_er_extract = bool(
+            include_external_knowledge_in_er_extract
         )
         if not self.prompt_template_name:
             raise ValueError("`prompt_template_name` must not be empty.")
@@ -687,6 +739,7 @@ class NL2ERHypothesisRunner_2:
             reasoning_mode=self.reasoning_mode,
             prompt_template_name=self.prompt_template_name,
             include_question_ambiguity=self.include_question_ambiguity_in_er_extract,
+            include_external_knowledge=self.include_external_knowledge_in_er_extract,
             llm=self.llm,
             prompt_builder=self.build_prompt,
         )
@@ -763,6 +816,11 @@ def parse_args() -> argparse.Namespace:
         action="store_true",
         help="Pass question_resolve ambiguity fields into the ER extraction prompt.",
     )
+    parser.add_argument(
+        "--include-external-knowledge-in-er-extract",
+        action="store_true",
+        help="Pass input external_knowledge into the ER extraction prompt.",
+    )
     parser.add_argument("--log-dir", type=Path, default=None)
     parser.add_argument("--log-root", type=Path, default=DEFAULT_LOG_ROOT)
     parser.add_argument("--metadata-dir", type=Path, default=None)
@@ -824,6 +882,10 @@ def main() -> None:
         "[NL2ER-HYPO] include_question_ambiguity_in_er_extract="
         f"{bool(args.include_question_ambiguity_in_er_extract)}"
     )
+    print(
+        "[NL2ER-HYPO] include_external_knowledge_in_er_extract="
+        f"{bool(args.include_external_knowledge_in_er_extract)}"
+    )
     if args.reasoning_mode:
         print(f"[NL2ER-HYPO] reasoning_mode={args.reasoning_mode}")
 
@@ -837,6 +899,9 @@ def main() -> None:
         question_resolver_template_name=args.question_resolver_template_name,
         include_question_ambiguity_in_er_extract=(
             args.include_question_ambiguity_in_er_extract
+        ),
+        include_external_knowledge_in_er_extract=(
+            args.include_external_knowledge_in_er_extract
         ),
     )
     payload = runner.run()

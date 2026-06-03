@@ -226,6 +226,11 @@ def run_nl2er_case(
             "include_question_ambiguity_in_er_extract",
             False,
         ),
+        include_external_knowledge_in_er_extract=getattr(
+            args,
+            "include_external_knowledge_in_er_extract",
+            False,
+        ),
     )
     payload = runner.run()
     result = enrich_nl2er_payload(dict(payload["result"]), case.input_payload)
